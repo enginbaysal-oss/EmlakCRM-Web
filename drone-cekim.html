@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Drone Çekim • EmlakCRM</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.2/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css">
 <style>
 :root{color-scheme:dark;font:15px system-ui,Segoe UI,Arial,sans-serif;background:#091827;color:#f1f7fd}
@@ -928,8 +928,8 @@ function start3DMap(provider="esri"){
 function loadMapLibre(){
  if(window.maplibregl){start3DMap("esri");return}
  const cdns=[
-  "https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.js",
-  "https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.js"
+  "https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js",
+  "https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.2/dist/maplibre-gl.js"
  ];
  function next(){
   if(window.maplibregl){start3DMap("esri");return}
