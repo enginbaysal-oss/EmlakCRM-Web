@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmlakCRM | Giriş ve Kayıt Tasarımı</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f8;color:#19344e;font:15px system-ui,'Segoe UI',sans-serif;min-height:100vh;display:grid;place-items:center;padding:18px}
+.shell{width:min(920px,100%);display:grid;grid-template-columns:1fr 1fr;background:white;border-radius:22px;overflow:hidden;box-shadow:0 16px 50px #14365722}
+.hero{background:linear-gradient(145deg,#0e2e53,#176678);color:white;padding:38px;display:flex;flex-direction:column;justify-content:space-between;min-height:520px}
+.brand{font-size:27px;font-weight:800}.brand span{color:#57dbd0}.hero h1{font-size:32px;line-height:1.18}.hero p{color:#d5e9f0;line-height:1.6}.chip{display:inline-block;background:#ffffff1c;border:1px solid #ffffff44;padding:9px 13px;border-radius:25px}
+.formarea{padding:34px}.tabs{display:flex;background:#eef4f8;border-radius:12px;padding:4px;gap:4px}.tabs button{flex:1;border:0;border-radius:9px;background:transparent;color:#476176;padding:11px;font-weight:750;cursor:pointer}.tabs button.active{background:white;color:#103d5d;box-shadow:0 2px 10px #13344b22}
+h2{margin:22px 0 6px}.sub{color:#647c90;font-size:13px;margin:0 0 20px}label{display:block;font-size:13px;font-weight:650;margin:13px 0 5px}
+input,select{width:100%;border:1px solid #cbdce6;border-radius:10px;padding:12px;background:#fff;font:inherit;color:#203b50}
+input:focus,select:focus{outline:2px solid #63c9cb;border-color:#167c91}
+.primary{background:#117e91;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:750;width:100%;margin-top:20px;cursor:pointer}
+.hide{display:none}.notice{background:#fff6e2;color:#6f5424;padding:13px;border-radius:10px;font-size:12px;line-height:1.55;margin-top:18px}.result{margin-top:12px;color:#0c6174;font-weight:650;font-size:13px}
+@media(max-width:690px){.shell{grid-template-columns:1fr}.hero{min-height:unset;padding:22px}.hero h1{font-size:24px;margin:12px 0}.hero p{margin:0}.formarea{padding:23px}}
+.back-link{display:inline-block;color:#126f84;text-decoration:none;font-size:13px;font-weight:700;margin-bottom:16px}.back-link:hover{text-decoration:underline}
+.secondaryAction{display:block;margin:12px auto 0;padding:8px 12px;border:none;background:transparent;color:#136d87;font-weight:700;cursor:pointer}.result.error{color:#ab263d}.result.success{color:#176c52}
+</style></head><body><main class="shell">
+<section class="hero"><div><div class="brand">◆ Emlak<span>CRM</span></div><h1>Gayrimenkul işlerinizi tek yerden yönetin.</h1><p>Müşteriler, ajanda, ofis yönetimi ve profesyonel emlak araçları.</p></div><div><span class="chip">🔒 Güvenli hesap girişi</span></div></section>
+<section class="formarea">
+<a class="back-link" href="index.html">← CRM paneline dön</a><div class="tabs"><button id="loginTab" class="active" type="button">Giriş Yap</button><button id="registerTab" type="button">Hesap Oluştur</button></div>
+<h2 id="heading">Tekrar hoş geldiniz</h2><p class="sub" id="subheading">Hesabınıza giriş için kullanılacak ekranın önizlemesi.</p>
+<form id="authForm">
+<div id="registerFields" class="hide">
+<label for="fullName">Ad soyad</label><input id="fullName" autocomplete="name" maxlength="100">
+<label for="membership">Çalışma şekli</label><select id="membership"><option value="independent">Bağımsız danışman</option><option value="office">Bir emlak ofisine bağlıyım</option><option value="owner">Ofis yöneticisiyim</option></select>
+<div id="officeField" class="hide"><label for="officeName">Ofis adı (başvuru bilgisi)</label><input id="officeName" maxlength="100"></div>
+</div>
+<label for="email">E-posta</label><input id="email" type="email" autocomplete="email" required>
+<label for="password">Şifre</label><input id="password" type="password" minlength="8" autocomplete="current-password" required><div id="confirmField" class="hide"><label for="confirmPassword">Şifre tekrar</label><input id="confirmPassword" type="password" minlength="8" autocomplete="new-password"></div>
+<button class="primary" id="submitButton" type="submit">Giriş Yap</button><button class="secondaryAction" type="button" id="forgotPassword">Şifremi unuttum</button>
+</form><div id="result" class="result" role="status" aria-live="polite"></div>
+<p class="notice" id="authNotice"><b>Bilgi:</b> Kullanıcı kaydı ve giriş Supabase üzerinde yapılır. Müşteri ve portföy verileri henüz hesaba bağlı değildir, bu tarayıcıda kalır. Ofis yöneticisi seçimi yetki vermez; abonelik ve ödeme sistemi aktif değildir.</p>
+</section></main><script>
+
+"use strict";
+const AUTH_URL="https://tffvwxskvjuxoekwgdef.supabase.co/auth/v1";
+const PUBLIC_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const SESSION_KEY="emlakcrm_auth_session_v1";
+const $=id=>document.getElementById(id);
+let mode="login";
+function report(message,isError=false){$("result").textContent=message;$("result").className="result"+(isError?" error":" success");}
+async function api(route,payload){
+ const res=await fetch(AUTH_URL+route,{method:"POST",headers:{"apikey":PUBLIC_KEY,"Content-Type":"application/json"},body:JSON.stringify(payload)});
+ const data=await res.json().catch(()=>({}));
+ if(!res.ok)throw Error(data.msg||data.error_description||data.message||data.error||"Sunucu hatası "+res.status);
+ return data;
+}
+function draw(){
+ const reg=mode==="register";
+ $("registerFields").classList.toggle("hide",!reg);
+ $("confirmField").classList.toggle("hide",!reg);
+ $("confirmPassword").required=reg;
+ $("forgotPassword").classList.toggle("hide",reg);
+ $("loginTab").classList.toggle("active",!reg);
+ $("registerTab").classList.toggle("active",reg);
+ $("heading").textContent=reg?"Yeni hesabınızı oluşturun":"Tekrar hoş geldiniz";
+ $("subheading").textContent=reg?"E-posta ile hesap oluşturun":"E-posta ve şifrenizle giriş yapın";
+ $("submitButton").textContent=reg?"Hesap Oluştur":"Giriş Yap";
+ $("password").autocomplete=reg?"new-password":"current-password";
+ $("fullName").required=reg;
+ $("result").textContent="";
+}
+$("loginTab").onclick=()=>{mode="login";draw()};
+$("registerTab").onclick=()=>{mode="register";draw()};
+$("membership").onchange=()=>{$("officeField").classList.toggle("hide",$("membership").value==="independent")};
+$("authForm").onsubmit=async e=>{
+ e.preventDefault();
+ const btn=$("submitButton"),email=$("email").value.trim(),password=$("password").value;
+ if(mode==="register"&&password!==$("confirmPassword").value){report("Şifreler eşleşmiyor.",true);return}
+ btn.disabled=true;btn.textContent="İşleniyor...";
+ try{
+  let data;
+  if(mode==="register"){
+    data=await api("/signup",{email,password,data:{app:"EmlakCRM",full_name:$("fullName").value.trim(),membership:$("membership").value,office_name:$("officeName").value.trim()}});
+    if(!data.access_token){report("Kayıt isteği alındı. E-posta doğrulama bağlantısını kontrol edin.");return}
+  }else{
+    data=await api("/token?grant_type=password",{email,password});
+  }
+  if(!data.access_token||!data.refresh_token)throw Error("Giriş oturumu oluşturulamadı.");
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify({access_token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(data.expires_in||3600)*1000,email:data.user?.email||email}));
+  location.href="index.html#account";
+ }catch(err){report("İşlem tamamlanamadı: "+err.message,true)}
+ finally{btn.disabled=false;btn.textContent=mode==="register"?"Hesap Oluştur":"Giriş Yap";$("password").value="";$("confirmPassword").value=""}
+};
+$("forgotPassword").onclick=async()=>{
+ const email=$("email").value.trim();
+ if(!email||!$("email").checkValidity()){report("Önce geçerli e-posta adresinizi yazın.",true);return}
+ try{await api("/recover",{email});report("Şifre yenileme e-postası gönderildiyse gelen kutunuza ulaşacaktır.")}
+ catch(err){report("İstek başarısız: "+err.message,true)}
+};
+draw();
+
+</script></body></html>
