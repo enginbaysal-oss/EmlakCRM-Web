@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Drone Çekim • EmlakCRM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css">
+<style>
+:root{color-scheme:dark;font:15px system-ui,Segoe UI,Arial,sans-serif;background:#091827;color:#f1f7fd}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#map{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#24465c,#071523)}
+.rasterMap{position:absolute;inset:0;z-index:1;overflow:hidden;background:#122c41}.rasterMap[hidden]{display:none!important}.rasterCamera{position:absolute;top:50%;left:50%;width:0;height:0;transform-origin:0 0;will-change:transform}.rasterScene{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}.rasterScene img{position:absolute;width:256px;height:256px;max-width:none;display:block;pointer-events:none}.rasterScene svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}.rasterUnderlay{z-index:0}.rasterScene:not(.rasterUnderlay){z-index:1}
+.placeHint{display:block;font-size:11px;color:#c8e0ed;margin-top:5px}.placeRetry{border:0;padding:1px 5px;margin-left:4px;color:#6de8d1;background:transparent;font:600 11px system-ui;cursor:pointer;text-decoration:underline}
+.placeHint{margin:3px 0 0;color:#9bd4df;font-size:11px}
+body.recording-clean header,body.recording-clean .panel,body.recording-clean .notice,body.recording-clean .maplibregl-ctrl-top-right,body.recording-clean .maplibregl-ctrl-bottom-left{display:none!important}.rasterCredit{position:absolute;bottom:3px;right:7px;color:#fff;background:#061927c9;padding:4px 7px;font-size:10px;border-radius:5px;z-index:2}.fallbackMap{position:absolute;inset:0;z-index:1;background:radial-gradient(circle at 55% 43%,#20415b,#081826);background-image:linear-gradient(#44aac51f 1px,transparent 1px),linear-gradient(90deg,#44aac51f 1px,transparent 1px),radial-gradient(circle at 55% 43%,#20415b,#081826);background-size:38px 38px,38px 38px,auto;display:grid;place-items:center;pointer-events:none}
+.fallbackMap[hidden]{display:none!important}
+.fallbackMap svg{width:100%;height:100%}
+.fallbackMap small{position:absolute;top:138px;left:20px;color:#a1eedd;font-size:12px;background:#072333c9;padding:8px 10px;border-radius:9px}
+
+header{position:absolute;z-index:10;top:12px;left:12px;right:12px;display:flex;align-items:center;gap:10px;justify-content:space-between;pointer-events:none}
+.brand,.panel,.notice{background:#0b2034ed;border:1px solid #57849d66;box-shadow:0 12px 42px #0006;backdrop-filter:blur(12px);border-radius:15px}
+.brand{padding:10px 13px;display:flex;gap:10px;align-items:center;pointer-events:auto;min-width:0}
+.brand strong{display:block;font-size:16px}.brand small{color:#b9d3df;font-size:11px}
+.back{background:#234a65;color:#fff;border-radius:10px;padding:11px 13px;text-decoration:none;font-weight:650;pointer-events:auto;white-space:nowrap}
+.panel{position:absolute;z-index:9;bottom:18px;left:18px;width:min(356px,calc(100vw - 36px));padding:16px}
+.panel h1{font-size:18px;margin:0 0 4px}.muted{color:#b8d0dc;font-size:12px;line-height:1.5;margin:0 0 12px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+button,.fileButton{border:1px solid #4c788e;background:#234960;color:#fff;padding:10px 11px;border-radius:10px;font:600 13px system-ui;cursor:pointer;text-align:center;text-decoration:none}
+button:hover,.fileButton:hover{filter:brightness(1.16)}
+button:focus-visible,a:focus-visible,input:focus-visible,.fileButton:focus-visible{outline:3px solid #76eaff;outline-offset:2px}
+button:disabled{opacity:.43;cursor:not-allowed}
+.primary{background:#008b89;border-color:#3ce2cc}.danger{background:#7b3141;border-color:#b45f72}
+.wide{grid-column:span 2}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+input[type=range]{width:100%;accent-color:#2ee8bd}
+.rangeLabel{display:flex;justify-content:space-between;font-size:12px;color:#d2e5ee;font-weight:600;margin-top:12px}
+.note{margin:10px 0 0;color:#b4cbd5;font-size:11px;line-height:1.45}
+.notice{position:absolute;z-index:9;top:78px;right:14px;width:min(335px,calc(100vw - 28px));padding:10px 13px;font-size:12px;line-height:1.5}
+.notice b{display:block;color:#56f0cb;margin-bottom:3px}
+.maplibregl-ctrl-attrib,.mapboxgl-ctrl-attrib{font-size:10px!important}
+body.recording-clean .mapboxgl-ctrl-top-right{display:none!important}
+/* Mapbox lisans/atıf alanları video kaydında da görünür kalır. */
+@media(max-width:700px){
+header{top:8px;left:9px;right:9px}.brand{padding:9px}.brand strong{font-size:14px}
+.brand small{font-size:10px}.back{padding:10px;font-size:12px}
+.notice{top:73px;right:9px;width:min(280px,calc(100vw - 18px));padding:8px 10px}
+.panel{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:auto;padding:12px}
+.panel h1{font-size:15px}.muted{margin-bottom:5px}
+.actions{gap:6px;margin:7px 0}.actions button,.fileButton{padding:9px 6px;font-size:12px}
+.rangeLabel{margin-top:6px}.note{font-size:10px;margin-top:6px}
+}
+
+/* Eski Arsa Takip senaryosunu profesyonel alt bant ile birlestir. */
+#captionEditor[hidden],#droneSubtitle[hidden]{display:none!important}
+.captionEditor{position:absolute;z-index:13;right:16px;top:126px;width:min(450px,calc(100vw - 28px));max-height:calc(100vh - 145px);overflow-y:auto;border:1px solid #73b6c977;background:linear-gradient(160deg,#142c42f7,#081828fa);box-shadow:0 28px 65px #000a;border-radius:18px;padding:17px;backdrop-filter:blur(18px)}
+.captionHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;margin-bottom:12px}
+.captionHeader h2{font-size:18px;margin:3px 0 5px}
+.captionHeader p{font-size:12px;line-height:1.5;color:#bbd5e2;margin:0}
+.captionEyebrow{font:750 10px/1.4 system-ui;letter-spacing:.19em;color:#6cf2d1}
+.captionClose{min-width:38px;width:38px;padding:8px;background:#244257}
+.captionRows{display:grid;gap:9px}
+.captionRow{border:1px solid #456579;background:#142a3a;border-radius:12px;padding:10px;display:grid;gap:8px}
+.captionRowTop{display:grid;grid-template-columns:70px minmax(0,1fr) 34px;gap:7px;align-items:end}
+.captionRowBottom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:end}
+.captionRow label{font-size:10px;color:#c4dfeb;display:block}
+.captionRow input{display:block;width:100%;min-width:0;padding:9px 8px;margin-top:5px;border:1px solid #59768a;border-radius:8px;background:#071a29;color:white;font:500 13px system-ui}
+.captionRow input:focus{outline:2px solid #33d2b9}
+.captionRemove{background:#552d3b;border-color:#9f6670;padding:8px}
+.captionPreview{padding:8px 10px;white-space:nowrap;font-size:11px}
+.captionFooter{display:flex;gap:8px;margin-top:12px}
+.captionFooter button{flex:1}
+.captionTip{font-size:11px;color:#a9c7d5;line-height:1.5;margin:10px 0 0}
+#droneSubtitle{position:absolute;left:50%;bottom:8%;z-index:7;width:min(850px,calc(100vw - 36px));pointer-events:none;opacity:0;transform:translate(-50%,20px);transition:opacity .42s ease,transform .42s cubic-bezier(.2,.85,.25,1)}
+#droneSubtitle.is-visible{opacity:1;transform:translate(-50%,0)}
+.droneTitleBox{background:linear-gradient(95deg,#071725f0,#082337e5 75%,#071725a8);border:1px solid #aadcf333;border-left:4px solid #51e0ca;box-shadow:0 14px 38px #000a;backdrop-filter:blur(10px);border-radius:7px 14px 14px 7px;padding:16px 24px}
+
+.droneTitleMain{font:750 clamp(22px,3vw,36px)/1.13 system-ui,Segoe UI,Arial,sans-serif;color:white;overflow-wrap:anywhere;text-shadow:0 2px 4px #0009}
+.droneTitleSub{font:500 clamp(12px,1.5vw,18px)/1.35 system-ui,Segoe UI,Arial,sans-serif;color:#e3f5fb;margin-top:7px;overflow-wrap:anywhere}
+.droneTitleSub[hidden]{display:none!important}
+body.flight-active .panel{display:none!important}
+body.recording-clean .captionEditor{display:none!important}
+#flightPauseFloating{position:absolute;z-index:12;top:18px;right:18px;background:#071827db;border:1px solid #7bbacfba;box-shadow:0 7px 28px #0008;backdrop-filter:blur(10px);padding:11px 17px}
+#flightPauseFloating[hidden],body.recording-clean #flightPauseFloating{display:none!important}
+@media(max-width:700px){#flightPauseFloating{top:66px;right:10px;padding:9px 12px}}
+@media(max-width:700px){.captionEditor{inset:57px 8px auto 8px;width:auto;max-height:calc(100vh - 70px);padding:12px}#droneSubtitle{bottom:11%;width:calc(100vw - 24px)}.droneTitleBox{padding:12px 15px}}
+</style>
+</head>
+<body>
+<div id="map" aria-label="Uydu görüntüsü ve üç boyutlu arazi haritası"></div>
+<div class="rasterMap" id="rasterMap" hidden aria-label="Kütüphane gerekmeden yüklenen gerçek uydu haritası"><div class="rasterCamera" id="rasterCamera"><div class="rasterScene rasterUnderlay" id="rasterUnderlay" aria-hidden="true"></div><div class="rasterScene" id="rasterScene"></div></div><div class="rasterCredit" id="rasterCredit">Uydu görüntüleri © Esri ve katkıda bulunanlar</div></div>
+<div class="fallbackMap" id="fallbackMap" aria-label="Parsel sınırlarının uydu görüntüsü olmadan önizlemesi">
+<svg id="fallbackSvg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+<small>Parsel önizlemesi • Uydu görüntüsü değil</small></div>
+<button id="flightPauseFloating" type="button" hidden title="Uçuşu duraklat">⏸ Duraklat</button>
+<div id="droneSubtitle" aria-live="off" hidden><div class="droneTitleBox"><div id="droneSubtitleTitle" class="droneTitleMain"></div><div id="droneSubtitleDescription" class="droneTitleSub" hidden></div></div></div>
+<header>
+<div class="brand"><span style="font-size:25px">🚁</span><div><strong>Drone Çekim</strong><small>EmlakCRM • Sanal 3D parsel turu</small></div></div>
+<a class="back" href="index.html">← Ana Sayfa</a>
+</header>
+<div class="notice" aria-live="polite"><b id="parcelName">Örnek parsel</b><span id="status">Harita yükleniyor…</span><span class="placeHint" id="placeStatus">Harita sağlayıcısı: Mapbox uydu (Arsa Takip) tercih edilir</span></div>
+<section class="panel" aria-label="Drone çekim kontrolleri">
+<h1>Parsel üzerinde sinematik uçuş</h1>
+<p class="muted">Önce düz yaklaşma, belirli yükseklikte tek 360° çevre turu, ardından yakın plan. Parsel şeffaf kırmızı dolguyla işaretlenir; resmi kadastro sınırı değildir.</p>
+<div class="actions">
+<button id="example" type="button">📍 Örnek parsel</button>
+<button id="tkgm" type="button">🔎 TKGM Parsel Sorgu</button>
+<label for="parcelFile" class="fileButton" role="button" tabindex="0" id="fileLabel">📁 GeoJSON / KML yükle</label>
+<button id="fileHelp" type="button">📥 Dosyayı buraya sürükle</button>
+<input id="parcelFile" type="file" accept=".json,.geojson,.kml,application/json,application/geo+json,application/vnd.google-earth.kml+xml">
+<button id="fly" class="primary" type="button" disabled>▶ Uçuşu başlat</button>
+<button id="pause" type="button" disabled>⏸ Duraklat</button>
+<button id="reset" type="button" disabled>↺ Kamerayı sıfırla</button>
+<button id="record" type="button">● Video kaydet</button>
+<button id="editCaptions" type="button">✎ Video yazılarını düzenle</button>
+<button id="stopRecord" class="danger wide" type="button" hidden>■ Kaydı bitir ve videoyu indir</button>
+</div>
+<div class="rangeLabel"><label for="pitch">Kamera açısı</label><output id="pitchOutput">75°</output></div>
+<input type="range" id="pitch" min="30" max="80" value="75">
+<div class="rangeLabel"><label for="duration">Tur süresi</label><output id="durationOutput">60 sn</output></div>
+<input type="range" id="duration" min="40" max="120" step="5" value="60">
+<p class="note">📍 TKGM’de parseli açıp GeoJSON/KML dosyasını indir; dosyayı burada seç veya sürükle. Web tarayıcısı TKGM’den otomatik dosya alamaz. Video için “Video kaydet” → “Bu sekme”yi seç; sadece harita kaydedilir. Kayıt uçuş bitmeden yaklaşık 1,2 saniye önce kesilir; erken bitirmek için Esc. Harita önce eski Arsa Takip'teki Mapbox uydu/3D katmanını açmayı dener; ulaşılamazsa Esri yedek görüntüsü kullanılır. Harita sağlayıcısı internet erişimi gerektirir.</p>
+</section>
+<aside class="captionEditor" id="captionEditor" hidden aria-label="Sinematik senaryo">
+<div class="captionHeader"><div><span class="captionEyebrow">SİNEMATİK SENARYO</span><h2>Videodaki yazılar</h2><p>Her yazının başlayacağı saniyeyi belirle. Yeni bir yazı gelince öncekisi değişir.</p></div><button id="closeCaptionEditor" class="captionClose" type="button" aria-label="Editörü kapat">✕</button></div>
+<div class="captionRows" id="captionRows"></div>
+<div class="captionFooter"><button id="addCaption" type="button">+ Yeni yazı</button><button class="primary" id="saveCaptions" type="button">✓ Kaydet</button></div>
+<p class="captionTip">İstersen ana başlık ve kısa açıklama ekle. Alt bant, çekim sırasında haritanın üzerinde görünür ve video kaydına girer. Önizleme ile yazıyı kontrol edebilirsin.</p>
+</aside>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+// Arsa Takip'teki saniyeli baslik senaryosu.
+let captionRows=[{sec:2,title:"",description:""},{sec:10,title:"",description:""}];
+let captionSchedule=[],captionCurrent=null,captionPreviewing=false,captionPreviewTimer=null;
+const captionStorageKey="emlakcrm_drone_caption_cues_v1";
+function restoreCaptionRows(){
+ try{
+  const parsed=JSON.parse(localStorage.getItem(captionStorageKey)||"null");
+  if(Array.isArray(parsed)&&parsed.length<=30)return parsed.filter(x=>x&&typeof x==="object").map(x=>({
+   sec:Math.max(0,Math.min(120,Number(x.sec)||0)),
+   title:String(x.title||"").slice(0,140),
+   description:String(x.description||"").slice(0,200)
+  }));
+ }catch(_){}
+ return null;
+}
+function persistCaptionRows(){
+ try{localStorage.setItem(captionStorageKey,JSON.stringify(captionRows))}catch(_){}
+}
+function captionInput(kind,value,placeholder,max,c){
+ const input=document.createElement("input");input.type=kind;input.value=value;input.placeholder=placeholder;
+ if(kind==="number"){input.min="0";input.max=$("duration").value;input.step="1"}
+ else input.maxLength=max;
+ input.addEventListener("input",()=>{c[kind==="number"?"sec":max===140?"title":"description"]=input.value});
+ return input;
+}
+function makeCaptionRow(c,index){
+ const card=document.createElement("div");card.className="captionRow";
+ const top=document.createElement("div");top.className="captionRowTop";
+ function labeled(label,input){const wrap=document.createElement("label");wrap.append(label,input);return wrap}
+ top.appendChild(labeled("Saniye",captionInput("number",c.sec,"2",3,c)));
+ top.appendChild(labeled("Ana başlık",captionInput("text",c.title,"Ör. Doğayla iç içe yaşam",140,c)));
+ const remove=document.createElement("button");remove.type="button";remove.className="captionRemove";remove.textContent="×";remove.title="Sil";remove.setAttribute("aria-label",(index+1)+". yazıyı sil");
+ remove.addEventListener("click",()=>{captionRows.splice(index,1);renderCaptionEditor()});
+ top.appendChild(remove);card.appendChild(top);
+ const bottom=document.createElement("div");bottom.className="captionRowBottom";
+ bottom.appendChild(labeled("Kısa açıklama (isteğe bağlı)",captionInput("text",c.description,"Ör. Muhteşem doğa manzarası",200,c)));
+ const preview=document.createElement("button");preview.type="button";preview.className="captionPreview";preview.textContent="▶ Önizle";
+ preview.addEventListener("click",()=>{
+  const title=String(c.title||"").trim();
+  if(!title){status("Önizleme için başlık giriniz.");return}
+  $("captionEditor").hidden=true;
+  captionPreviewing=true;
+  showCaption({sec:Number(c.sec)||0,title,description:String(c.description||"").trim()},true);
+  clearTimeout(captionPreviewTimer);
+  captionPreviewTimer=setTimeout(()=>{captionPreviewing=false;if(!flying)hideCaption()},4500);
+ });
+ bottom.appendChild(preview);card.appendChild(bottom);
+ return card;
+}
+function renderCaptionEditor(){
+ $("captionRows").replaceChildren(...captionRows.map(makeCaptionRow));
+}
+function collectCaptionSchedule(){
+ const duration=Number($("duration").value)||60;
+ return captionRows.map(c=>({
+  sec:Number(c.sec),title:String(c.title||"").trim().slice(0,140),description:String(c.description||"").trim().slice(0,200)
+ })).filter(c=>Number.isFinite(c.sec)&&c.sec>=0&&c.sec<=duration&&c.title)
+   .sort((a,b)=>a.sec-b.sec);
+}
+function hideCaption(){
+ const layer=$("droneSubtitle");layer.classList.remove("is-visible");layer.hidden=true;captionCurrent=null;
+}
+function showCaption(c,force=false){
+ const key=c.sec+"|"+c.title+"|"+c.description;
+ if(!force&&captionCurrent===key)return;
+ captionCurrent=key;
+ $("droneSubtitleTitle").textContent=c.title;
+ const sub=$("droneSubtitleDescription");sub.textContent=c.description;sub.hidden=!c.description;
+ const layer=$("droneSubtitle");
+ layer.classList.remove("is-visible");
+ layer.hidden=false;
+ void layer.offsetHeight;
+ layer.classList.add("is-visible");
+}
+function updateCaptionAtElapsed(seconds){
+ if(!captionSchedule.length){hideCaption();return}
+ let active=null;
+ for(const c of captionSchedule)if(seconds>=c.sec)active=c;else break;
+ if(active)showCaption(active);
+ else if(captionCurrent!==null)hideCaption();
+}
+function beginCaptionFlight(){
+ clearTimeout(captionPreviewTimer);
+ captionPreviewing=false;
+ captionSchedule=collectCaptionSchedule();
+ persistCaptionRows();
+ $("captionEditor").hidden=true;
+ hideCaption();
+ updateCaptionAtElapsed(progress*Number($("duration").value));
+}
+$("editCaptions").addEventListener("click",()=>{$("captionEditor").hidden=!$("captionEditor").hidden;if(!$("captionEditor").hidden)renderCaptionEditor()});
+$("closeCaptionEditor").addEventListener("click",()=>{$("captionEditor").hidden=true});
+$("addCaption").addEventListener("click",()=>{
+ const last=captionRows.at(-1),sec=Math.min(Number($("duration").value)||60,Math.max(0,(Number(last?.sec)||0)+8));
+ captionRows.push({sec,title:"",description:""});
+ renderCaptionEditor();
+ $("captionEditor").scrollTop=$("captionEditor").scrollHeight;
+});
+$("saveCaptions").addEventListener("click",()=>{
+ captionSchedule=collectCaptionSchedule();
+ persistCaptionRows();
+ $("captionEditor").hidden=true;
+ status(captionSchedule.length?captionSchedule.length+" video yazısı kaydedildi. Uçuşa ve videoya hazır.":"Boş senaryo kaydedildi. Video yazısız devam edecek.");
+});
+captionRows=restoreCaptionRows()||captionRows;
+const exampleParcel={type:"FeatureCollection",features:[{type:"Feature",properties:{name:"Örnek parsel — Manisa (temsili)"},geometry:{type:"Polygon",coordinates:[[[27.43210,38.61165],[27.43290,38.61165],[27.43303,38.61219],[27.43221,38.61224],[27.43210,38.61165]]]}}]};
+let map=null,mapReady=false,parcel=exampleParcel,parcelCenter=[27.43256,38.61195],parcelBounds=null;
+let orbitZoom=16,flying=false,progress=0,frame=0,recording=null;
+// Eski Arsa Takip'teki Mapbox SADECE PUBLIC token'u; sk. gizli sunucu anahtari yoktur.
+// Mapbox alan-adi kisitlamalari ve kullanım maliyetleri uygulama yayininda dogrulanmali.
+const MAPBOX_PUBLIC_TOKEN="";
+let mapProvider="loading",mapEpoch=0;
+let nativeReady=false, nativeState={center:[...parcelCenter],zoom:17,bearing:0,pitch:50,flightScale:1.12,tileRadius:null,baseX:0,baseY:0,tileAnchorX:null,tileAnchorY:null,tiles:new Map(),fallbackOSM:false,displayedZoom:null,underlayZoom:null,underlayBaseX:0,underlayBaseY:0};
+function status(message){$("status").textContent=message}
+function nameParcel(name){$("parcelName").textContent=name}
+function setButtons(){
+ const enabled=!!mapReady||nativeReady;
+ $("fly").disabled=!enabled||flying;$("pause").disabled=!enabled||!flying;$("reset").disabled=!enabled;
+ document.body.classList.toggle("flight-active",flying);
+ $("flightPauseFloating").hidden=!flying;
+}
+function ring(input){
+ if(!Array.isArray(input)||input.length<4||input.length>20000)throw Error("Geçersiz veya çok büyük parsel halkası.");
+ const pts=input.map(c=>{const lon=Number(c?.[0]),lat=Number(c?.[1]);if(!Number.isFinite(lon)||!Number.isFinite(lat)||Math.abs(lon)>180||Math.abs(lat)>85)throw Error("Koordinatları WGS84 boylam/enlem olmalıdır.");return [lon,lat]});
+ if(pts[0][0]!==pts.at(-1)[0]||pts[0][1]!==pts.at(-1)[1])pts.push([...pts[0]]);
+ return pts;
+}
+function polygonGeometry(g){
+ if(!g||!["Polygon","MultiPolygon"].includes(g.type))return null;
+ if(g.type==="Polygon"){if(!Array.isArray(g.coordinates)||!g.coordinates.length)throw Error("Poligon koordinatları eksik.");return{type:"Polygon",coordinates:g.coordinates.map(ring)}}
+ if(!Array.isArray(g.coordinates)||!g.coordinates.length)throw Error("Çoklu poligon boş.");
+ return{type:"MultiPolygon",coordinates:g.coordinates.map(poly=>poly.map(ring))};
+}
+function normalizeGeoJSON(input){
+ if(typeof input!=="object"||!input)throw Error("Geçerli GeoJSON bulunamadı.");
+ for(let depth=0;depth<4;depth++){
+  if(input.type||Array.isArray(input))break;
+  const nested=input.data||input.geojson||input.feature||input.geometry;
+  if(!nested||nested===input)break;
+  input=nested;
+ }
+ const source=Array.isArray(input)?input:input.type==="FeatureCollection"?input.features:input.type==="Feature"?[input]:[{type:"Feature",geometry:input,properties:{}}];
+ if(!Array.isArray(source)||source.length>300)throw Error("En fazla 300 parsel yükleyebilirsiniz.");
+ const features=[];
+ let points=0;
+ for(const feature of source){
+  const geometry=polygonGeometry(feature?.geometry);
+  if(!geometry)continue;
+  function countCoords(coords){if(typeof coords[0]==="number"){points++;return}for(const sub of coords)countCoords(sub)}
+  countCoords(geometry.coordinates);
+  if(points>20000)throw Error("Dosya 20.000 koordinat sınırını aşıyor.");
+  features.push({type:"Feature",geometry,properties:{name:String(feature.properties?.name||"Yüklenen parsel").slice(0,90)}});
+ }
+ if(!features.length)throw Error("Dosyada Polygon veya MultiPolygon sınırı bulunamadı.");
+ return{type:"FeatureCollection",features};
+}
+function parseKml(xml){
+ const doc=new DOMParser().parseFromString(xml,"application/xml");
+ if(doc.querySelector("parsererror"))throw Error("KML dosyası okunamadı.");
+ const polygons=Array.from(doc.getElementsByTagNameNS("*","Polygon"));
+ if(polygons.length>300)throw Error("En fazla 300 parsel yükleyebilirsiniz.");
+ const features=polygons.map(p=>{
+  const outer=p.getElementsByTagNameNS("*","outerBoundaryIs")[0];
+  const text=(outer||p).getElementsByTagNameNS("*","coordinates")[0]?.textContent||"";
+  const coords=text.trim().split(/\s+/).map(x=>x.split(",").slice(0,2).map(Number));
+  return{type:"Feature",properties:{name:"KML parseli"},geometry:{type:"Polygon",coordinates:[coords]}};
+ });
+ return normalizeGeoJSON({type:"FeatureCollection",features});
+}
+function coordinateStats(geo){
+ const coords=[];
+ function collect(c){if(Array.isArray(c)&&typeof c[0]==="number"){coords.push(c);return}if(Array.isArray(c))c.forEach(collect)}
+ geo.features.forEach(f=>collect(f.geometry.coordinates));
+ if(!coords.length)throw Error("Parsel koordinatları boş.");
+ const xmin=Math.min(...coords.map(c=>c[0])),xmax=Math.max(...coords.map(c=>c[0]));
+ const ymin=Math.min(...coords.map(c=>c[1])),ymax=Math.max(...coords.map(c=>c[1]));
+ return{bounds:[[xmin,ymin],[xmax,ymax]],center:[(xmin+xmax)/2,(ymin+ymax)/2],dx:xmax-xmin,dy:ymax-ymin};
+}
+function routeData(center,dx,dy){
+ const a=Math.max(.00016,Math.min(dx*.8,.012));
+ const b=Math.max(.00013,Math.min(dy*.8,.012));
+ const ring=[];
+ for(let i=0;i<=64;i++){const angle=2*Math.PI*i/64;ring.push([center[0]+a*Math.cos(angle),center[1]+b*Math.sin(angle)])}
+ return{type:"Feature",properties:{},geometry:{type:"LineString",coordinates:ring}};
+}
+
+function mercatorPoint(lon,lat,z){
+ const n=256*Math.pow(2,z),p=Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/180;
+ return{x:(lon+180)/360*n,y:(1-Math.log(Math.tan(p)+1/Math.cos(p))/Math.PI)/2*n};
+}
+function nativeZoomForParcel(info){
+ const maxWidth=Math.max(180,Math.min(innerWidth*.56,900));
+ const maxHeight=Math.max(160,Math.min(innerHeight*.53,550));
+ for(let z=18;z>=4;z--){
+  const a=mercatorPoint(info.bounds[0][0],info.bounds[0][1],z);
+  const b=mercatorPoint(info.bounds[1][0],info.bounds[1][1],z);
+  if(Math.abs(a.x-b.x)<maxWidth&&Math.abs(a.y-b.y)<maxHeight)return z;
+ }
+ return 4;
+}
+function nativeOverlayGeometry(z,bx,by){
+ const info=coordinateStats(parcel);
+ const ns="http://www.w3.org/2000/svg";
+ const svg=document.createElementNS(ns,"svg");
+ const width=4096,height=4096;
+ svg.setAttribute("width",width);svg.setAttribute("height",height);
+ svg.setAttribute("viewBox","0 0 "+width+" "+height);
+ const coordsToPath=(poly)=>{
+  let d="";
+  for(const ring of poly){
+   ring.forEach((pt,i)=>{
+    const pr=mercatorPoint(pt[0],pt[1],z);
+    d+=(i?"L":"M")+(pr.x-bx*256).toFixed(2)+" "+(pr.y-by*256).toFixed(2)+" ";
+   });
+   d+="Z ";
+  }
+  return d;
+ };
+ for(const feature of parcel.features){
+  const geom=feature.geometry;
+  const polygons=geom.type==="Polygon"?[geom.coordinates]:geom.coordinates;
+  for(const poly of polygons){
+   const el=document.createElementNS(ns,"path");
+   el.setAttribute("d",coordsToPath(poly));
+   el.setAttribute("fill","#ed3035");
+   el.setAttribute("fill-opacity","0.20");
+   el.setAttribute("stroke","#d5222a");
+   el.setAttribute("stroke-width","1.1");
+   el.setAttribute("stroke-linejoin","round");
+   el.setAttribute("fill-rule","evenodd");
+   svg.appendChild(el);
+  }
+ }
+ const r=routeData(parcelCenter,info.dx,info.dy);
+ const path=document.createElementNS(ns,"path");
+ const d=r.geometry.coordinates.map((p,i)=>{
+  const v=mercatorPoint(p[0],p[1],z);
+  return(i?"L":"M")+(v.x-bx*256).toFixed(2)+" "+(v.y-by*256).toFixed(2);
+ }).join(" ");
+ path.setAttribute("d",d);
+ path.setAttribute("fill","none");path.setAttribute("stroke","#ffe879");
+ path.setAttribute("stroke-width","2");path.setAttribute("stroke-dasharray","8 6");
+ svg.appendChild(path);
+ return svg;
+}
+function nativeTileUrl(z,x,y,osm){
+ const max=2**z,tx=((x%max)+max)%max;
+ if(y<0||y>=max)return "";
+ return osm
+ ? "https://tile.openstreetmap.org/"+z+"/"+tx+"/"+y+".png"
+ : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"+z+"/"+y+"/"+tx;
+}
+// Yalnizca konumu OSM'de tanimli olan yer adlarini kullan.
+// Uyduya basili rastgele yazi karolari ayrik bir katmanda kaydirilmaz.
+// Eski calisan uydu etiketleri: uydu karolarina koordinata bagli
+// ayni harita duzleminde cizilir; haritayla birlikte donebilir.
+function placeLabelTile(z,x,y){
+ const n=2**z,tx=((x%n)+n)%n;
+ if(y<0||y>=n)return "";
+ return "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/"+z+"/"+y+"/"+tx;
+}
+function nativeTileLoaded(img,osm){
+ if(mapReady)return;
+ if(!nativeReady){nativeReady=true;setButtons()}
+ $("rasterMap").hidden=false;$("fallbackMap").hidden=true;
+ if(osm){
+  $("rasterCredit").textContent="Harita © OpenStreetMap katkıda bulunanları • Uydu görüntüsü yüklenemedi";
+  status(parcel.features.length+" parsel haritada. Uydu yerine yol haritası yüklendi; sanal turu başlatabilirsin.");
+ }else{
+  $("rasterCredit").textContent="Uydu görüntüleri © Esri ve katkıda bulunanlar • Sanal eğimli görünüm";
+  status(parcel.features.length+" parsel uydu haritasında. Uçuşu başlatabilirsin.");
+ }
+}
+function nativeTileError(img,z,x,y){
+ if(img.dataset.source!=="osm"&&typeof location!=="undefined"&&/^https?:$/.test(location.protocol)){
+  img.dataset.source="osm";
+  const url=nativeTileUrl(z,x,y,true);
+  if(url)img.src=url;
+ }else{
+  img.remove();
+  // Uydu ve yol haritası servisleri kapalıysa 2D vektör parseli gizleme.
+  if(!nativeReady){$("rasterMap").hidden=true;$("fallbackMap").hidden=false;
+   status("Harita servislerine erişilemiyor. İnternet bağlantısını kontrol edin; parsel önizlemede.");}
+ }
+}
+// Harita karolarini kamera donerken silip yeniden olusturmak siyah bosluklar
+// uretiyordu. Yeni seviyeyi once gizli yukle, merkez karolari hazirsa tek
+// seferde goster. O ana kadar onceki kare ve konum korunur.
+let nativeTilePending=null;
+function stageNativeTiles(z,bx,by,radius,p,parcelRef){
+ const key=z+":"+bx+":"+by+":"+radius;
+ if(nativeTilePending?.key===key&&nativeTilePending.parcelRef===parcelRef)return;
+ if(nativeTilePending){nativeTilePending.cancelled=true;nativeTilePending=null}
+ const stage={key,z,bx,by,radius,p,parcelRef,cancelled:false,committed:false,initialized:false,loaded:0,centerLoaded:0,centerTileCount:0};
+ nativeTilePending=stage;
+ const target=document.createElement("div"),centralX=Math.floor(p.x/256),centralY=Math.floor(p.y/256);
+ const coords=[];
+ for(let x=bx;x<=bx+radius*2;x++)for(let y=by;y<=by+radius*2;y++){
+  if(!nativeTileUrl(z,x,y,false))continue;
+  coords.push({x,y,d:Math.abs(x-centralX)+Math.abs(y-centralY)});
+ }
+ coords.sort((a,b)=>a.d-b.d);
+ stage.centerTileCount=coords.filter(c=>c.d<=2).length;
+ function maybeCommit(){
+  if(stage.cancelled||!stage.initialized||nativeTilePending!==stage||stage.committed)return;
+  if(stage.centerLoaded < Math.min(stage.centerTileCount,nativeReady?9:5))return;
+  stage.committed=true;
+  const scene=$("rasterScene");
+  target.appendChild(nativeOverlayGeometry(z,bx,by));
+  // Eski Esri isim karolarini yeni uydu ustune yerlestir.
+  if(z>=7){
+   // Esri'nin yer adlari 17. seviyeye kadar hazir; 18'de de
+   // ayni koordinatlarinda kalacak sekilde 17. seviye buyutulur.
+   const labelZ=Math.min(z,17),factor=2**(z-labelZ),cx=Math.floor(p.x/256/factor),cy=Math.floor(p.y/256/factor);
+   const lr=Math.min(4,Math.ceil(radius/factor));
+   for(let x=cx-lr;x<=cx+lr;x++)
+    for(let y=cy-lr;y<=cy+lr;y++){
+     const url=placeLabelTile(labelZ,x,y);if(!url)continue;
+     const img=document.createElement("img");img.alt="";img.draggable=false;
+     img.dataset.source="reference-label";
+     img.style.left=((x*factor-bx)*256)+"px";img.style.top=((y*factor-by)*256)+"px";
+     img.style.width=(factor*256)+"px";img.style.height=(factor*256)+"px";
+     img.addEventListener("error",()=>img.remove());
+     target.appendChild(img);img.src=url;
+    }
+  }
+  // Eski yuklenmis uydu karolari bir sure arka planda kalsin,
+  // boylece yeni seviyenin bos/koyu kutucuklari ekranı doldurmasin.
+  const underlay=$("rasterUnderlay");
+  const oldZoom=nativeState.displayedZoom;
+  const oldBx=nativeState.baseX,oldBy=nativeState.baseY;
+  underlay.replaceChildren(...Array.from(scene.children).filter(node=>
+   node.tagName==="IMG"&&node.dataset.source!=="reference-label"));
+  nativeState.underlayZoom=oldZoom;
+  nativeState.underlayBaseX=oldBx;nativeState.underlayBaseY=oldBy;
+  scene.replaceChildren(...target.childNodes);
+  nativeState.baseX=bx;nativeState.baseY=by;nativeState.tileRadius=radius;
+  nativeState.tileAnchorX=p.x;nativeState.tileAnchorY=p.y;
+  nativeState.displayedZoom=z;
+  nativeTilePending=null;
+  if(!nativeReady)nativeTileLoaded(scene.querySelector("img"),false);
+  renderNativeMap();
+ }
+ for(const {x,y,d} of coords){
+  const img=document.createElement("img");img.alt="";img.draggable=false;
+  img.style.left=((x-bx)*256)+"px";img.style.top=((y-by)*256)+"px";
+  img.dataset.source="satellite";
+  img.addEventListener("load",()=>{
+   if(stage.cancelled)return;
+   stage.loaded++;
+   if(d<=2)stage.centerLoaded++;
+   maybeCommit();
+  });
+  img.addEventListener("error",()=>{
+   if(stage.cancelled)return;
+   if(img.dataset.source!=="osm"&&typeof location!=="undefined"&&/^https?:$/.test(location.protocol)){
+    img.dataset.source="osm";
+    const url=nativeTileUrl(z,x,y,true);
+    if(url)img.src=url;
+   }else{
+    img.remove();
+    if(!nativeReady&&!stage.committed&&stage.loaded===0&&stage.centerLoaded===0){
+     $("fallbackMap").hidden=false;
+    }
+   }
+  });
+  target.appendChild(img);
+  img.src=nativeTileUrl(z,x,y,false);
+ }
+ stage.initialized=true;maybeCommit();
+}
+function renderNativeMap(rebuild=false){
+ if(mapReady||!parcel?.features?.length)return;
+ const desiredZ=nativeState.zoom,center=nativeState.center;
+ const pixel=mercatorPoint(center[0],center[1],desiredZ);
+ const desiredRadius=Math.min(6,Math.max(3,Math.ceil(Math.max(innerWidth,innerHeight)/(512*Math.max(.7,nativeState.flightScale||1.12)))+1));
+ const bx=Math.floor(pixel.x/256)-desiredRadius,by=Math.floor(pixel.y/256)-desiredRadius;
+ const shownZ=nativeState.displayedZoom===null?desiredZ:nativeState.displayedZoom;
+ const shown=mercatorPoint(center[0],center[1],shownZ);
+ const needsScene=rebuild||nativeState.tileAnchorX===null||desiredZ!==shownZ||
+  desiredRadius!==nativeState.tileRadius||Math.abs(shown.x-nativeState.tileAnchorX)>220||
+  Math.abs(shown.y-nativeState.tileAnchorY)>220;
+ if(needsScene)stageNativeTiles(desiredZ,bx,by,desiredRadius,pixel,parcel);
+ if(nativeState.displayedZoom===null)return;
+ const offsetX=nativeState.baseX*256-shown.x,offsetY=nativeState.baseY*256-shown.y;
+ if(nativeState.underlayZoom!==null){
+  const oldP=mercatorPoint(center[0],center[1],nativeState.underlayZoom);
+  const k=2**(shownZ-nativeState.underlayZoom);
+  const oldX=nativeState.underlayBaseX*256-oldP.x;
+  const oldY=nativeState.underlayBaseY*256-oldP.y;
+  $("rasterUnderlay").style.transform="scale("+k+") translate("+oldX+"px,"+oldY+"px)";
+ }
+ $("rasterScene").style.transform="translate("+offsetX+"px,"+offsetY+"px)";
+ const pitch=Number(nativeState.pitch)||0,angle=Math.max(0,Math.min(58,pitch*.76));
+ const zoomScale=Math.min(8,Math.max(.5,(nativeState.flightScale||1.12)*2**(desiredZ-shownZ)));
+ const compensation="scale("+(1/zoomScale).toFixed(4)+") rotateZ("+Number(nativeState.bearing)+"deg) rotateX("+(-angle)+"deg)";
+ for(const node of $("rasterScene").querySelectorAll(".rasterPlaceText"))node.style.transform=compensation;
+ $("rasterCamera").style.transform="perspective(1100px) rotateX("+angle+"deg) rotateZ("+(-nativeState.bearing)+"deg) scale("+zoomScale.toFixed(3)+")";
+}
+function refreshNativeParcel(info){
+ nativeState.center=[...parcelCenter];
+ nativeState.zoom=nativeZoomForParcel(info);
+ nativeState.bearing=0;
+ nativeState.pitch=Number($("pitch").value);
+ nativeState.flightScale=1.12;
+ renderNativeMap(true);
+}
+
+function stopFlight(){
+ flying=false;cancelAnimationFrame(frame);frame=0;setButtons();
+ // Kullanici uçusu sonlandirdiginda kayit da tamamen bittiyse
+ // temiz video gorunumunde takili kalma.
+ if(!recording)document.body.classList.remove("recording-clean");
+}
+function drawFallback(geo){
+ const svg=$("fallbackSvg");
+ if(!svg)return;
+ const info=coordinateStats(geo),[[x0,y0],[x1,y1]]=info.bounds;
+ const spanX=Math.max(x1-x0,1e-7),spanY=Math.max(y1-y0,1e-7);
+ const scale=Math.min(800/spanX,510/spanY);
+ const offsetX=500-(x0+x1)*scale/2,offsetY=350+(y0+y1)*scale/2;
+ const ns="http://www.w3.org/2000/svg";
+ svg.replaceChildren();
+ function drawPolygon(poly){
+  if(!Array.isArray(poly)||!poly.length)return;
+  let d="";
+  for(const ring of poly){
+   ring.forEach((c,i)=>{d+=(i?"L":"M")+(offsetX+c[0]*scale).toFixed(2)+" "+(offsetY-c[1]*scale).toFixed(2)+" "});
+   d+="Z ";
+  }
+  const el=document.createElementNS(ns,"path");
+  el.setAttribute("d",d);
+  el.setAttribute("fill","#ed3035");
+  el.setAttribute("fill-opacity","0.20");
+  el.setAttribute("stroke","#d5222a");
+  el.setAttribute("stroke-width","1.1");
+  el.setAttribute("stroke-linejoin","round");
+  el.setAttribute("fill-rule","evenodd");
+  svg.appendChild(el);
+ }
+ for(const feature of geo.features){
+  const g=feature.geometry;
+  if(g.type==="Polygon")drawPolygon(g.coordinates);
+  else for(const polygon of g.coordinates)drawPolygon(polygon);
+ }
+}
+let parcelTitle="Örnek parsel — Manisa (temsili)";
+function useParcel(input,title){
+ const next=normalizeGeoJSON(input),info=coordinateStats(next);
+ stopFlight();if(nativeTilePending){nativeTilePending.cancelled=true;nativeTilePending=null}$("rasterUnderlay").replaceChildren();nativeState.underlayZoom=null;nativeState.displayedZoom=null;nativeState.tileAnchorX=null;parcel=next;parcelBounds=info.bounds;parcelCenter=info.center;progress=0;
+ parcelTitle=title||"Yüklenen parsel";nameParcel(parcelTitle);
+ $("placeStatus").textContent=mapReady&&mapProvider==="mapbox"
+  ?"Harita: Mapbox Satellite Streets • Arsa Takip görüntüsü"
+  :"Harita: Esri uydu haritası • Mapbox kullanılamazsa yedek";
+ drawFallback(parcel);
+ if(!mapReady){
+  nativeReady=false;$("rasterMap").hidden=true;$("fallbackMap").hidden=false;
+  status(next.features.length+" parsel okundu. Uydu haritası yükleniyor…");
+  refreshNativeParcel(info);
+  return;
+ }
+ try{
+  map.getSource("parcels").setData(parcel);
+  map.getSource("route").setData(routeData(parcelCenter,info.dx,info.dy));
+  map.fitBounds(info.bounds,{padding:{top:110,bottom:Math.min(300,Math.floor(innerHeight*.35)),left:55,right:55},duration:900,maxZoom:17});
+  map.once("moveend",()=>{orbitZoom=Math.min(17,Math.max(13,map.getZoom()));});
+  $("fallbackMap").hidden=true;$("rasterMap").hidden=true;
+  status(next.features.length+" parsel 3D haritada hazır. Uçuşu başlatabilirsin.");
+  setButtons();
+ }catch(e){
+  mapReady=false;$("fallbackMap").hidden=false;setButtons();
+  status("3D görüntüleme sorunu: "+e.message+". Parsel sınırları önizlemede.");
+ }
+}
+// Arsa Takip usulu sinematik sarmal yaklasma: uzak genel plan -> yakin parsel.
+function smoothFlightStep(value){
+ const t=Math.max(0,Math.min(1,value));
+ return t*t*(3-2*t);
+}
+function flightStage(p){
+ if(p<0.50)return "approach";
+ if(p<0.85)return "orbit";
+ return "final";
+}
+function flightCamera(p){
+ // Sarmal inis yerine 3 adimli sinematik cekim:
+ // 0-50% dogrudan yaklasma; 50-85% SABIT mesafede tek 360° cevre turu;
+ // 85-100% sabit dogrultuda parsel uzerine yakin plan.
+ const t=Math.max(0,Math.min(1,Number(p)||0));
+ const stage=flightStage(t);
+ const finalAngle=Math.max(30,Math.min(80,Number($("pitch").value)||75));
+ const turnAngle=Math.min(68,finalAngle);
+ const turnZoom=15.65;
+ const startZoom=10.5;
+ const finalZoom=Math.min(18.2,Math.max(17.8,orbitZoom+1.5));
+ const finalNativeZoom=Math.min(18.2,Math.max(17.8,nativeZoomForParcel(coordinateStats(parcel))+1.65));
+ let bearing,pitch,mapZoom,continuousZoom;
+ if(stage==="approach"){
+  const e=smoothFlightStep(t/0.50);
+  bearing=0;
+  pitch=12+(46-12)*e;
+  mapZoom=startZoom+(turnZoom-startZoom)*e;
+  continuousZoom=startZoom+(turnZoom-startZoom)*e;
+ }else if(stage==="orbit"){
+  const k=(t-0.50)/0.35;
+  const rotation=smoothFlightStep(k);
+  bearing=360*rotation; // Yalnizca bir cevre turu.
+  pitch=46+(turnAngle-46)*smoothFlightStep(Math.min(1,k*2.5));
+  mapZoom=turnZoom;
+  continuousZoom=turnZoom;
+ }else{
+  const e=smoothFlightStep((t-0.85)/0.15);
+  bearing=360; // Tam turdan sonra ilk yöne geri dön.
+  pitch=turnAngle+(finalAngle-turnAngle)*e;
+  mapZoom=turnZoom+(finalZoom-turnZoom)*e;
+  continuousZoom=turnZoom+(finalNativeZoom-turnZoom)*e;
+ }
+ const rasterZoom=Math.floor(continuousZoom);
+ const rasterScale=1.12*Math.pow(2,continuousZoom-rasterZoom);
+ return{center:[...parcelCenter],bearing,pitch,mapZoom,rasterZoom,rasterScale,stage};
+}
+function tick(ts){
+ if(!flying)return;
+ if(window.flightAnchor==null)window.flightAnchor=ts-progress*Number($("duration").value)*1000;
+ const ms=Number($("duration").value)*1000;
+ progress=Math.min(1,Math.max(0,(ts-window.flightAnchor)/ms));
+ updateCaptionAtElapsed(progress*Number($("duration").value));
+ const camera=flightCamera(progress);
+ if(mapReady){
+  map.jumpTo({center:camera.center,zoom:camera.mapZoom,pitch:camera.pitch,bearing:camera.bearing});
+ }else if(nativeReady){
+  nativeState.center=camera.center;
+  nativeState.bearing=camera.bearing;
+  nativeState.pitch=camera.pitch;
+  nativeState.zoom=camera.rasterZoom;
+  nativeState.flightScale=camera.rasterScale;
+  renderNativeMap();
+ }
+ const steps={approach:"Parsele yaklaşma",orbit:"Tek çevre turu (360°)",final:"Parsel yakın planı"};
+ status(steps[camera.stage]+": %"+Math.round(progress*100));
+ // Videoyu ucusun bitisinden 1,2 saniye once kes.
+ // Ucus ve harita devam eder, paneller halen gizlidir.
+ if(recording?.autoFlight&&recording.recorder.state==="recording"){
+  const margin=Math.min(1.2,Number($("duration").value)*0.025);
+  if(progress>=1-margin/Number($("duration").value))stopRecording();
+ }
+ if(progress<1){frame=requestAnimationFrame(tick)}
+ else{
+  window.flightAnchor=null;flying=false;setButtons();hideCaption();
+  status("Sinematik uçuş tamamlandı. Parseli yakından inceleyebilir veya yeniden başlatabilirsin.");
+  if(recording?.autoFlight)stopRecording();
+  // Otomatik kesilen kaydin son verisi geldiyse simdi arayuzu goster.
+  if(!recording)document.body.classList.remove("recording-clean");
+ }
+}
+$("fly").addEventListener("click",()=>{
+ if(!mapReady&&!nativeReady)return;
+ if(progress>=1)progress=0;
+ beginCaptionFlight();window.flightAnchor=null;flying=true;setButtons();frame=requestAnimationFrame(tick);
+});
+$("flightPauseFloating").addEventListener("click",()=>$("pause").click());
+document.addEventListener("keydown",e=>{
+ if((e.key===" "||e.key==="Escape")&&flying&&!recording){
+  e.preventDefault();$("pause").click();
+ }
+});
+$("pause").addEventListener("click",()=>{
+ if(!flying)return;stopFlight();window.flightAnchor=null;status("Uçuş duraklatıldı. Devam etmek için Uçuşu başlat.");
+});
+$("reset").addEventListener("click",()=>{
+ if(!mapReady&&!nativeReady)return;stopFlight();window.flightAnchor=null;progress=0;hideCaption();
+ const info=coordinateStats(parcel);
+ if(mapReady)map.fitBounds(info.bounds,{padding:80,duration:750,maxZoom:17,pitch:0,bearing:0});
+ else{nativeState.center=[...parcelCenter];nativeState.bearing=0;nativeState.pitch=0;nativeState.flightScale=1.12;renderNativeMap();}
+ status("Kamera sıfırlandı.");
+});
+$("pitch").addEventListener("input",()=>{
+ $("pitchOutput").textContent=$("pitch").value+"°";
+ if(mapReady&&!flying)map.easeTo({pitch:Number($("pitch").value),duration:250});
+ else if(nativeReady&&!flying){nativeState.pitch=Number($("pitch").value);renderNativeMap();}
+});
+$("duration").addEventListener("input",()=>{$("durationOutput").textContent=$("duration").value+" sn"});
+$("example").addEventListener("click",()=>useParcel(exampleParcel,"Örnek parsel — Manisa (temsili)"));
+$("fileLabel").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("parcelFile").click()}});
+async function importParcelFile(file){
+ if(!file)return;
+ try{
+  status("Dosya okunuyor: "+file.name+"…");
+  if(file.size>5*1024*1024)throw Error("Dosya en fazla 5 MB olabilir.");
+  const text=await file.text();
+  const parsed=/\.kml$/i.test(file.name)||text.trimStart().startsWith("<")?parseKml(text):normalizeGeoJSON(JSON.parse(text));
+  useParcel(parsed,file.name);
+ }catch(err){status("Dosya okunamadı: "+err.message)}
+}
+$("parcelFile").addEventListener("change",e=>{
+ const file=e.target.files?.[0];e.target.value="";
+ void importParcelFile(file);
+});
+$("fileHelp").addEventListener("click",()=>$("parcelFile").click());
+$("tkgm").addEventListener("click",()=>{
+ window.open("https://parselsorgu.tkgm.gov.tr/","_blank","noopener,noreferrer");
+ status("TKGM sekmesinden GeoJSON/KML indirip burada Dosya Yükle'yi kullanın. Tarayıcı indirmeyi otomatik alamaz.");
+});
+window.addEventListener("dragover",e=>{if(e.dataTransfer?.types?.includes("Files"))e.preventDefault()});
+window.addEventListener("drop",e=>{
+ if(!e.dataTransfer?.files?.length)return;
+ e.preventDefault();void importParcelFile(e.dataTransfer.files[0]);
+});
+// Kayit yalnizca 'Bu sekme'de, temiz harita modunda yapilir.
+// Kontroller video icin gizlenir; tur sonunda otomatik kayit durur.
+async function startRecording(){
+ if(recording)return;
+ if(!nativeReady&&!mapReady){status("Harita hazir degil. Uydu haritasi acilinca video kaydina baslayin.");return}
+ if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder){
+  status("Tarayici bu sekmenin kaydini desteklemiyor. Chrome ile HTTPS veya localhost uzerinden acin.");return;
+ }
+ let stream;
+ try{
+  status("Paylasim penceresinde 'Bu sekme'yi secin. Video sadece haritayi gosterecek.");
+  stream=await navigator.mediaDevices.getDisplayMedia({
+   video:{displaySurface:"browser",frameRate:25},audio:false,
+   preferCurrentTab:true,selfBrowserSurface:"include",surfaceSwitching:"exclude"
+  });
+  const track=stream.getVideoTracks()[0];
+  if(!track)throw Error("Video izi bulunamadi.");
+  const surface=track.getSettings?.().displaySurface;
+  if(surface&&surface!=="browser"){
+   throw Error("Ekran veya pencere degil, 'Bu sekme'yi secmelisiniz. Diger ekranlarin kaydi engellendi.");
+  }
+  const mime=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));
+  const chunks=[],recorder=new MediaRecorder(stream,mime?{mimeType:mime}:{});
+  recording={stream,recorder,autoFlight:true};
+  $("record").disabled=true;$("stopRecord").hidden=false;
+  recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
+  recorder.onstop=()=>{
+   // MediaRecorder onstop gercekten calisana dek temiz goruntuyu koru.
+   stream.getTracks().forEach(t=>t.stop());
+   recording=null;
+   $("record").disabled=false;$("stopRecord").hidden=true;
+   // Ucus devam ediyorsa baslik, panel ve uyarilari hala gizli tut.
+   if(!flying)document.body.classList.remove("recording-clean");
+   if(chunks.length){
+    const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
+    const url=URL.createObjectURL(blob),link=document.createElement("a");
+    link.href=url;link.download="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+".webm";
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    status("Yalnizca harita kaydi indirildi; menuler videoya girmedi.");
+   }else status("Kayit bos olustu. Tekrar 'Bu sekme' secimini deneyin.");
+  };
+  recorder.onerror=()=>{status("Video kaydinda bir hata olustu.");stopRecording()};
+  track.addEventListener("ended",stopRecording,{once:true});
+  // Once sayfayi sadece harita gorunur hale getir; ilk video karesi
+  // komuta paneli degil ucusun sabit baslangic noktasi olsun.
+  document.body.classList.add("recording-clean");
+  stopFlight();progress=0;beginCaptionFlight();window.flightAnchor=null;
+  const first=flightCamera(0);
+  if(mapReady)map.jumpTo({center:first.center,zoom:first.mapZoom,pitch:first.pitch,bearing:first.bearing});
+  else{
+   nativeState.center=first.center;nativeState.bearing=first.bearing;
+   nativeState.pitch=first.pitch;nativeState.zoom=first.rasterZoom;
+   nativeState.flightScale=first.rasterScale;renderNativeMap();
+  }
+  flying=true;setButtons();
+  // En az iki kare araligi + tarayici paylasim kompozisyonu icin pay birak.
+  // RAF'e bagli bekleme Chromium'da takilabildiginden zamanlayici kullaniliyor.
+  await new Promise(resolve=>setTimeout(resolve,450));
+  if(track.readyState==="ended")throw Error("Sekme paylasimi kayit baslamadan sonlandi.");
+  recorder.start(1000);
+  frame=requestAnimationFrame(tick);
+ }catch(err){
+  if(!recording||recording.recorder?.state==="inactive"){
+   stopFlight();hideCaption();document.body.classList.remove("recording-clean");
+  }
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  recording=null;$("record").disabled=false;$("stopRecord").hidden=true;
+  status("Kayit baslatilamadi: "+(err.name==="NotAllowedError"?"Ekran paylasimi izni verilmedi.":err.message));
+ }
+}
+function stopRecording(){
+ if(!recording)return;
+ const {recorder,stream}=recording;
+ recording.autoFlight=false;
+ if(recorder.state!=="inactive")recorder.stop();
+ else{
+  stream.getTracks().forEach(t=>t.stop());
+  recording=null;
+  $("record").disabled=false;$("stopRecord").hidden=true;
+  if(!flying)document.body.classList.remove("recording-clean");
+ }
+}
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&recording){e.preventDefault();stopRecording()}
+});
+$("record").addEventListener("click",startRecording);
+$("stopRecord").addEventListener("click",stopRecording);
+// İkinci CDN ve bağımsız önizleme: harita kütüphanesi yüklenmese de parsel dosyası okunur.
+function start3DMap(provider="esri"){
+ const isMapbox=provider==="mapbox";
+ const sdk=isMapbox?window.mapboxgl:window.maplibregl;
+ if(!sdk){status((isMapbox?"Mapbox":"MapLibre")+" kütüphanesi yüklenmedi.");return false}
+ try{
+  if(typeof sdk.supported==="function"&&!sdk.supported())throw Error("Bu tarayıcıda WebGL kullanılamıyor");
+  const epoch=++mapEpoch;
+  if(map){try{map.remove()}catch(_){}map=null}
+  mapReady=false;
+  const mapOptions={
+   container:"map",center:parcelCenter,zoom:15,pitch:65,bearing:-24,maxPitch:85,
+   attributionControl:true
+  };
+  if(isMapbox){
+   mapOptions.accessToken=MAPBOX_PUBLIC_TOKEN;
+   mapOptions.style="mapbox://styles/mapbox/satellite-streets-v12";
+  }else{
+   mapOptions.style={
+    version:8,
+    sources:{satellite:{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:18,attribution:"Imagery © Esri and contributors"}},
+    layers:[{id:"satellite",type:"raster",source:"satellite"}]
+   };
+  }
+  map=new sdk.Map(mapOptions);
+  let fallbackStarted=false;
+  const timeout=setTimeout(()=>{
+   if(epoch!==mapEpoch||mapReady)return;
+   if(isMapbox)fallbackToEsri("Mapbox uydu hizmeti zaman aşımına uğradı.");
+  },12000);
+  function fallbackToEsri(message){
+   if(epoch!==mapEpoch||mapReady||fallbackStarted)return;
+   fallbackStarted=true;
+   clearTimeout(timeout);
+   try{map?.remove()}catch(_){}
+   map=null;
+   $("placeStatus").textContent="Harita: Esri • Mapbox kullanılamadı";
+   status(message+" Esri uydu haritası açılıyor…");
+   loadMapLibre();
+  }
+  map.addControl(new sdk.NavigationControl({showCompass:true}),"top-right");
+  map.on("load",()=>{
+   if(epoch!==mapEpoch)return;
+   clearTimeout(timeout);
+   try{
+    map.addSource("parcels",{type:"geojson",data:parcel});
+    map.addSource("route",{type:"geojson",data:{type:"Feature",geometry:{type:"LineString",coordinates:[]},properties:{}}});
+    map.addLayer({id:"parcels-fill",type:"fill",source:"parcels",paint:{"fill-color":"#ed3035","fill-opacity":0.20}});
+    map.addLayer({id:"parcels-border",type:"line",source:"parcels",paint:{"line-color":"#d5222a","line-width":1.1,"line-opacity":0.9}});
+    map.addLayer({id:"flight-route",type:"line",source:"route",paint:{"line-color":"#ffe16c","line-dasharray":[1.5,2.5],"line-width":2,"line-opacity":0.88}});
+    if(!isMapbox){
+     // Yedek Esri sağlayıcısında eski yer isimleri de korunur.
+     try{
+      map.addSource("esri-reference-names",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:17});
+      map.addLayer({id:"esri-label-overlay",type:"raster",source:"esri-reference-names"});
+     }catch(e){console.warn("Esri yer isimleri:",e.message)}
+    }
+    try{
+     if(isMapbox){
+      // Eski Arsa Takip ile ayni DEM ve .5 abartma orani.
+      map.addSource("terrain",{type:"raster-dem",url:"mapbox://mapbox.mapbox-terrain-dem-v1",tileSize:512,maxzoom:14});
+      map.setTerrain({source:"terrain",exaggeration:0.5});
+     }else{
+      map.addSource("terrain",{type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],tileSize:256,maxzoom:14,encoding:"terrarium",attribution:"Elevation: AWS Terrain Tiles"});
+      map.setTerrain({source:"terrain",exaggeration:1.35});
+     }
+    }catch(_){/* DEM yuklenmese bile uyduyu koru. */}
+    mapProvider=provider;
+    mapReady=true;
+    useParcel(parcel,parcelTitle);
+    $("placeStatus").textContent=isMapbox
+      ?"Harita: Mapbox Satellite Streets • Arsa Takip görüntüsü"
+      :"Harita: Esri uydu • alternatif görüntü";
+    status(parcel.features.length+(isMapbox?" parsel Mapbox uydu ve 3D arazide hazır.":" parsel Esri uydu ve 3D arazide hazır.")+" Uçuşu başlatabilirsin.");
+   }catch(e){
+    if(isMapbox){mapReady=false;fallbackToEsri("Mapbox 3D hazırlanamadı: "+e.message)}
+    else{mapReady=false;status("3D harita çizimi başarısız: "+e.message);$("fallbackMap").hidden=false}
+   }
+  });
+  map.on("error",e=>{
+   if(epoch!==mapEpoch)return;
+   // Mapbox erişim/harita stili hatasında mevcut güvenli Esri yedeğine dön.
+   if(!mapReady&&isMapbox){
+    const message=String(e.error?.message||"Mapbox haritası açılamadı");
+    fallbackToEsri(message.slice(0,160));
+   }else if(!mapReady&&e.error){
+    status(nativeReady?"Uydu önizlemesi hazır; 3D yüklenemedi.":"3D harita kaynağı yüklenemedi; bağlantıyı kontrol edin.");
+   }
+  });
+  return true;
+ }catch(e){
+  if(isMapbox){loadMapLibre();return false}
+  status(nativeReady?"Uydu haritası hazır; 3D arazi açılamadı.":"3D harita açılamadı: "+e.message);
+  if(!nativeReady)$("fallbackMap").hidden=false;
+  return false;
+ }
+}
+function loadMapLibre(){
+ if(window.maplibregl){start3DMap("esri");return}
+ const cdns=[
+  "https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.js",
+  "https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.js"
+ ];
+ function next(){
+  if(window.maplibregl){start3DMap("esri");return}
+  const url=cdns.shift();
+  if(!url){
+   status(nativeReady?"Uydu önizlemesi hazır; 3D kitaplığı yüklenmedi.":"3D harita kitaplığı yüklenemedi. Parsel önizlemesi açık.");
+   return;
+  }
+  const script=document.createElement("script");
+  script.src=url;script.onload=()=>window.maplibregl?start3DMap("esri"):next();
+  script.onerror=()=>{script.remove();next()};document.head.appendChild(script);
+ }
+ next();
+}
+function loadMapSdk(){
+ if(!MAPBOX_PUBLIC_TOKEN.startsWith("pk.")){loadMapLibre();return}
+ if(window.mapboxgl){start3DMap("mapbox");return}
+ const script=document.createElement("script");
+ script.src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js";
+ script.onload=()=>window.mapboxgl?start3DMap("mapbox"):loadMapLibre();
+ script.onerror=()=>{script.remove();loadMapLibre()};
+ document.head.appendChild(script);
+}
+
+useParcel(exampleParcel,"Örnek parsel — Manisa (temsili)");
+loadMapSdk();
+</script>
+</body>
+</html>
