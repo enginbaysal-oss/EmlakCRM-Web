@@ -564,9 +564,9 @@ function drawFallback(geo){
   }
   const el=document.createElementNS(ns,"path");
   el.setAttribute("d",d);
-  el.setAttribute("fill",feature.properties?.renk||"#ed3035");
+  el.setAttribute("fill",color||"#ed3035");
   el.setAttribute("fill-opacity","0.20");
-  el.setAttribute("stroke",feature.properties?.renk||"#d5222a");
+  el.setAttribute("stroke",color||"#d5222a");
   el.setAttribute("stroke-width","1.1");
   el.setAttribute("stroke-linejoin","round");
   el.setAttribute("fill-rule","evenodd");
