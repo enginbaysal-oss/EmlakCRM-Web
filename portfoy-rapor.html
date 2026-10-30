@@ -1,0 +1,432 @@
+<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Portföy Hareketleri</title><style>
+body{font:15px system-ui;background:#eef3f8;color:#17324a;margin:0}header{background:#12375f;color:white;padding:18px}header a{color:white}main{max-width:960px;margin:auto;padding:12px}.panel{background:white;border-radius:13px;padding:17px;margin:12px 0;box-shadow:0 2px 12px #15304b13}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}input,select,textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #bbcada;border-radius:8px;font:inherit}textarea{min-height:90px}button{background:#1aa050;color:white;border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weight:600}.light{background:#e5edf6;color:#173e5d}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0}.row button.active{background:#164284}nav button{flex:1}.entry{padding:12px 0;border-bottom:1px solid #e6edf3}table{width:100%;border-collapse:collapse}th,td{padding:9px;border:1px solid #d7e3ee;text-align:left}th{background:#194480;color:white}.hint{font-size:12px;color:#637688}.notice{padding:12px;background:#fff7e3;border-left:4px solid #daa11c}.paper h3{color:#174587;border-bottom:2px solid #c62546;padding-bottom:7px}.paperHead{background:#194480;color:white;padding:17px;border-radius:8px}.paperHead h2{color:#ffe34b}.paperTitle{text-align:center;color:#c62546;font-size:28px}@media(max-width:600px){.grid{grid-template-columns:1fr}}@media print{header,#selectArea,#tabs,#actPanel,#histPanel,#advisorPanel,#editor,.noPrint{display:none!important}#reportPanel,#paper{display:block!important;box-shadow:none;border:0}body{background:white}main{max-width:none}}
+
+/* Canlı, okunaklı ve markadan bağımsız ilerleme raporu */
+#paper{background:#f3f6fa;color:#273d4b;padding:22px;border-radius:16px;font-size:14px;line-height:1.55}#paper .paperHead{background:#12375f;color:#fff;border-radius:13px;padding:24px}#paper .paperTitle{font-size:28px;font-weight:850;text-align:left;color:#fff;margin:2px 0 14px}#paper .paperHead h2{color:#fff;font-size:20px;line-height:1.35;margin:9px 0}#paper #rPeriod{font-weight:650;color:#d8eaf6}#paper #rLocation{color:#d9e9f6}#paper #rPrice{color:#5fe0dc;font-size:26px;margin:9px 0}#paper .reportBlock{background:#fff;padding:18px;margin-top:14px;border-radius:12px;border:1px solid #e3eaf1}#paper h3{color:#12375f;border:0;border-left:5px solid #d62839;padding:3px 0 3px 10px;margin:0 0 13px;font-size:17px}#paper #rOwner{font-weight:700;background:#fff;color:#12375f;border-radius:10px;padding:11px 14px;margin-top:14px}#paper .reportCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 16px}#paper .reportCard{border-radius:10px;background:#e1f3fc;padding:12px;overflow-wrap:anywhere}#paper .reportCard:nth-child(3n + 2){background:#e6f6f1}#paper .reportCard:nth-child(3n){background:#fceceb}#paper .reportCard b{font-size:12px;color:#205475;display:block}#paper .reportCard strong{font-size:22px;color:#12375f;display:block;margin:3px 0}#paper .reportCard span{font-size:12px;color:#35485a}#paper table th{background:#12375f;color:#fff;font-size:12px}#paper table td{background:#fff;color:#263b4b;font-weight:500}#paper table td:first-child{font-weight:750}#paper .reportEval{background:#e6f3f5;border:1px solid #a2d9d8}#paper #rEval{white-space:pre-wrap;color:#273d4b;font-weight:520}#paper .reportFooter{background:#12375f;color:#fff;padding:17px;border-radius:12px;margin-top:14px}#paper #rAdvisor{color:#fff;font-weight:700}#paper .hint{color:#51677b}#paper #rActs{color:#263b4b}#paper table{display:table}#paper .reportTableScroll{overflow-x:auto}@media(max-width:600px){#paper{padding:10px}#paper .reportCards{grid-template-columns:1fr 1fr}#paper .paperTitle{font-size:22px}#paper #rPrice{font-size:22px}}@media print{#paper{padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}#paper .reportBlock{break-inside:avoid}#paper .reportCard{break-inside:avoid}#paper .reportFooter{break-inside:avoid}}
+
+/* Güçlü kontrast: canlı tonlar ve kararlı tipografi */
+#paper{background:#eaf1f8;color:#101e32;font-size:15px;font-weight:550;line-height:1.58}
+#paper .paperHead{background:linear-gradient(125deg,#091c40 0%,#104d83 65%,#006e87 100%);border-left:9px solid #eb284c;box-shadow:0 6px 17px #09294e30}
+#paper .paperTitle{font-size:31px;font-weight:950;letter-spacing:.35px}
+#paper .paperHead h2{font-weight:850;font-size:22px}
+#paper #rPeriod,#paper #rLocation{color:#fff;font-weight:700}
+#paper #rPrice{color:#68fff0;font-size:30px;font-weight:950;text-shadow:0 1px 2px #05283e}
+#paper #rOwner{border-left:6px solid #ec3154;background:#fff;color:#10294a;font-weight:850;font-size:16px;box-shadow:0 3px 12px #14365317}
+#paper .reportBlock{border:2px solid #d0dfed;box-shadow:0 4px 15px #14365314}
+#paper h3{border-left:7px solid #e92249;color:#082c55;font-size:19px;font-weight:950;letter-spacing:.15px}
+#paper .reportCard{background:#bce5fa;border:2px solid #58b9e8;padding:14px}
+#paper .reportCard:nth-child(3n + 2){background:#b8eddb;border-color:#37b795}
+#paper .reportCard:nth-child(3n){background:#ffd1d9;border-color:#f0788d}
+#paper .reportCard b{font-size:13px;color:#09385f;font-weight:900}
+#paper .reportCard strong{font-size:27px;color:#061c35;font-weight:950}
+#paper .reportCard span{font-size:13px;color:#102d46;font-weight:750}
+#paper table th{background:#07375e;color:#fff;font-weight:850;font-size:13px;padding:12px 9px}
+#paper table td{color:#101e32;font-weight:700;background:#fff}
+#paper table tbody tr:nth-child(even) td{background:#e9f5fc}
+#paper table td:first-child{font-weight:900;color:#09335b}
+#paper .reportEval{background:#c7eff0;border:2px solid #47bdbb}
+#paper #rEval{color:#102333;font-weight:750;font-size:15px}
+#paper #rActs{color:#102333;font-weight:680}
+#paper .reportFooter{background:#092c50;border-left:8px solid #e9284f}
+#paper #rAdvisor{font-size:15px;font-weight:850;color:#fff}
+#paper .hint{color:#263e54;font-size:13px;font-weight:650}
+@media print{#paper .paperHead,#paper .reportCard,#paper table th,#paper table td,#paper .reportEval,#paper .reportFooter{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+[hidden]{display:none!important}.homeBack{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#ed6a18!important;color:#fff!important;border:2px solid #fff3!important;border-radius:10px;padding:10px 14px;font-weight:850;text-decoration:none;box-shadow:0 3px 10px #3b241b25;white-space:nowrap}.homeBack:hover{background:#c9480c!important}.homeBack:focus-visible{outline:3px solid #ffd166;outline-offset:2px}@media print{.homeBack{display:none!important}}@media(max-width:420px){.homeBack{padding:9px 10px;font-size:12px}}
+.authorizationReminders{background:#fff4e5;border:1px solid #e9b86e;border-radius:11px;padding:13px 16px;margin:12px 0;color:#703a0d}.authorizationReminders strong{display:block;margin-bottom:7px}.authReminder{border-top:1px solid #f0d5ad;padding:8px 0;font-size:13px}.authReminder:first-of-type{border:0}.authorizationReminders[hidden]{display:none!important}@media print{.authorizationReminders{display:none!important}}
+.authorizationDuration{display:flex;gap:6px}.authorizationDuration input{min-width:0;flex:1}.authorizationDuration select{width:90px;flex:none}input[readonly]{background:#eff7fb;color:#174f75;font-weight:750}.authorizationBadge{display:inline-block;align-self:flex-start;line-height:1.35;padding:7px 10px;border-radius:9px;font-size:12px;font-weight:800;overflow-wrap:anywhere}.authorizationBadge.valid{background:#d9ecff;color:#14568f;border:1px solid #91c0eb}.authorizationBadge.soon{background:#fff0db;color:#a35506;border:1px solid #efbd7e}.authorizationBadge.expired{background:#ffe2e5;color:#ac2035;border:1px solid #e8a3ad}.authorizationBadge.missing{background:#f0f2f5;color:#67717e;border:1px solid #d7dbe1}
+.portfolioFilters{display:grid;grid-template-columns:minmax(0,2fr) minmax(190px,1fr);gap:10px;margin:12px 0 4px}.portfolioFilters input,.portfolioFilters select{min-width:0}.portfolioFilters select{background:#fff}#portfolioFilterInfo{margin:4px 0 10px}@media(max-width:610px){.portfolioFilters{grid-template-columns:1fr}}
+.sharePortfolioButton{display:inline-flex;align-items:center;text-decoration:none;background:#e6f0fb;color:#165180;border:1px solid #b5d1ed;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:750}.authRenewButton{background:#ffebd0!important;color:#91500d!important;border:1px solid #e6ae69!important}.waRenewButton{display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;background:#e0f3e7;color:#145d37;border:1px solid #9bd4af;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:750}.authHistory{padding:10px 13px;border-top:1px solid #e4eaf0;background:#f8fbff}.authHistory summary{cursor:pointer;font-weight:750;font-size:12px;color:#175477}.authHistoryEntry{padding:9px 0;border-top:1px solid #e1e9f0;font-size:12px}.authHistoryEntry:first-child{margin-top:9px}.authHistoryEntry small{display:block;color:#637688;margin-top:3px}
+.officeCloudLogin{background:#f1f7fb;border-radius:10px;padding:12px}.officeCloudCard{border:1px solid #dae7ef;border-radius:11px;background:#fbfdfd;padding:12px;margin:8px 0}.officeCloudCard strong{display:block;margin-bottom:6px}.officeCloudCard .hint{margin:4px 0}.officeCloudCard a{font-weight:700;color:#116987}.officeCloudShareButton{background:#e0f1fa;color:#15547e;border:1px solid #bdd9e9!important;font-size:12px}.officeCloudShareButton:disabled{opacity:.5}.officeCloudCard .mineLabel{font-weight:750;color:#21844f}#officeCloudConnected[hidden],#officeCloudLogin[hidden]{display:none!important}
+</style><style>.pCard{border:1px solid #dce5e8;border-radius:12px;margin:10px 0;background:white;overflow:hidden}.pCard.chosen{border-color:#20a067}.pContent{display:flex;gap:13px;align-items:flex-start;padding:12px}.pPhoto{width:112px;height:112px;flex:none;object-fit:cover;border-radius:9px;background:#eef3f5}.pPhoto.placeholder{display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:26px}.pPhoto small{font-size:10px}.pDetails{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:#596c78}.pDetails strong{font-size:15px;color:#17324a}.pDetails a{color:#087d73}.pPrice{color:#169154;font-size:19px;font-weight:800;white-space:nowrap}.pActions{border-top:1px solid #e7ebef;padding:9px 12px;display:flex;gap:8px;flex-wrap:wrap}.pActions button{font-size:12px;padding:9px 12px}@media(max-width:650px){.pPhoto{width:78px;height:88px}.pContent{gap:9px;flex-wrap:wrap}.pPrice{margin-left:87px;font-size:18px}.pDetails strong{font-size:13px}}</style><style>
+/* Önizlemede onaylanan düzen: işlemler aynı kartın hemen altında */
+.legacyPicker{display:none!important}
+.portfolioMeta{display:none!important}
+#portfolioEditBar{margin:12px 0}
+.pWorkspace{background:#fbfcfc;border-top:1px solid #dde8e3;padding:12px 14px}
+.pWorkspace #tabs{margin:0 0 10px;padding:8px;background:#f0f6f1;box-shadow:none;gap:6px}
+.pWorkspace #tabs button{font-size:13px;padding:10px 11px}
+.pWorkspace .panel{margin:0;padding:12px 4px;box-shadow:none;border-radius:0}
+.pWorkspace #editPortfolioPanel{margin:12px 0}
+.pWorkspace #portfolioSites{border-top:1px solid #e3ece5;padding-top:10px;margin-top:14px}
+.pSlot:empty{display:none}
+@media print{#selectArea{display:block!important}#portfolioCards,.portfolioMeta,#portfolioEditBar,#editPortfolioPanel,#portfolioSites,#newPortfolioDetails,#tabs,#actPanel,#histPanel,#advisorPanel{display:none!important}#portfolioCards:has(#paper){display:block!important}#portfolioCards .pCard:has(#paper){display:block!important;border:0!important;box-shadow:none!important}#portfolioCards .pCard:has(#paper) .pContent,#portfolioCards .pCard:has(#paper) .pActions{display:none!important}.pWorkspace{border:0;padding:0}#reportPanel{display:block!important}}
+</style><style>.pWorkspace #portfolioEditBar{display:none!important}.pWorkspace:not(.editing) #portfolioSites{display:none!important}.pWorkspace:not(.editing) #editPortfolioPanel{display:none!important}#newPortfolioDetails{background:#f7fafb;border:1px solid #e0e9ee;border-radius:10px;padding:0 13px;margin:10px 0 14px}#newPortfolioDetails>summary{padding:10px 0}#newPortfolioDetails:not([open]){display:block}#portfolioCards{margin-top:10px}</style><style>
+.portfolioHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.portfolioHeading h3{margin:8px 0}
+#selectArea>#portfolioEditBar,#selectArea>#editPortfolioPanel,#selectArea>#portfolioSites{display:none!important}
+#newPortfolioDetails:not([open]){display:none!important}
+#newPortfolioDetails[open]{display:block!important;position:fixed;inset:3vh max(12px,calc((100vw - 780px)/2));width:auto;height:94vh;overflow:auto;z-index:100;background:#fff;border:1px solid #d3e1e6;border-radius:15px;box-shadow:0 0 0 100vmax #102a38a9,0 14px 34px #142b3940;padding:18px}
+#newPortfolioDetails[open] summary{font-size:19px}
+#showAddPortfolio{white-space:nowrap}
+.pWorkspace #portfolioEditBar{display:none!important}
+.pWorkspace:not(.editing) #portfolioSites,.pWorkspace:not(.editing) #editPortfolioPanel{display:none!important}
+.pWorkspace.editing #tabs,.pWorkspace.editing #actPanel,.pWorkspace.editing #reportPanel,.pWorkspace.editing #histPanel,.pWorkspace.editing #advisorPanel{display:none!important}
+.pActions button[data-edit-p]{font-size:20px;line-height:1;padding:7px 13px}
+@media(max-width:600px){#newPortfolioDetails[open]{inset:2vh 8px;height:96vh;padding:13px}.portfolioHeading{align-items:center}}
+@media print{#newPortfolioDetails{display:none!important}}
+</style><style>.pWorkspace #tabs{display:none!important}.pActions{align-items:center}.pActions [data-edit-p]{margin-left:auto}.pCard.chosen .pActions button[data-open-tab]{background:#e5f3ec;color:#155d38}.pWorkspace.editing #portfolioSites{display:block!important}#newPortfolioDetails[open]>summary{cursor:default}#showAddPortfolio{background:#159951;color:white}</style><style>
+/* Girişte yalnız portföy listesi; eski bağımsız paneller asla görünmez */
+main > #tabs, main > #actPanel, main > #reportPanel, main > #histPanel, main > #advisorPanel {display:none!important}
+#selectArea > #portfolioEditBar,#selectArea > #editPortfolioPanel,#selectArea > #portfolioSites {display:none!important}
+#workspaceParking {display:none!important}
+.pWorkspace #tabs {display:none!important}
+.pWorkspace #actPanel[hidden],.pWorkspace #reportPanel[hidden],.pWorkspace #histPanel[hidden],.pWorkspace #advisorPanel[hidden] {display:none!important}
+.pWorkspace.editing #actPanel,.pWorkspace.editing #reportPanel,.pWorkspace.editing #histPanel,.pWorkspace.editing #advisorPanel{display:none!important}
+.pSlot:empty{display:none}
+.pActions button[data-open-tab]{flex:1;min-width:90px}
+@media(max-width:600px){.pActions button[data-open-tab]{min-width:calc(50% - 6px)}}
+</style><style>#paper .reportDelta{display:block;margin-top:8px;font-size:11px;font-weight:750;color:#183c4f}
+@media print{
+#selectArea>.portfolioHeading,#selectArea>#newPortfolioDetails,#selectArea>.portfolioMeta,#selectArea>#workspaceParking{display:none!important}
+#portfolioCards>.pCard:not(:has(#paper)){display:none!important}
+#portfolioCards .pCard:has(#paper)>.pContent,#portfolioCards .pCard:has(#paper)>.pActions{display:none!important}
+#portfolioCards .pCard:has(#paper){border:0!important;box-shadow:none!important;margin:0!important}
+#portfolioCards .pCard:has(#paper) .pWorkspace>*:not(#reportPanel){display:none!important}
+#portfolioCards .pCard:has(#paper) #editor{display:none!important}
+#portfolioCards .pCard:has(#paper) #reportPanel{display:block!important}
+#portfolioCards .pCard:has(#paper) #paper{display:block!important}
+#selectArea{padding:0!important;margin:0!important;box-shadow:none!important}
+}
+</style><style>#paper .reportCover{width:100%;max-height:210px;object-fit:cover;border-radius:10px;margin:5px 0 12px;display:block}#paper .reportCover[hidden]{display:none!important}@media print{#paper .reportCover{max-height:180px;break-inside:avoid}}</style><style>#paper .movementSummary{font-size:13px;font-weight:800;color:#153b57;margin:0 0 12px}#paper .movementRow{border-left:4px solid #229c79;background:#f3f9fb;padding:10px 12px;margin:8px 0;border-radius:6px;break-inside:avoid}#paper .movementNote{white-space:pre-wrap;margin-top:5px;color:#243b4e}@media print{#paper .movementRow{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style><style>#paper .paperHead .paperTitle{width:100%;text-align:center!important;margin:6px auto 18px!important;font-size:32px;font-weight:950;letter-spacing:.5px}@media print{#paper .paperHead .paperTitle{text-align:center!important}}</style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
+<section class="panel" id="officeSharingPanel">
+<div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
+<p class="hint">Portföyün önce bu bilgisayara kaydedilir. Onaylı ofis hesabınla giriş yaptıysan seçili ofise de paylaşılır. Eski kayıtları "Ofiste Paylaş" ile aktarabilirsin.</p>
+<div id="officeCloudLogin" class="officeCloudLogin">
+<div class="grid">
+<div><label>E-posta</label><input id="officeCloudEmail" type="email" autocomplete="username" placeholder="EmlakCRM hesabın"></div>
+<div><label>Şifre</label><input id="officeCloudPassword" type="password" autocomplete="current-password"></div>
+</div><div class="row"><button type="button" id="officeCloudLoginButton">EmlakCRM Hesabına Giriş Yap</button></div>
+</div>
+<div id="officeCloudConnected" hidden>
+<div class="row"><label for="officeCloudSelectedOffice">Paylaşım yapılacak ofis</label><select id="officeCloudSelectedOffice" style="max-width:360px"></select><button type="button" class="light" id="officeCloudLogout">Bu Ekrandan Çıkış Yap</button></div>
+</div>
+<p id="officeCloudStatus" class="hint" role="status" aria-live="polite">Ofis portföyleri için hesabına giriş yap.</p>
+<div id="officeCloudSharedList"></div>
+</section>
+<section class="panel" id="selectArea"><div id="portfoyler"></div><div class="portfolioHeading"><h3>Portföylerim</h3><div class="row"><button type="button" class="light" id="exportPortfolios">Excel’e Aktar</button><button type="button" id="showAddPortfolio">+ Yeni Portföy</button></div></div><div id="authorizationReminders" class="authorizationReminders" hidden></div><div class="portfolioFilters"><input id="portfolioSearch" type="search" placeholder="Portföy, konum, mülk sahibi veya telefon ara..." aria-label="Portföylerde ara"><select id="portfolioAuthFilter" aria-label="Yetki süresi filtresi"><option value="all">Tüm yetki durumları</option><option value="active">Aktif · Mavi</option><option value="soon">Yaklaşıyor · Turuncu</option><option value="expired">Süresi doldu · Kırmızı</option><option value="missing">Yetki süresi girilmedi</option></select></div><p id="portfolioFilterInfo" class="hint" aria-live="polite"></p><div id="portfolioCards"></div><div class="grid portfolioMeta"><div class="legacyPicker"><label>Portföy seçin</label><select id="pick"></select></div><div><label>Rapor hatırlatması</label><div class="notice" id="due"></div></div></div><div class="row" id="portfolioEditBar"><button type="button" id="editPortfolio" class="light">Portföy bilgilerini düzenle</button><span id="authorizationStatus" style="font-weight:800"></span></div><div id="editPortfolioPanel" class="grid" hidden><div class="full"><label>İlan başlığı</label><input id="eTitle"></div><div><label>Konum</label><input id="eLocation"></div><div><label>İlan bedeli (TL)</label><input id="ePrice"></div><div><label>Gayrimenkul türü</label><select id="eType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="eRooms" placeholder="Örn. 3+1"></div><div><label>Mülk sahibi</label><input id="eOwner"></div><div><label>Mülk sahibi telefonu</label><input id="ePhone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="eListingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="eCover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="eAuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="eAuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="eAuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="eAuthEnd" readonly></div><div class="full row"><button id="savePortfolioEdit">Değişiklikleri kaydet</button><button id="cancelPortfolioEdit" class="light">İptal</button></div></div><div id="portfolioSites" style="margin-top:12px"><h3>İlan siteleri (bu portföye özel)</h3><div id="siteList"></div><div class="row"><input id="newSite" placeholder="Yeni site adı (örn. emlakjet.com)" style="flex:1"><button type="button" id="addSite">Site ekle</button></div><p class="hint">Bir kez kaydedin; raporlarda sonraki haftalarda otomatik görünür.</p></div><details id="newPortfolioDetails"><summary style="cursor:pointer;margin:12px 0;font-weight:800;color:#084b73">Yeni portföy ekle</summary><div class="row"><button type="button" id="closeAddPortfolio" class="light">Kapat ✕</button></div><div class="grid"><div class="full"><label>İlan başlığı</label><input id="title"></div><div><label>Konum</label><input id="loc"></div><div><label>Satış / kira bedeli (TL)</label><input id="price"></div><div><label>Mülk sahibi</label><input id="owner"></div><div><label>Mülk sahibi telefonu</label><input id="phone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="listingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="cover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="AuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="AuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="AuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="AuthEnd" readonly></div><div><label>İşlem</label><select id="kind"><option>Satılık</option><option>Kiralık</option></select></div><div><label>Gayrimenkul türü</label><select id="pType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="pRooms" placeholder="Örn. 3+1"></div><div class="full"><label>Bu portföyün yayımlandığı ilan siteleri (isteğe bağlı)</label><div id="initialSiteChoices" class="row"></div><p class="hint">RE/MAX dahil hiçbir platform zorunlu değildir. Daha sonra site ekleyebilir veya kaldırabilirsiniz.</p></div><button id="saveP">Portföyü kaydet</button></div></details><div id="workspaceParking" hidden></div></section>
+<nav class="panel row" id="tabs"><button data-tab="act" class="active">Hareketler</button><button data-tab="report" class="light">Rapor</button><button data-tab="hist" class="light">Geçmiş</button><button data-tab="advisor" class="light">Danışman</button></nav>
+<section class="panel" id="actPanel"><h3>Hareket kaydı</h3><div class="grid"><div><label>Tarih</label><input id="aDate" type="date"></div><div><label>Hareket türü</label><select id="aType"><option>Telefon görüşmesi</option><option>Mesajlaşma</option><option>Yer gösterme</option><option>Teklif</option><option>Sosyal medya</option><option>Diğer</option></select></div><div class="full"><label>Kısa not / sonuç</label><textarea id="aNote"></textarea></div></div><div class="row"><button id="addAct">Hareketi kaydet</button></div><h3>Geçmiş hareketler</h3><div id="actList"></div></section>
+<section class="panel" id="reportPanel" hidden><div id="editor"><h3>İlerleme raporu hazırla</h3><div class="grid"><div><label>Dönem başlangıcı</label><input id="from" type="date"></div><div><label>Dönem bitişi</label><input id="to" type="date"></div><div class="full hint">İlan sitelerinin toplam görüntülenme ve favori sayılarını yazın. Önceki kayıtlı raporla farkı hesaplanır.</div><div class="full grid" id="statsInputs"></div><div class="full"><label>Genel değerlendirme / gelecek hafta planı</label><textarea id="eval"></textarea></div></div><div class="row noPrint"><button id="draft" class="light">Taslak kaydet</button><button id="generate">Raporu oluştur ve kaydet</button><button id="print" class="light">PDF / Yazdır</button><button id="share" class="light">Paylaş</button></div></div><article class="paper" id="paper" hidden><div class="paperHead"><h1 class="paperTitle">İLERLEME RAPORU</h1><h2 id="rTitle"></h2><p id="rLocation"></p><div id="rPeriod"></div><img id="rCover" class="reportCover" alt="Portföy kapak fotoğrafı" hidden><h2 id="rPrice"></h2></div><p id="rOwner"></p><div class="reportBlock"><h3>İLAN PERFORMANSI</h3><div id="rCards" class="reportCards"></div><p class="hint">Veriler danışman tarafından girilmiştir. Önceki dönem mevcutsa değişimler kutuların içinde gösterilir.</p></div><div class="reportBlock"><h3>HAFTALIK HAREKETLER VE YAPILAN ÇALIŞMALAR</h3><p id="rActSummary" class="movementSummary"></p><div id="rActs"></div></div><div class="reportBlock reportEval"><h3>GENEL DEĞERLENDİRME</h3><p id="rEval"></p></div><div class="reportFooter"><div id="rAdvisor"></div></div></article></section>
+<section class="panel" id="histPanel" hidden><h3>Geçmiş raporlar</h3><div id="history"></div></section><section class="panel" id="advisorPanel" hidden><h3>Danışman bilgileri</h3><div class="grid"><div><label>Ad soyad</label><input id="cName"></div><div><label>Telefon</label><input id="cPhone"></div><div class="full"><label>Ofis</label><input id="cOffice"></div></div><div class="row"><button id="saveC">Bilgileri kaydet</button></div></section><p class="hint">Portföylerin ayrıntılı çalışma ve rapor kayıtları bu tarayıcıda saklanır. Ofise giriş yaptıktan sonra ilan özeti onaylı ofis üyeleriyle paylaşılır; müşteri iletişim bilgileri, hareketler ve rapor notları paylaşılmaz.</p></main>
+<script>
+"use strict";const $=x=>document.getElementById(x),key="emlakcrm_portfoy_rapor_v1",today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},plus=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},tr=s=>s?new Date(s+"T12:00:00").toLocaleDateString("tr-TR"):"—",esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),id=()=>String(Date.now())+Math.random().toString(36).slice(2),fmt=n=>Number(n).toLocaleString("tr-TR"),parse=s=>Number(String(s||"").replace(/\./g,"").replace(",","."))||0;
+let db;try{db=JSON.parse(localStorage.getItem(key))}catch{}if(!db||!Array.isArray(db.portfolios))db={portfolios:[],advisor:{},drafts:{}};db.advisor ||= {};db.drafts ||= {};let pid="",shown=null,newCover="",editedCover="";const save=()=>localStorage.setItem(key,JSON.stringify(db)),current=()=>db.portfolios.find(p=>p.id===pid),names=["sahibinden.com","hepsiemlak.com","emlakjet.com","remax.com"],sites=p=>p?(p.sites ||= ["sahibinden.com","hepsiemlak.com","remax.com"]):[];
+$("initialSiteChoices").innerHTML=names.map(n=>'<label style="display:inline-flex;align-items:center;gap:5px"><input type="checkbox" value="'+esc(n)+'" data-initial-site style="width:auto"> '+esc(n)+'</label>').join("");
+function drawSites(){const p=current();$("siteList").innerHTML=p?sites(p).map((n,i)=>'<span style="display:inline-flex;gap:7px;align-items:center;background:#edf4f8;padding:6px;margin:3px;border-radius:8px">'+esc(n)+' <button type="button" class="light" style="padding:4px 7px" data-remove-site="'+i+'">×</button></span>').join(""):"Önce portföy oluşturun."}
+function drawStats(){const p=current(),saved=db.drafts[pid]||{};$("statsInputs").innerHTML=sites(p).map((n,i)=>{const x=saved.stats?.find(v=>v.name===n);return '<div><label>'+esc(n)+' görüntülenme</label><input type="number" min="0" data-site="'+i+'" data-f="v" value="'+(x?.v??"")+'"></div><div><label>'+esc(n)+' favori</label><input type="number" min="0" data-site="'+i+'" data-f="f" value="'+(x?.f??"")+'"></div>'}).join("")}
+$("addSite").onclick=()=>{const p=current();if(!p)return alert("Önce portföy oluşturun.");const n=$("newSite").value.trim();if(!n)return;if(sites(p).some(x=>x.toLocaleLowerCase("tr")===n.toLocaleLowerCase("tr")))return alert("Bu site zaten kayıtlı.");p.sites.push(n);$("newSite").value="";save();drawSites();drawStats()};
+$("siteList").onclick=e=>{const el=e.target.closest("[data-remove-site]"),p=current();if(!el||!p)return;const i=Number(el.dataset.removeSite);if(!confirm(p.sites[i]+" kaldırılsın mı? Önceki raporlar korunur."))return;p.sites.splice(i,1);save();drawSites();drawStats()};
+
+$("aDate").value=$("to").value=today();$("from").value=plus(today(),-6);
+function tab(t){for(const x of ["act","report","hist","advisor"])$(x+"Panel").hidden=x!==t;document.querySelectorAll("[data-tab]").forEach(b=>{b.classList.toggle("active",b.dataset.tab===t);b.classList.toggle("light",b.dataset.tab!==t)});if(t==="hist")history()}
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+function pick(){const old=pid;$("pick").innerHTML=db.portfolios.map(p=>'<option value="'+p.id+'">'+esc(p.title)+'</option>').join("");pid=db.portfolios.some(p=>p.id===old)?old:(db.portfolios[0]?.id||"");$("pick").value=pid;refresh()}
+function drawAuthorizationReminders(){
+ const now=today(),limit=plus(now,7);
+ const soon=db.portfolios.filter(p=>p.authEnd&&p.authEnd<=limit).sort((a,b)=>a.authEnd.localeCompare(b.authEnd));
+ const root=$("authorizationReminders");
+ root.hidden=!soon.length;
+ root.innerHTML=soon.length?'<strong>⚠️ Yetki süresi hatırlatması · Son 7 gün ('+soon.length+')</strong>'+soon.map(p=>{const days=authorizationDays(now,p.authEnd);const state=days<0?'Süresi doldu':days===0?'Bugün bitiyor':'Bitmesine '+days+' gün kaldı';return '<div class="authReminder"><span><b>'+esc(p.title)+'</b> · '+state+' · Yetki bitişi: '+tr(p.authEnd)+'</span></div>'}).join(""):"";
+}
+function refresh(){const p=current();drawAuthorizationReminders();drawCards();$("actList").innerHTML=p?(p.acts||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(a=>'<div class="entry"><b>'+tr(a.date)+' • '+esc(a.type)+'</b><p>'+esc(a.note)+'</p><button data-delete="'+a.id+'" class="light">Sil</button></div>').join("")||"Henüz hareket yok.":"Önce portföy oluşturun.";drawSites();drawStats();if(!p){$("due").textContent="Portföy bekleniyor";$("authorizationStatus").textContent="";$("editPortfolioPanel").hidden=true;return}let next=plus(p.start,7),now=today();if(now>next){const last=(p.reports||[]).slice().sort((a,b)=>b.to.localeCompare(a.to))[0];next=last?plus(last.to,1):next;while(new Date(next+"T12:00:00").getDay()!==1)next=plus(next,1)}$("due").textContent=(now>=next?"Rapor zamanı geldi: ":"Sonraki rapor: ")+tr(next);const draft=db.drafts[pid]||{};$("eval").value=draft.eval||"";const days=p.authEnd?Math.round((new Date(p.authEnd+"T12:00:00")-new Date(now+"T12:00:00"))/86400000):null;$("authorizationStatus").textContent=days===null?"Yetki bitiş tarihi girilmemiş":days<0?"Yetki süresi doldu ("+tr(p.authEnd)+")":days===0?"Yetki bugün bitiyor":days<=7?"Yetki bitimine "+days+" gün kaldı":"Yetki bitişi: "+tr(p.authEnd);$("authorizationStatus").style.color=days===null?"#637688":days<0?"#b42337":days<=7?"#a35506":"#14568f";}
+// Yetki sözleşmesi süresi takvim ayı/yılı dikkate alınarak hesaplanır; ay sonları korunur.
+function addAuthorizationDuration(start,duration,unit){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!Number.isInteger(duration)||duration<1||duration>3650)return "";
+ const [y,m,day]=start.split("-").map(Number);
+ const original=new Date(Date.UTC(y,m-1,day));
+ if(original.toISOString().slice(0,10)!==start)return "";
+ if(unit==="day"){original.setUTCDate(original.getUTCDate()+duration);return original.toISOString().slice(0,10)}
+ const months=unit==="year"?duration*12:unit==="month"?duration:null;
+ if(months===null)return "";
+ const target=new Date(Date.UTC(y,m-1+months,1));
+ const lastDay=new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0)).getUTCDate();
+ target.setUTCDate(Math.min(day,lastDay));
+ return target.toISOString().slice(0,10);
+}
+const authorizationDays=(start,end)=>Math.round((Date.parse(end+"T12:00:00Z")-Date.parse(start+"T12:00:00Z"))/86400000);
+function previewAuthorization(prefix){
+ const start=$(prefix+"AuthStart").value;
+ const duration=Number($(prefix+"AuthDuration").value);
+ $(prefix+"AuthEnd").value=$(prefix+"AuthDuration").value?addAuthorizationDuration(start,duration,$(prefix+"AuthUnit").value):"";
+}
+for(const prefix of ["","e"]){
+ for(const field of ["AuthStart","AuthDuration","AuthUnit"]){
+  $(prefix+field).addEventListener("input",()=>previewAuthorization(prefix));
+  $(prefix+field).addEventListener("change",()=>previewAuthorization(prefix));
+ }
+}
+function authorizationBadge(p){
+ if(!p.authEnd)return '<span class="authorizationBadge missing">Yetki süresi girilmedi</span>';
+ const days=authorizationDays(today(),p.authEnd);
+ if(!Number.isFinite(days))return '<span class="authorizationBadge missing">Yetki tarihi kontrol edilmeli</span>';
+ const label=days<0?"Yetki süresi doldu · "+(-days)+" gün geçti":days===0?"Yetki bugün bitiyor":days<=7?"Yetki bitimine "+days+" gün kaldı":"Yetki bitimine "+days+" gün kaldı";
+ const css=days<0?"expired":days<=7?"soon":"valid";
+ return '<span class="authorizationBadge '+css+'">'+label+' · '+tr(p.authEnd)+'</span>';
+}
+// Bulut ofis paylasimi: yalnizca onayli uye veya ofis sahibi görebilir.
+const cloudApiBase="https://tffvwxskvjuxoekwgdef.supabase.co";
+const cloudPublicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const cloudSessionKey="emlakcrm_auth_session_v1";
+let cloudUser=null,cloudOffices=[],cloudSessionBusy=false;
+function cloudSavedSession(){try{return JSON.parse(sessionStorage.getItem(cloudSessionKey)||"null")}catch{return null}}
+async function cloudSession(){
+ const ss=cloudSavedSession();
+ if(!ss?.access_token)throw Error("Önce ofis hesabına giriş yap.");
+ let token=ss.access_token,resp=await fetch(cloudApiBase+"/auth/v1/user",{headers:{apikey:cloudPublicKey,Authorization:"Bearer "+token}});
+ if(!resp.ok && ss.refresh_token){
+  const renewed=await fetch(cloudApiBase+"/auth/v1/token?grant_type=refresh_token",{
+   method:"POST",headers:{apikey:cloudPublicKey,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:ss.refresh_token})
+  });
+  const d=await renewed.json().catch(()=>({}));
+  if(!renewed.ok||!d.access_token)throw Error("Oturum süresi doldu. Tekrar giriş yap.");
+  token=d.access_token;
+  sessionStorage.setItem(cloudSessionKey,JSON.stringify({access_token:token,refresh_token:d.refresh_token,expires_at:Date.now()+(d.expires_in||3600)*1000,email:d.user?.email||ss.email}));
+  resp=await fetch(cloudApiBase+"/auth/v1/user",{headers:{apikey:cloudPublicKey,Authorization:"Bearer "+token}});
+ }
+ if(!resp.ok)throw Error("Oturum geçersiz. Tekrar giriş yap.");
+ const user=await resp.json();
+ return {token,user};
+}
+async function cloudRequest(path,options={}){
+ const {token,user}=await cloudSession();
+ const res=await fetch(cloudApiBase+path,{method:options.method||"GET",
+  headers:{apikey:cloudPublicKey,Authorization:"Bearer "+token,...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})},
+  ...(options.body?{body:JSON.stringify(options.body)}:{})});
+ const d=await res.json().catch(()=>null);
+ if(!res.ok)throw Error(d?.message||d?.error_description||d?.error||"Sunucu hatası "+res.status);
+ return {data:d,user};
+}
+const cloudStatus=message=>{const el=$("officeCloudStatus");if(el)el.textContent=message};
+async function loadOfficeCloud(){
+ if(cloudSessionBusy)return;
+ cloudSessionBusy=true;
+ try{
+  const [{data:offices,user},{data:members}]=await Promise.all([
+   cloudRequest("/rest/v1/emlakcrm_offices_cloud?select=id,name,owner_id&order=name.asc"),
+   cloudRequest("/rest/v1/emlakcrm_office_memberships?select=office_id,status")
+  ]);
+  cloudUser=user;
+  const approved=new Set((members||[]).filter(r=>r.status==="approved").map(r=>r.office_id));
+  cloudOffices=(offices||[]).filter(o=>o.owner_id===user.id||approved.has(o.id));
+  $("officeCloudLogin").hidden=true;$("officeCloudConnected").hidden=false;
+  const chosen=$("officeCloudSelectedOffice").value;
+  $("officeCloudSelectedOffice").innerHTML=cloudOffices.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.name)+'</option>').join("");
+  if(cloudOffices.some(o=>o.id===chosen))$("officeCloudSelectedOffice").value=chosen;
+  if(!cloudOffices.length){$("officeCloudSharedList").innerHTML="";cloudStatus("Onaylı ofis üyeliğin bulunamadı. Önce EmlakCRM → Ofis Yönetimi'nden üyeliğini tamamla.");return}
+  cloudStatus("Bağlandın: "+(user.email||"EmlakCRM hesabı")+". Yeni portföyleri kaydettiğinde seçili ofise aktarılacak.");
+  await refreshCloudOfficeCards();
+ }catch(err){
+  cloudUser=null;cloudOffices=[];
+  $("officeCloudLogin").hidden=false;$("officeCloudConnected").hidden=true;
+  cloudStatus("Bağlanılamadı: "+err.message);
+ }finally{cloudSessionBusy=false}
+}
+async function refreshCloudOfficeCards(){
+ const id=$("officeCloudSelectedOffice").value;
+ if(!id||!cloudOffices.some(o=>o.id===id)){$("officeCloudSharedList").innerHTML="";return}
+ try{
+  const {data}=await cloudRequest("/rest/v1/emlakcrm_office_portfolios?select=title,location,price,kind,property_type,rooms,listing_url,advisor_name,author_id&office_id=eq."+encodeURIComponent(id)+"&order=updated_at.desc&limit=150");
+  const found=Array.isArray(data)?data:[];
+  $("officeCloudSharedList").innerHTML=found.length?found.map(p=>{
+   const url=String(p.listing_url||"");
+   const safe=validListingUrl(url);
+   return '<div class="officeCloudCard"><strong>'+esc(p.title)+'</strong><p class="hint">'+esc([p.kind,p.property_type,p.rooms,p.location].filter(Boolean).join(" · "))+'</p><p class="hint">Danışman: '+esc(p.advisor_name||"—")+(p.author_id===cloudUser?.id?' · <span class="mineLabel">Benim portföyüm</span>':'')+'</p>'+(p.price?'<b>'+esc(p.price)+' TL</b>':'')+(url&&safe?' · <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">İlanı Aç ↗</a>':'')+'</div>';
+  }).join(""):'<p class="hint">Bu ofiste henüz paylaşılan portföy yok.</p>';
+ }catch(err){cloudStatus("Ofis listesi açılamadı: "+err.message)}
+}
+async function sendPortfolioToOffice(p){
+ const id=$("officeCloudSelectedOffice").value;
+ if(!p)return false;
+ if(!cloudUser||!cloudOffices.some(o=>o.id===id)){cloudStatus("✓ Portföy bu bilgisayara kaydedildi. Ofis paylaşımı yapılmadı; onaylı ofis hesabınla giriş yap.");return false}
+ const payload={office_id:id,author_id:cloudUser.id,local_portfolio_id:String(p.id),title:String(p.title||"").slice(0,200),
+  location:String(p.location||""),kind:String(p.kind||""),property_type:String(p.propertyType||""),
+  rooms:String(p.rooms||""),price:String(p.price||""),listing_url:String(p.listingUrl||""),
+  advisor_name:String(db.advisor.name||cloudUser.email||"Danışman"),updated_at:new Date().toISOString()};
+ const url="/rest/v1/emlakcrm_office_portfolios?on_conflict=office_id,author_id,local_portfolio_id";
+ try{
+  const {data}=await cloudRequest(url,{method:"POST",body:payload,headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
+  if(!Array.isArray(data)||data.length!==1)throw Error("Paylaşım sunucu tarafından doğrulanamadı.");
+  cloudStatus("✓ “"+p.title+"” bilgisayara kaydedildi ve ofise paylaşıldı.");
+  await refreshCloudOfficeCards();
+  return true;
+ }catch(err){cloudStatus("✓ Portföy bu bilgisayara kaydedildi. Ofise paylaşılamadı: "+err.message);return false}
+}
+$("officeCloudLoginButton").onclick=async()=>{
+ const email=$("officeCloudEmail").value.trim(),password=$("officeCloudPassword").value;
+ if(!email||!password){cloudStatus("E-posta ve şifreyi gir.");return}
+ const btn=$("officeCloudLoginButton");btn.disabled=true;
+ try{
+  const res=await fetch(cloudApiBase+"/auth/v1/token?grant_type=password",{method:"POST",
+   headers:{apikey:cloudPublicKey,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  const d=await res.json().catch(()=>({}));
+  if(!res.ok||!d.access_token)throw Error(d.message||d.error_description||d.error||"E-posta veya şifre hatalı");
+  sessionStorage.setItem(cloudSessionKey,JSON.stringify({access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Date.now()+(d.expires_in||3600)*1000,email:d.user?.email||email}));
+  $("officeCloudPassword").value="";
+  await loadOfficeCloud();
+ }catch(err){cloudStatus("Giriş başarısız: "+err.message)}
+ finally{btn.disabled=false}
+};
+$("officeCloudLogout").onclick=()=>{
+ sessionStorage.removeItem(cloudSessionKey);cloudUser=null;cloudOffices=[];
+ $("officeCloudLogin").hidden=false;$("officeCloudConnected").hidden=true;$("officeCloudSharedList").innerHTML="";
+ cloudStatus("Bu ekrandan çıkış yapıldı.");
+};
+$("officeCloudRefresh").onclick=()=>cloudSavedSession()?loadOfficeCloud():cloudStatus("Önce hesabına giriş yap.");
+$("officeCloudSelectedOffice").onchange=()=>refreshCloudOfficeCards();
+
+$("pick").onchange=e=>{$("editPortfolioPanel").hidden=true;pid=e.target.value;shown=null;$("paper").hidden=true;refresh()};
+$("saveP").onclick=()=>{if(!$("title").value.trim())return alert("İlan başlığını girin.");if(!validListingUrl($("listingUrl").value.trim()))return alert("İlan linki http:// veya https:// ile başlamalı.");previewAuthorization("");if(!$("AuthStart").value||!$("AuthDuration").value||!$("AuthEnd").value)return alert("Yetki sözleşmesinin başlangıç tarihini ve süresini girin.");const selectedSites=[...document.querySelectorAll("[data-initial-site]:checked")].map(x=>x.value);const p={id:id(),title:$("title").value.trim(),location:$("loc").value,price:$("price").value,owner:$("owner").value,phone:$("phone").value,listingUrl:$("listingUrl").value.trim(),start:today(),kind:$("kind").value,propertyType:$("pType").value,rooms:$("pRooms").value,authStart:$("AuthStart").value,authDuration:Number($("AuthDuration").value),authUnit:$("AuthUnit").value,authEnd:$("AuthEnd").value,sites:selectedSites,cover:newCover||"",acts:[],reports:[]};db.portfolios.push(p);pid=p.id;save();void sendPortfolioToOffice(p);pick();$("newPortfolioDetails").open=false;newCover="";$("cover").value="";$("title").value="";$("listingUrl").value="";$("AuthStart").value="";$("AuthDuration").value="";$("AuthUnit").value="month";$("AuthEnd").value="";document.querySelectorAll("[data-initial-site]").forEach(el=>el.checked=false)};
+$("editPortfolio").onclick=()=>{const p=current();if(!p)return alert("Önce portföy oluşturun.");for(const [i,k] of Object.entries({eTitle:"title",eLocation:"location",ePrice:"price",eType:"propertyType",eRooms:"rooms",eOwner:"owner",ePhone:"phone",eAuthStart:"authStart",eAuthEnd:"authEnd"}))$(i).value=p[k]||"";const legacyDays=p.authStart&&p.authEnd?authorizationDays(p.authStart,p.authEnd):0;
+ $("eAuthDuration").value=p.authDuration||Math.max(0,legacyDays)||"";
+ $("eAuthUnit").value=p.authUnit||(legacyDays>0?"day":"month");
+ $("eListingUrl").value=p.listingUrl||"";editedCover=p.cover||"";$("eCover").value="";$("editPortfolioPanel").hidden=false};$("cancelPortfolioEdit").onclick=()=>{$("editPortfolioPanel").hidden=true;workspace.classList.remove("editing")};$("savePortfolioEdit").onclick=()=>{const p=current();if(!p)return;if(!$("eTitle").value.trim())return alert("İlan başlığı boş olamaz.");if(!validListingUrl($("eListingUrl").value.trim()))return alert("İlan linki http:// veya https:// ile başlamalı.");if($("eAuthStart").value||$("eAuthDuration").value){
+ if(!$("eAuthStart").value||!$("eAuthDuration").value)return alert("Yetki başlangıcını ve süresini birlikte girin.");
+ previewAuthorization("e");
+ if(!$("eAuthEnd").value)return alert("Yetki süresini kontrol edin.");
+}const newStart=$("eAuthStart").value,newEnd=$("eAuthEnd").value;
+ if((p.authStart||p.authEnd)&&(newStart!==String(p.authStart||"")||newEnd!==String(p.authEnd||""))){
+  if(!Array.isArray(p.authHistory))p.authHistory=[];
+  p.authHistory.push({authStart:p.authStart||"",authEnd:p.authEnd||"",authDuration:p.authDuration??null,authUnit:p.authUnit||"",changedAt:new Date().toISOString()});
+ }
+ for(const [i,k] of Object.entries({eTitle:"title",eLocation:"location",ePrice:"price",eType:"propertyType",eRooms:"rooms",eOwner:"owner",ePhone:"phone",eAuthStart:"authStart",eAuthEnd:"authEnd"}))p[k]=$(i).value;p.authDuration=$("eAuthDuration").value?Number($("eAuthDuration").value):null;p.authUnit=$("eAuthUnit").value;p.listingUrl=$("eListingUrl").value.trim();p.cover=editedCover;save();void sendPortfolioToOffice(p);$("editPortfolioPanel").hidden=true;workspace.classList.remove("editing");pick()};
+$("addAct").onclick=()=>{const p=current();if(!p)return alert("Önce portföy oluşturun.");p.acts.push({id:id(),date:$("aDate").value||today(),type:$("aType").value,note:$("aNote").value.trim()});$("aNote").value="";save();refresh()};
+$("actList").onclick=e=>{const el=e.target.closest("[data-delete]"),p=current();if(el&&p&&confirm("Bu hareket silinsin mi?")){p.acts=p.acts.filter(a=>a.id!==el.dataset.delete);save();refresh()}};
+function form(){const p=current();if(!p){alert("Önce portföy oluşturun.");return null}const from=$("from").value,to=$("to").value;if(!from||!to||from>to){alert("Rapor tarihlerini kontrol edin.");return null}const stats=sites(p).map((name,i)=>{const item={name};for(const field of ["v","f"]){const val=document.querySelector('[data-site="'+i+'"][data-f="'+field+'"]').value;item[field]=val===""?null:Number(val)}return item});return{id:id(),from,to,eval:$("eval").value,stats}}
+$("draft").onclick=()=>{const r=form();if(!r)return;db.drafts[pid]={eval:r.eval,stats:r.stats};save();alert("Taslak kaydedildi.")};
+function paper(r){const p=current();if(!p||!r)return;shown=r;$("paper").hidden=false;$("rPeriod").textContent="Rapor dönemi: "+tr(r.from)+" – "+tr(r.to);$("rCover").hidden=!p.cover;$("rCover").src=p.cover||"";$("rTitle").textContent=p.title;$("rLocation").textContent=[p.location,p.kind].filter(Boolean).join(" • ");$("rPrice").textContent=p.price?fmt(parse(p.price))+" TL":"";$("rOwner").textContent=p.owner?"Sayın "+p.owner:"";const prev=(p.reports||[]).filter(x=>x.id!==r.id&&x.to<r.from).sort((a,b)=>b.to.localeCompare(a.to))[0],display=x=>x==null?"—":fmt(x),diff=(v,o)=>v==null||o==null?"—":(v-o>=0?"+":"")+fmt(v-o);$("rCards").innerHTML=r.stats.map(x=>{const a=prev?.stats?.find(v=>v.name===x.name);const deltaV=diff(x.v,a?.v),deltaF=diff(x.f,a?.f);return '<div class="reportCard"><b>'+esc(x.name)+'</b><strong>'+display(x.v)+'</strong><span>Görüntülenme • '+display(x.f)+' favori</span>'+(deltaV!=="—"||deltaF!=="—"?'<small class="reportDelta">Önceki rapora göre: '+deltaV+' görüntülenme · '+deltaF+' favori</small>':'')+'</div>'}).join("");const acts=(p.acts||[]).filter(x=>String(x.date||"").slice(0,10)>=r.from&&String(x.date||"").slice(0,10)<=r.to).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));$("rActSummary").textContent=tr(r.from)+" – "+tr(r.to)+" tarihleri arasında "+acts.length+" hareket kaydedildi.";$("rActs").innerHTML=acts.map((a,i)=>'<div class="movementRow"><b>'+(i+1)+'. '+tr(String(a.date).slice(0,10))+' • '+esc(a.type||"Diğer")+'</b>'+(a.note?'<div class="movementNote">'+esc(a.note)+'</div>':"")+"</div>").join("")||"<p>Seçilen hafta için kayıtlı hareket bulunmuyor. Hareketler bölümünde tarihleri kontrol edin.</p>";$("rEval").textContent=r.eval||"—";$("rAdvisor").textContent=[db.advisor.name,db.advisor.office,db.advisor.phone].filter(Boolean).join(" • ")}
+$("generate").onclick=()=>{const r=form();if(!r)return;const p=current();p.reports.push(r);save();paper(r);alert("Haftalık rapor kaydedildi.")};
+$("print").onclick=()=>{if(!shown){const r=form();if(!r)return;paper(r)}window.print()};
+$("share").onclick=async()=>{if(!shown)return alert("Önce raporu oluşturun.");const p=current(),message=p.title+"\nİlerleme raporu: "+tr(shown.from)+" – "+tr(shown.to)+"\n"+shown.eval;try{if(navigator.share)await navigator.share({title:"İlerleme Raporu",text:message});else window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank")}catch(e){if(e.name!=="AbortError")alert("Paylaşım tamamlanamadı.")}};
+function history(){const p=current();$("history").innerHTML=p?(p.reports||[]).slice().reverse().map(r=>'<div class="entry"><b>'+tr(r.from)+' – '+tr(r.to)+'</b> <button class="light" data-open="'+r.id+'">Aç / PDF</button></div>').join("")||"Henüz rapor yok.":"Önce portföy oluşturun."}
+$("history").onclick=e=>{const el=e.target.closest("[data-open]");if(!el)return;const r=current()?.reports.find(x=>x.id===el.dataset.open);if(r){paper(r);tab("report")}};
+$("saveC").onclick=()=>{db.advisor={name:$("cName").value,phone:$("cPhone").value,office:$("cOffice").value};save();alert("Danışman bilgileri kaydedildi.")};
+if(location.hash==="#portfoyler")setTimeout(()=>document.getElementById("portfoyler").scrollIntoView({block:"start"}),60);$("cName").value=db.advisor.name||"";$("cPhone").value=db.advisor.phone||"";$("cOffice").value=db.advisor.office||"";
+
+
+function fileCover(file){return new Promise((resolve,reject)=>{if(!file)return resolve("");if(!file.type.startsWith("image/"))return reject(Error("Görsel seçin."));const reader=new FileReader();reader.onerror=()=>reject(Error("Fotoğraf okunamadı."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(Error("Görsel açılamadı."));img.onload=()=>{const k=Math.min(1,520/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);resolve(cv.toDataURL("image/jpeg",.65))};img.src=reader.result};reader.readAsDataURL(file)})}
+$("cover").onchange=async e=>{try{newCover=await fileCover(e.target.files[0])}catch(err){alert(err.message)}};
+$("eCover").onchange=async e=>{try{if(e.target.files[0])editedCover=await fileCover(e.target.files[0])}catch(err){alert(err.message)}};
+
+/* Tek portföyün kendi kartında açılan, mevcut gerçek kayıt formları */
+let expandedPortfolioId="";
+const workspace=document.createElement("div");workspace.className="pWorkspace";
+const sectionsToDock=["portfolioEditBar","editPortfolioPanel","portfolioSites","tabs","actPanel","reportPanel","histPanel","advisorPanel"];
+// İşlem panellerini sayfanın altından kaldırıp sadece açık kartın içine yerleştir.
+function collectWorkspace(){sectionsToDock.forEach(name=>{const node=$(name);if(node)workspace.appendChild(node)});$("workspaceParking").appendChild(workspace)}
+$("newPortfolioDetails").open=false;
+$("showAddPortfolio").onclick=()=>{$("newPortfolioDetails").open=true};
+$("closeAddPortfolio").onclick=()=>{$("newPortfolioDetails").open=false};
+function validListingUrl(url){if(!url)return true;try{const u=new URL(url);return u.protocol==="http:"||u.protocol==="https:"}catch{return false}}
+function ownerWhatsAppNumber(phone){
+ const raw=String(phone||"").trim(),digits=raw.replace(/\D/g,"");
+ if(/^05\d{9}$/.test(digits))return "9"+digits;
+ if(/^5\d{9}$/.test(digits))return "90"+digits;
+ if(raw.startsWith("+")&&/^\d{11,15}$/.test(digits))return digits;
+ if(/^905\d{9}$/.test(digits))return digits;
+ return "";
+}
+function ownerRenewalWhatsApp(p){
+ const num=ownerWhatsAppNumber(p.phone);
+ if(!num||!p.authEnd)return "";
+ const msg="Merhaba"+(p.owner?" "+p.owner:"")+", umarım iyisinizdir.\n\n"+(p.title||"İlgili portföy")+" için düzenlediğimiz yetki sözleşmesinin süresi "+tr(p.authEnd)+" tarihinde sona eriyor.\n\nSizin için de uygunsa yetki süresinin yenilenmesi konusunu kısaca görüşmek isterim. Müsait olduğunuz bir zamanı paylaşırsanız memnun olurum.\n\nTeşekkür eder, iyi günler dilerim.";
+ return "https://wa.me/"+num+"?text="+encodeURIComponent(msg);
+}
+function filteredPortfolios(){
+ const query=$("portfolioSearch").value.trim().toLocaleLowerCase("tr-TR");
+ const status=$("portfolioAuthFilter").value;
+ const now=today();
+ return db.portfolios.filter(p=>{
+   const searchable=[p.title,p.location,p.owner,p.phone,p.kind,p.propertyType,p.rooms].join(" ").toLocaleLowerCase("tr-TR");
+   if(query&&!searchable.includes(query))return false;
+   if(status==="all")return true;
+   if(!p.authEnd)return status==="missing";
+   const days=authorizationDays(now,p.authEnd);
+   if(!Number.isFinite(days))return status==="missing";
+   return status==="expired"?days<0:status==="soon"?days>=0&&days<=7:status==="active"?days>7:false;
+ });
+}
+function portfolioShareUrl(p){
+ const url=String(p.listingUrl||"").trim();
+ if(!url||!validListingUrl(url))return "";
+ const parts=[p.title||"Gayrimenkul ilanı",[p.kind,p.propertyType,p.rooms].filter(Boolean).join(" · "),p.location?"Konum: "+p.location:"",p.price?"Fiyat: "+fmt(parse(p.price))+" TL":"","İlan: "+url].filter(Boolean);
+ return "https://wa.me/?text="+encodeURIComponent(parts.join("\n"));
+}
+function exportPortfolioCsv(){
+ const list=filteredPortfolios();
+ if(!list.length)return alert("Aktarılacak portföy bulunamadı.");
+ const columns=[
+  ["İlan Başlığı",p=>p.title],["İşlem",p=>p.kind],["Tür",p=>p.propertyType],
+  ["Oda",p=>p.rooms],["Konum",p=>p.location],["Fiyat (TL)",p=>p.price],
+  ["Mülk Sahibi",p=>p.owner],["Telefon",p=>p.phone],["İlan Linki",p=>p.listingUrl],
+  ["Yetki Başlangıç",p=>p.authStart],["Yetki Süresi",p=>p.authDuration],
+  ["Süre Birimi",p=>({day:"Gün",month:"Ay",year:"Yıl"})[p.authUnit]||p.authUnit||""],
+  ["Yetki Bitiş",p=>p.authEnd],
+  ["Kalan Gün",p=>p.authEnd?authorizationDays(today(),p.authEnd):""],
+  ["Yetki Durumu",p=>!p.authEnd?"Tarih yok":authorizationDays(today(),p.authEnd)<0?"Süresi doldu":authorizationDays(today(),p.authEnd)<=7?"Yaklaşıyor":"Aktif"]
+ ];
+ const cell=x=>{let value=String(x??"").replace(/[\r\n]+/g," ").trim();
+   if(/^[=+@-]/.test(value))value="'"+value;
+   return '"'+value.replace(/"/g,'""')+'"';
+ };
+ const lines=[columns.map(c=>cell(c[0])).join(";"),...list.map(p=>columns.map(c=>cell(c[1](p))).join(";"))];
+ const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="EmlakCRM_Portfoyler_"+today()+".csv";document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+function drawCards(){
+ const root=$("portfolioCards");if(!root)return;
+ const matching=filteredPortfolios();
+ const now=today();
+ $("portfolioFilterInfo").textContent=db.portfolios.length+" portföyden "+matching.length+" tanesi gösteriliyor.";
+ collectWorkspace();
+ root.innerHTML=matching.map(p=>'<article class="pCard '+(p.id===expandedPortfolioId?'chosen':'')+'" data-portfolio-card="'+esc(p.id)+'"><div class="pContent">'+(p.cover?'<img class="pPhoto" src="'+esc(p.cover)+'" alt="Kapak fotoğrafı">':'<div class="pPhoto placeholder">🏠<small>Fotoğraf yok</small></div>')+'<div class="pDetails"><strong>'+esc(p.title)+'</strong><span>'+esc([p.kind,p.propertyType,p.rooms].filter(Boolean).join(" · "))+'</span><span>📍 '+esc(p.location||"Konum girilmedi")+'</span><span>Mülk sahibi: '+esc(p.owner||"—")+'</span><span>☎ '+(p.phone?'<a href="tel:'+esc(String(p.phone).replace(/[^0-9+]/g,""))+'">'+esc(p.phone)+'</a>'+(ownerWhatsAppNumber(p.phone)?' · <a href="https://wa.me/'+ownerWhatsAppNumber(p.phone)+'" target="_blank" rel="noopener noreferrer" aria-label="Mülk sahibine WhatsApp mesajı gönder">WhatsApp ↗</a>':''):'—')+'</span><span>Danışman: '+esc(db.advisor.name||"—")+'</span>'+(p.listingUrl&&validListingUrl(p.listingUrl)?'<span>🔗 <a href="'+esc(p.listingUrl)+'" target="_blank" rel="noopener noreferrer">İlanı Aç ↗</a></span>':'')+authorizationBadge(p)+'</div><div class="pPrice">'+(p.price?fmt(parse(p.price))+" TL":"—")+'</div></div><div class="pActions"><button type="button" class="light" data-open-tab="act" data-pid="'+esc(p.id)+'">Hareketler</button><button type="button" class="light" data-open-tab="report" data-pid="'+esc(p.id)+'">Rapor</button><button type="button" class="light" data-open-tab="hist" data-pid="'+esc(p.id)+'">Geçmiş</button><button type="button" class="light" data-open-tab="advisor" data-pid="'+esc(p.id)+'">Danışman</button><button type="button" class="light" data-edit-p="'+esc(p.id)+'" aria-label="Portföyü düzenle" title="Portföyü düzenle">✎</button><button type="button" class="officeCloudShareButton" data-cloud-share="'+esc(p.id)+'" title="Eski portföyleri de ofise eklemek için">🏢 Ofiste Paylaş</button>'+(portfolioShareUrl(p)?'<a class="sharePortfolioButton" href="'+esc(portfolioShareUrl(p))+'" target="_blank" rel="noopener noreferrer">📤 İlanı Paylaş</a>':'')+(p.authEnd&&Number.isFinite(authorizationDays(now,p.authEnd))&&authorizationDays(now,p.authEnd)<=7?'<button type="button" class="authRenewButton" data-renew-p="'+esc(p.id)+'" title="Yeni sözleşme tarihlerini girip onaylayın">↻ Yetki Yenile</button>'+(ownerRenewalWhatsApp(p)?'<a class="waRenewButton" href="'+esc(ownerRenewalWhatsApp(p))+'" target="_blank" rel="noopener noreferrer" title="Mülk sahibine yetki yenileme mesajı hazırla">💬 Yenileme Mesajı</a>':''):'')+'</div>'+(Array.isArray(p.authHistory)&&p.authHistory.length?'<details class="authHistory"><summary>Yetki Geçmişi ('+p.authHistory.length+')</summary><div>'+p.authHistory.slice().reverse().map(h=>'<div class="authHistoryEntry"><b>'+tr(h.authStart)+' – '+tr(h.authEnd)+'</b>'+(h.authDuration?'<span> · '+esc(h.authDuration)+' '+esc(({day:"gün",month:"ay",year:"yıl"})[h.authUnit]||h.authUnit||"")+'</span>':'')+'<small>Önceki kayıt · '+(h.changedAt?esc(new Date(h.changedAt).toLocaleString("tr-TR")):"Tarih belirtilmedi")+'</small></div>').join("")+'</div></details>':'')+'<div class="pSlot" data-slot="'+esc(p.id)+'"></div></article>').join("")||'<div class="hint">'+(db.portfolios.length?"Bu arama veya yetki durumuna uygun portföy bulunamadı.":"Henüz portföy eklenmedi.")+'</div>';
+ if(expandedPortfolioId){
+   const slot=[...root.querySelectorAll("[data-slot]")].find(el=>el.dataset.slot===expandedPortfolioId);
+   if(slot)slot.appendChild(workspace);
+   else expandedPortfolioId="";
+ }
+}
+$("exportPortfolios").onclick=exportPortfolioCsv;
+$("portfolioSearch").addEventListener("input",drawCards);
+$("portfolioAuthFilter").addEventListener("change",drawCards);
+$("portfolioCards").onclick=e=>{
+ const share=e.target.closest("[data-cloud-share]");
+ if(share){
+  const p=db.portfolios.find(x=>String(x.id)===share.dataset.cloudShare);
+  if(p){share.disabled=true;void sendPortfolioToOffice(p).finally(()=>{share.disabled=false})}
+  return;
+ }
+ const tabButton=e.target.closest("[data-open-tab]"),edit=e.target.closest("[data-edit-p]"),renew=e.target.closest("[data-renew-p]");
+ if(!tabButton&&!edit&&!renew)return;
+ const chosen=tabButton?.dataset.pid||edit?.dataset.editP||renew?.dataset.renewP;
+ if(!db.portfolios.some(p=>p.id===chosen))return;
+ const nextMode=(edit||renew)?"edit":tabButton.dataset.openTab;
+ const currentlySame=expandedPortfolioId===chosen;
+ const alreadyVisible=currentlySame&&workspace.dataset.mode===nextMode;
+ if(alreadyVisible&&!renew){
+   expandedPortfolioId="";workspace.dataset.mode="";workspace.classList.remove("editing");
+   $("editPortfolioPanel").hidden=true;drawCards();return;
+ }
+ expandedPortfolioId=chosen;pid=chosen;$("pick").value=pid;
+ workspace.dataset.mode=nextMode;
+ workspace.classList.toggle("editing",!!(edit||renew));
+ $("editPortfolioPanel").hidden=true;
+ refresh();
+ if(edit||renew)$("editPortfolio").click();
+ else tab(nextMode);
+ if(renew){
+   // Yalnızca formu hazırlar; kayıt kullanıcı "Değişiklikleri kaydet" diyene kadar değişmez.
+   $("eAuthStart").value=today();
+   previewAuthorization("e");
+   $("eAuthStart").focus();
+ }
+ const card=[...$("portfolioCards").querySelectorAll("[data-portfolio-card]")].find(x=>x.dataset.portfolioCard===chosen);
+ card?.scrollIntoView({behavior:"smooth",block:"nearest"});
+};
+// Para alanları: Türkçe binlik ayırıcı, örn. 1.250.000
+function bindThousands(ids){const format=v=>{const raw=String(v??"").replace(/\D/g,"");return raw?raw.replace(/\B(?=(\d{3})+(?!\d))/g,"."):""};ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;el.setAttribute("inputmode","numeric");el.value=format(el.value);el.addEventListener("input",()=>{const pos=el.selectionStart??el.value.length,prior=el.value.slice(0,pos).replace(/\D/g,"").length;el.value=format(el.value);let next=0,count=0;while(next<el.value.length&&count<prior){if(/\d/.test(el.value[next]))count++;next++}el.setSelectionRange(next,next)});el.addEventListener("blur",()=>el.value=format(el.value))})}
+bindThousands(["price","ePrice"]);
+// İlk açılışta tüm kart bileşenleri hazırlandıktan sonra listeyi çiz.
+pick();
+if(cloudSavedSession())void loadOfficeCloud();
+</script></html>
