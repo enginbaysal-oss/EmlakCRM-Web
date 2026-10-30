@@ -283,7 +283,7 @@ function normalizeGeoJSON(input){
   function countCoords(coords){if(typeof coords[0]==="number"){points++;return}for(const sub of coords)countCoords(sub)}
   countCoords(geometry.coordinates);
   if(points>20000)throw Error("Dosya 20.000 koordinat sınırını aşıyor.");
-  features.push({type:"Feature",geometry,properties:{name:String(feature.properties?.name||"Yüklenen parsel").slice(0,90)}});
+  features.push({type:"Feature",geometry,properties:{...feature.properties,name:String(feature.properties?.name||feature.properties?.ozet||"Yüklenen parsel").slice(0,90),renk:/^#[0-9a-fA-F]{6}$/.test(feature.properties?.renk)?feature.properties.renk:"#ed3035"}});
  }
  if(!features.length)throw Error("Dosyada Polygon veya MultiPolygon sınırı bulunamadı.");
  return{type:"FeatureCollection",features};
@@ -356,9 +356,9 @@ function nativeOverlayGeometry(z,bx,by){
   for(const poly of polygons){
    const el=document.createElementNS(ns,"path");
    el.setAttribute("d",coordsToPath(poly));
-   el.setAttribute("fill","#ed3035");
+   el.setAttribute("fill",color||"#ed3035");
    el.setAttribute("fill-opacity","0.20");
-   el.setAttribute("stroke","#d5222a");
+   el.setAttribute("stroke",color||"#d5222a");
    el.setAttribute("stroke-width","1.1");
    el.setAttribute("stroke-linejoin","round");
    el.setAttribute("fill-rule","evenodd");
@@ -555,7 +555,7 @@ function drawFallback(geo){
  const offsetX=500-(x0+x1)*scale/2,offsetY=350+(y0+y1)*scale/2;
  const ns="http://www.w3.org/2000/svg";
  svg.replaceChildren();
- function drawPolygon(poly){
+ function drawPolygon(poly,color){
   if(!Array.isArray(poly)||!poly.length)return;
   let d="";
   for(const ring of poly){
@@ -564,9 +564,9 @@ function drawFallback(geo){
   }
   const el=document.createElementNS(ns,"path");
   el.setAttribute("d",d);
-  el.setAttribute("fill","#ed3035");
+  el.setAttribute("fill",feature.properties?.renk||"#ed3035");
   el.setAttribute("fill-opacity","0.20");
-  el.setAttribute("stroke","#d5222a");
+  el.setAttribute("stroke",feature.properties?.renk||"#d5222a");
   el.setAttribute("stroke-width","1.1");
   el.setAttribute("stroke-linejoin","round");
   el.setAttribute("fill-rule","evenodd");
@@ -574,8 +574,8 @@ function drawFallback(geo){
  }
  for(const feature of geo.features){
   const g=feature.geometry;
-  if(g.type==="Polygon")drawPolygon(g.coordinates);
-  else for(const polygon of g.coordinates)drawPolygon(polygon);
+  if(g.type==="Polygon")drawPolygon(g.coordinates,feature.properties?.renk);
+  else for(const polygon of g.coordinates)drawPolygon(polygon,feature.properties?.renk);
  }
 }
 let parcelTitle="Örnek parsel — Manisa (temsili)";
@@ -875,8 +875,8 @@ function start3DMap(provider="esri"){
    try{
     map.addSource("parcels",{type:"geojson",data:parcel});
     map.addSource("route",{type:"geojson",data:{type:"Feature",geometry:{type:"LineString",coordinates:[]},properties:{}}});
-    map.addLayer({id:"parcels-fill",type:"fill",source:"parcels",paint:{"fill-color":"#ed3035","fill-opacity":0.20}});
-    map.addLayer({id:"parcels-border",type:"line",source:"parcels",paint:{"line-color":"#d5222a","line-width":1.1,"line-opacity":0.9}});
+    map.addLayer({id:"parcels-fill",type:"fill",source:"parcels",paint:{"fill-color":["coalesce",["get","renk"],"#ed3035"],"fill-opacity":0.20}});
+    map.addLayer({id:"parcels-border",type:"line",source:"parcels",paint:{"line-color":["coalesce",["get","renk"],"#d5222a"],"line-width":1.1,"line-opacity":0.9}});
     map.addLayer({id:"flight-route",type:"line",source:"route",paint:{"line-color":"#ffe16c","line-dasharray":[1.5,2.5],"line-width":2,"line-opacity":0.88}});
     if(!isMapbox){
      // Yedek Esri sağlayıcısında eski yer isimleri de korunur.
