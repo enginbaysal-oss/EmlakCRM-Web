@@ -451,7 +451,7 @@ function findClientMatches(c,portfolios){
   if(c.propertyType&&p.propertyType){if(normalizeMatch(c.propertyType)!==normalizeMatch(p.propertyType))return null;score+=25;notes.push("Gayrimenkul türü uygun")}
   if(budget&&matchNumber(p.price)){if(matchNumber(p.price)>budget)return null;score+=20;notes.push("Bütçeye uygun")}
   if(c.rooms&&p.rooms){if(normalizeMatch(c.rooms)!==normalizeMatch(p.rooms))return null;score+=15;notes.push("Oda sayısı uygun")}
-  if(terms.length){const place=normalizeMatch(p.location);if(!place.includes(terms[0]))return null;score+=15;notes.push("Konum eşleşiyor")}
+  if(terms.length){const place=normalizeMatch(p.location);const matched=terms.filter(term=>place.includes(term));if(!matched.length)return null;score+=15;notes.push("Konum eşleşiyor ("+matched.length+"/"+terms.length+")")}
   return{p,score,notes}
  }).filter(Boolean).sort((a,b)=>b.score-a.score);
 }
