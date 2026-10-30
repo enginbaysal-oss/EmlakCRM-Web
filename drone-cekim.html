@@ -265,6 +265,13 @@ function polygonGeometry(g){
  if(!Array.isArray(g.coordinates)||!g.coordinates.length)throw Error("Çoklu poligon boş.");
  return{type:"MultiPolygon",coordinates:g.coordinates.map(poly=>poly.map(ring))};
 }
+function validParcelColor(value){
+ const color=typeof value==="string"?value.trim():"";
+ if(!color||color.length>80)return "#ed3035";
+ // Renk sayisi sinirsizdir: HEX, CSS renk adlari, rgb(a), hsl(a).
+ if(typeof CSS!=="undefined"&&typeof CSS.supports==="function"&&CSS.supports("color",color))return color;
+ return /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color)?color:"#ed3035";
+}
 function normalizeGeoJSON(input){
  if(typeof input!=="object"||!input)throw Error("Geçerli GeoJSON bulunamadı.");
  for(let depth=0;depth<4;depth++){
@@ -283,7 +290,7 @@ function normalizeGeoJSON(input){
   function countCoords(coords){if(typeof coords[0]==="number"){points++;return}for(const sub of coords)countCoords(sub)}
   countCoords(geometry.coordinates);
   if(points>20000)throw Error("Dosya 20.000 koordinat sınırını aşıyor.");
-  features.push({type:"Feature",geometry,properties:{...feature.properties,name:String(feature.properties?.name||feature.properties?.ozet||"Yüklenen parsel").slice(0,90),renk:/^#[0-9a-fA-F]{6}$/.test(feature.properties?.renk)?feature.properties.renk:"#ed3035"}});
+  features.push({type:"Feature",geometry,properties:{...feature.properties,name:String(feature.properties?.name||feature.properties?.ozet||"Yüklenen parsel").slice(0,90),renk:validParcelColor(feature.properties?.renk)}});
  }
  if(!features.length)throw Error("Dosyada Polygon veya MultiPolygon sınırı bulunamadı.");
  return{type:"FeatureCollection",features};
