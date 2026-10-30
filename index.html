@@ -717,8 +717,25 @@ $("saveHistory").onclick=()=>{
 $("closeHistory").onclick=()=>{if($("historyNote").value.trim()&&!confirm("Kaydedilmemiş görüşme notu var. Kaydetmeden kapatılsın mı?"))return;historyClientId=null;$("historyNote").value="";$("historyPanel").classList.add("hide")};
 document.addEventListener("click",e=>{
 const deleteOffice=e.target.closest("[data-delete-office]"),deleteMember=e.target.closest("[data-delete-member]");
-if(deleteOffice){if(confirm("Demo ofisi ve danışman kayıtları silinsin mi?")){data.offices=data.offices.filter(o=>o.id!==deleteOffice.dataset.deleteOffice);data.members=data.members.filter(m=>m.officeId!==deleteOffice.dataset.deleteOffice);store();render()}return}
-if(deleteMember){data.members=data.members.filter(m=>m.id!==deleteMember.dataset.deleteMember);store();render();return}
+if(deleteOffice){
+ const officeId=deleteOffice.dataset.deleteOffice;
+ const office=data.offices.find(o=>String(o.id)===String(officeId));
+ if(!office)return;
+ const count=data.members.filter(m=>String(m.officeId)===String(officeId)).length;
+ if(!confirm(office.name+" demo ofisi ve bağlı "+count+" danışman kaydı silinsin mi?"))return;
+ if(commitCrmChange(()=>{
+  data.offices=data.offices.filter(o=>String(o.id)!==String(officeId));
+  data.members=data.members.filter(m=>String(m.officeId)!==String(officeId));
+ }))render();
+ return;
+}
+if(deleteMember){
+ const memberId=deleteMember.dataset.deleteMember;
+ const member=data.members.find(m=>String(m.id)===String(memberId));
+ if(!member||!confirm(member.name+" danışman kaydı kaldırılsın mı?"))return;
+ if(commitCrmChange(()=>{data.members=data.members.filter(m=>String(m.id)!==String(memberId))}))render();
+ return;
+}
 const history=e.target.closest("[data-history-client]"),edit=e.target.closest("[data-edit-client]"),del=e.target.closest("[data-client]"),toggle=e.target.closest("[data-toggle-task]"),task=e.target.closest("[data-task]");
 if(history){const same=historyClientId===history.dataset.historyClient&&!$("historyPanel").classList.contains("hide");if(historyClientId&&$("historyNote").value.trim()&&!confirm("Kaydedilmemiş görüşme notu var. Kaydetmeden geçilsin mi?"))return;if(same){historyClientId=null;$("historyPanel").classList.add("hide");$("historyNote").value="";return}historyClientId=history.dataset.historyClient;$("historyNote").value="";renderHistory();const target=history.closest(".customer-card")?.querySelector(".customer-history-slot");if(target)target.appendChild($("historyPanel"));$("historyPanel").scrollIntoView({behavior:"smooth",block:"nearest"});return}
 if(edit){const c=data.clients.find(c=>c.id===edit.dataset.editClient);if(!c)return;editingClientId=c.id;["name","phone","area","note","city","district","neighborhood","budget","rooms"].forEach(id=>$(id).value=c[id]||"");$("type").value=c.type;$("clientStatus").value=c.status||"Yeni";$("dealType").value=c.type==="Kiracı"?"Kiralık":c.dealType||"Satılık";$("propertyType").value=c.propertyType||"Daire";$("saveClient").textContent="Değişiklikleri kaydet";$("cancelEdit").classList.remove("hide");$("clientForm").classList.remove("hide");$("clientForm").scrollIntoView({behavior:"smooth",block:"nearest"});return}
