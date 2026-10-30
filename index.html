@@ -457,7 +457,11 @@ function findClientMatches(c,portfolios){
 }
 const presentedKey="emlakcrm_presented_v1";
 let presentedRecords=[];try{const stored=JSON.parse(localStorage.getItem(presentedKey)||"[]");if(Array.isArray(stored))presentedRecords=stored}catch{}
-function storePresented(){localStorage.setItem(presentedKey,JSON.stringify(presentedRecords))}
+function storePresented(){
+ const raw=JSON.stringify(presentedRecords);
+ try{localStorage.setItem(presentedKey,raw)}
+ catch(err){alert("Sunulan portföy kaydı saklanamadı: "+err.message);throw err}
+}
 function presentedFor(clientId){return presentedRecords.filter(r=>String(r.clientId)===String(clientId))}
 function matchPortfolioId(p){return String(p.id??p.title??"")}
 function isAlreadyPresented(clientId,p){return presentedFor(clientId).some(r=>r.status==="presented"&&r.portfolioId===matchPortfolioId(p))}
