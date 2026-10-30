@@ -1222,6 +1222,19 @@ function refreshPortfolioExpiryNotices(){
    $("portfolioExpiry"+suffix+"Items").innerHTML=content;
   }
 }
+// Yalnızca PDF İmzala iframe'inin güvenilir isteğine yanıt ver.
+window.addEventListener("message",async event=>{
+ const frame=$("pdfWebFrame");
+ if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
+ try{
+  await crmAuthenticatedSession();
+  const saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null");
+  if(!saved?.access_token)return;
+  frame.contentWindow.postMessage({type:"emlakcrm-pdf-session",session:{
+   access_token:saved.access_token,refresh_token:saved.refresh_token||"",expires_at:saved.expires_at||0
+  }},"https://enginbaysal-oss.github.io");
+ }catch(err){console.info("PDF İmzala normal giriş ekranını kullanacak:",err.message)}
+});
 function showScreen(name){
  const target=(name==="office"||name==="settings")?"account":name; // eski ofis ve ayar baglantilarini koru
  const selected=appScreens.includes(target)?target:"home";
