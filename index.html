@@ -456,11 +456,26 @@ function findClientMatches(c,portfolios){
  }).filter(Boolean).sort((a,b)=>b.score-a.score);
 }
 const presentedKey="emlakcrm_presented_v1";
-let presentedRecords=[];try{const stored=JSON.parse(localStorage.getItem(presentedKey)||"[]");if(Array.isArray(stored))presentedRecords=stored}catch{}
+let presentedRecords=[],presentedLastSavedRaw=null;
+try{
+ presentedLastSavedRaw=localStorage.getItem(presentedKey);
+ const stored=JSON.parse(presentedLastSavedRaw||"[]");
+ if(Array.isArray(stored))presentedRecords=stored;
+}catch(err){console.warn("Sunulan portföy kayıtları okunamadı:",err)}
 function storePresented(){
  const raw=JSON.stringify(presentedRecords);
- try{localStorage.setItem(presentedKey,raw)}
- catch(err){alert("Sunulan portföy kaydı saklanamadı: "+err.message);throw err}
+ try{
+  if(localStorage.getItem(presentedKey)!==presentedLastSavedRaw)
+   throw Error("Sunulan portföyler başka bir sekmede değişti. Sayfayı yenileyin.");
+  localStorage.setItem(presentedKey,raw);
+  presentedLastSavedRaw=raw;
+ }catch(err){
+  try{presentedRecords=JSON.parse(presentedLastSavedRaw||"[]")}catch{presentedRecords=[]}
+  alert("Sunulan portföy kaydı tamamlanamadı: "+err.message);
+  renderMatches();updateMatchCount();
+  return false;
+ }
+ return true;
 }
 function presentedFor(clientId){return presentedRecords.filter(r=>String(r.clientId)===String(clientId))}
 function matchPortfolioId(p){return String(p.id??p.title??"")}
@@ -493,7 +508,7 @@ $("addPresented").onclick=()=>{
  if(url&&!/^https?:\/\//i.test(url))return alert("Link https:// veya http:// ile başlamalı.");
  if(!note&&!confirm("Not yazmadan sunuldu olarak kaydetmek istiyor musunuz?"))return;
  presentedRecords.push({id:idGen(),clientId:cId,portfolioId:null,title,source,office,note,url,date:new Date().toLocaleDateString("tr-TR"),status:"presented"});
- storePresented();$("presentedTitle").value="";$("presentedOffice").value="";$("presentedNote").value="";$("presentedLink").value="";renderMatches();updateMatchCount();
+ if(!storePresented())return;$("presentedTitle").value="";$("presentedOffice").value="";$("presentedNote").value="";$("presentedLink").value="";renderMatches();updateMatchCount();
 };
 document.addEventListener("click",e=>{
  const button=e.target.closest("[data-present-match],[data-present-toggle],[data-present-edit],[data-present-delete]");if(!button)return;
@@ -516,7 +531,7 @@ document.addEventListener("click",e=>{
   const record=presentedRecords.find(r=>r.id===button.dataset.presentToggle&&String(r.clientId)===String(clientId));if(!record)return;
   record.status=record.status==="presented"?"reopened":"presented";
  }
- storePresented();renderMatches();updateMatchCount();
+ if(!storePresented())return;renderMatches();updateMatchCount();
 });
 
 let editingTaskId=null;let taskView="today";const dateAfter=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};document.querySelectorAll("[data-task-view]").forEach(b=>b.onclick=()=>{taskView=b.dataset.taskView;render()});
