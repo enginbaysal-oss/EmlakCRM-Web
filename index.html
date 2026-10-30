@@ -682,8 +682,8 @@ if(data.offices.some(o=>o.id===previous))$("memberOffice").value=previous;
 $("officeList").innerHTML=data.offices.map(o=>'<div class="office-item"><div class="office-header"><b>🏢 '+esc(o.name)+'</b><button class="danger" data-delete-office="'+esc(o.id)+'">Ofisi sil</button></div>'+data.members.filter(m=>m.officeId===o.id).map(m=>'<div class="office-member"><span>'+esc(m.name)+' <span class="mini">· '+esc(m.role)+'</span></span><button class="secondary" data-delete-member="'+esc(m.id)+'">Kaldır</button></div>').join("")+'</div>').join("")||'<p class="muted">Henüz demo ofis kaydı yok.</p>';
 }
 $("toggleOffice").onclick=()=> $("officeForm").classList.toggle("hide");
-$("saveOffice").onclick=()=>{const name=$("officeName").value.trim();if(!name)return alert("Ofis adı girin.");data.offices.push({id:idGen(),name});$("officeName").value="";store();render()};
-$("saveMember").onclick=()=>{const name=$("memberName").value.trim(),officeId=$("memberOffice").value;if(!officeId||!name)return alert("Ofis ve danışman adı girin.");data.members.push({id:idGen(),officeId,name,role:$("memberRole").value});$("memberName").value="";store();render()};
+$("saveOffice").onclick=()=>{const name=$("officeName").value.trim();if(!name)return alert("Ofis adı girin.");if(!commitCrmChange(()=>data.offices.push({id:idGen(),name})))return;$("officeName").value="";render()};
+$("saveMember").onclick=()=>{const name=$("memberName").value.trim(),officeId=$("memberOffice").value;if(!officeId||!name)return alert("Ofis ve danışman adı girin.");if(!data.offices.some(o=>String(o.id)===String(officeId)))return alert("Seçilen ofis artık mevcut değil.");if(!commitCrmChange(()=>data.members.push({id:idGen(),officeId,name,role:$("memberRole").value})))return;$("memberName").value="";render()};
 $("filter").oninput=render;$("statusFilter").onchange=render;
 $("clientList").addEventListener("change",e=>{
  const select=e.target.closest("[data-status-client]");if(!select)return;
