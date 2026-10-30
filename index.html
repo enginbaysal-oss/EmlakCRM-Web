@@ -1222,6 +1222,15 @@ function refreshPortfolioExpiryNotices(){
    $("portfolioExpiry"+suffix+"Items").innerHTML=content;
   }
 }
+// Eski PDF sayfasının üst menüdeki tek-imza uygulamasına dönüş linkini CRM içinde gizle.
+// İki sayfa aynı github.io kökeninde olduğundan iframe içeriği erişilebilir.
+$("pdfWebFrame").addEventListener("load",()=>{
+ try{
+  const doc=$("pdfWebFrame").contentDocument;
+  if(!doc)return;
+  doc.querySelectorAll('header nav a[href="/pdf-imza/"]').forEach(link=>link.remove());
+ }catch(err){console.info("PDF üst menü düzenlenemedi:",err.message)}
+});
 // Yalnızca PDF İmzala iframe'inin güvenilir isteğine yanıt ver.
 window.addEventListener("message",async event=>{
  const frame=$("pdfWebFrame");
@@ -1241,7 +1250,7 @@ function showScreen(name){
  if(selected==="home"||selected==="agenda")refreshPortfolioExpiryNotices();
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
- if(selected==="pdf"&&!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html";
+ if(selected==="pdf"&&!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=13b3b77";
  if(selected==="assistant"&&!$("assistantFrame").srcdoc)$("assistantFrame").srcdoc=assistantDocument;
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
