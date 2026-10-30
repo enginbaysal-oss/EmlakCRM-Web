@@ -1,0 +1,49 @@
+name: Publish EmlakCRM Web
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare public website
+        env:
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          token = os.environ.get("MAPBOX_PUBLIC_TOKEN", "")
+          if not token.startswith("pk."):
+              raise SystemExit("MAPBOX_PUBLIC_TOKEN must be a Mapbox public token beginning pk.")
+          dest = Path("_site")
+          dest.mkdir(exist_ok=True)
+          for src in Path(".").glob("*.html"):
+              content = src.read_text(encoding="utf-8")
+              if src.name == "drone-cekim.html":
+                  marker = 'const MAPBOX_PUBLIC_TOKEN="";'
+                  if marker not in content:
+                      raise SystemExit("Mapbox token placeholder missing")
+                  content = content.replace(marker, 'const MAPBOX_PUBLIC_TOKEN="' + token + '";')
+              (dest / src.name).write_text(content, encoding="utf-8")
+          (dest / ".nojekyll").touch()
+          PY
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
