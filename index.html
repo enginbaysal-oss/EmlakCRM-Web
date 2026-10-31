@@ -246,6 +246,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <div class="homeQuickActions"><button type="button" id="quickAddClient">+ Müşteri ekle</button><button type="button" id="quickAddReminder" class="secondary">+ Hatırlatma</button><button type="button" id="quickDownloadBackup" class="secondary">↓ Tam Yedek İndir</button></div>
 </section>
 <section class="card" id="homeAgendaCard" aria-labelledby="homeAgendaTitle" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 id="homeAgendaTitle" style="margin:0">📅 Bugün aranacaklar ve geciken görüşmeler</h2><button type="button" class="secondary" data-go="agenda">Ajandayı Aç</button></div><p class="mini" id="homeAgendaSummary" aria-live="polite"></p><div id="homeAgendaItems"></div></section>
+<section class="card" id="homeOffersCard" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">🤝 Teklif ve Pazarlık Takibi</h2><button type="button" class="secondary" data-go="matching">Eşleştirmeyi Aç</button></div><p class="mini" id="homeOffersSummary"></p><div id="homeOffersItems"></div></section>
 <p class="homeLocalHint">Veriler öncelikle bu tarayıcıdadır. Düzenli olarak <b>Yedek indir</b> kullan.</p>
 <section id="portfolioExpiryHome" class="portfolioExpiryNotice" hidden aria-live="polite">
   <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
@@ -578,8 +579,26 @@ document.addEventListener("click",e=>{
  render();
 });
 document.addEventListener("click",e=>{const btn=e.target.closest("[data-home-agenda]");if(!btn)return;taskView="all";$("taskSearch").value="";showScreen("agenda");render();});
+function renderHomeOffers(){
+ const summary=$("homeOffersSummary"),items=$("homeOffersItems");if(!summary||!items)return;
+ const stages=["Teklif hazırlanıyor","Teklif verildi","Pazarlık sürüyor","Kabul edildi","Reddedildi"];
+ const records=presentedRecords.filter(r=>stages.includes(r.offerStatus));
+ const active=records.filter(r=>["Teklif hazırlanıyor","Teklif verildi","Pazarlık sürüyor"].includes(r.offerStatus));
+ summary.textContent=active.length+" aktif teklif / pazarlık · "+records.filter(r=>r.offerStatus==="Kabul edildi").length+" kabul · "+records.filter(r=>r.offerStatus==="Reddedildi").length+" ret";
+ items.innerHTML=records.slice().reverse().slice(0,10).map(r=>{
+  const client=data.clients.find(c=>String(c.id)===String(r.clientId));
+  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(r.title||"Portföy")+'</b><div class="mini">'+esc(client?.name||"Müşteri kaydı bulunamadı")+' · '+esc(r.offerStatus)+'</div>'+(r.feedback?'<div class="mini">'+esc(r.feedback)+'</div>':'')+'</div><button type="button" class="secondary" data-home-offer="'+esc(r.clientId)+'">Müşteriyi Aç</button></div>';
+ }).join("")||'<p class="mini">Henüz teklif aşamasında kayıt yok.</p>';
+ if(records.length>10)items.insertAdjacentHTML("beforeend",'<p class="mini">Son 10 kayıt gösteriliyor.</p>');
+}
+document.addEventListener("click",e=>{
+ const btn=e.target.closest("[data-home-offer]");if(!btn)return;
+ const client=data.clients.find(c=>String(c.id)===String(btn.dataset.homeOffer));if(!client)return;
+ showScreen("matching");$("matchClient").value=String(client.id);renderMatches();
+});
 function render(){
 renderHomeAgenda();
+renderHomeOffers();
 const historyPanel=$("historyPanel");if(historyPanel&&$("clientList").contains(historyPanel))$("clientList").after(historyPanel);
 updateMatchCount();
 const typeCounts={Alıcı:0,Satıcı:0,Diğer:0,Tümü:data.clients.length};for(const c of data.clients){if(c.type==="Alıcı"||c.type==="Satıcı")typeCounts[c.type]++;else typeCounts.Diğer++}document.querySelectorAll("[data-client-type]").forEach(b=>{const t=b.dataset.clientType;b.textContent=t+" ("+typeCounts[t]+")";b.classList.toggle("selected",t===customerTypeTab)});
