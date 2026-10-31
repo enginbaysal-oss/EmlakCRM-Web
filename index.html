@@ -612,10 +612,20 @@ function renderHomeOffers(){
  const shown=filter==="all"?records:filter==="active"?active:records.filter(r=>r.offerStatus===filter);
  items.innerHTML=shown.slice().reverse().slice(0,10).map(r=>{
   const client=data.clients.find(c=>String(c.id)===String(r.clientId));
-  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(r.title||"Portföy")+'</b><div class="mini">'+esc(client?.name||"Müşteri kaydı bulunamadı")+' · '+esc(r.offerStatus)+(r.offerAmount?' · '+esc(Number(r.offerAmount).toLocaleString("tr-TR"))+' TL':'')+'</div>'+(r.lastContactDate?'<div class="mini">Son görüşme: '+esc(r.lastContactDate)+'</div>':'')+(r.feedback?'<div class="mini">'+esc(r.feedback)+'</div>':'')+'</div><button type="button" class="secondary" data-home-offer="'+esc(r.clientId)+'">Müşteriyi Aç</button></div>';
+  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(r.title||"Portföy")+'</b><div class="mini">'+esc(client?.name||"Müşteri kaydı bulunamadı")+' · '+esc(r.offerStatus)+(r.offerAmount?' · '+esc(Number(r.offerAmount).toLocaleString("tr-TR"))+' TL':'')+'</div>'+(r.lastContactDate?'<div class="mini">Son görüşme: '+esc(r.lastContactDate)+'</div>':'')+(r.feedback?'<div class="mini">'+esc(r.feedback)+'</div>':'')+'</div><div class="entry-actions"><button type="button" class="secondary" data-home-offer-remind="'+esc(r.id)+'">📅 Hatırlat</button><button type="button" class="secondary" data-home-offer="'+esc(r.clientId)+'">Müşteriyi Aç</button></div></div>';
  }).join("")||'<p class="mini">Henüz teklif aşamasında kayıt yok.</p>';
  if(shown.length>10)items.insertAdjacentHTML("beforeend",'<p class="mini">Son 10 kayıt gösteriliyor.</p>');
 }
+document.addEventListener("click",e=>{
+ const btn=e.target.closest("[data-home-offer-remind]");if(!btn)return;
+ const record=presentedRecords.find(r=>String(r.id)===String(btn.dataset.homeOfferRemind));if(!record)return;
+ if(editingTaskId)resetTaskEditor();
+ showScreen("agenda");
+ $("taskForm").classList.remove("hide");
+ $("taskClient").value=data.clients.some(c=>String(c.id)===String(record.clientId))?String(record.clientId):"";
+ $("taskTitle").value="Teklif takibi - "+record.title;
+ $("taskDate").focus();
+});
 document.addEventListener("click",e=>{
  const btn=e.target.closest("[data-home-offer]");if(!btn)return;
  const client=data.clients.find(c=>String(c.id)===String(btn.dataset.homeOffer));if(!client)return;
@@ -1347,7 +1357,7 @@ window.addEventListener("message",async event=>{
 function showScreen(name){
  const target=(name==="office"||name==="settings")?"account":name; // eski ofis ve ayar baglantilarini koru
  const selected=appScreens.includes(target)?target:"home";
- if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();}
+ if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
  if(selected==="pdf"&&!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=bfab6a0";
