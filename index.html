@@ -548,10 +548,22 @@ function renderHomeAgenda(){
  items.innerHTML=active.slice(0,8).map(t=>{
   const client=data.clients.find(c=>String(c.id)===String(t.clientId));
   const lateItem=t.date.slice(0,10)<today;
-  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(t.title||"Görüşme")+'</b><div class="mini">'+(lateItem?'⚠️ Gecikti · ':'📅 Bugün · ')+esc(t.date.replace("T"," "))+(client?' · '+esc(client.name):'')+'</div>'+(client?.phone?'<a href="tel:'+esc(String(client.phone).replace(/[^+0-9]/g,""))+'">📞 '+esc(client.phone)+'</a>':'')+'</div><button type="button" class="secondary" data-home-agenda="'+esc(t.id)+'">Ajandada Aç</button></div>';
+  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(t.title||"Görüşme")+'</b><div class="mini">'+(lateItem?'⚠️ Gecikti · ':'📅 Bugün · ')+esc(t.date.replace("T"," "))+(client?' · '+esc(client.name):'')+'</div>'+(client?.phone?'<a href="tel:'+esc(String(client.phone).replace(/[^+0-9]/g,""))+'">📞 '+esc(client.phone)+'</a>':'')+'</div><div class="entry-actions"><button type="button" class="secondary" data-home-agenda="'+esc(t.id)+'">Ajandada Aç</button><button type="button" data-home-done="'+esc(t.id)+'">✓ Tamamla</button></div></div>';
  }).join("")||'<p class="muted">Takip edilecek kayıt yok.</p>';
  if(active.length>8)items.insertAdjacentHTML("beforeend",'<p class="mini">İlk 8 kayıt gösteriliyor. Diğerleri için Ajandayı açın.</p>');
 }
+document.addEventListener("click",e=>{
+ const btn=e.target.closest("[data-home-done]");if(!btn)return;
+ const id=btn.dataset.homeDone;
+ const task=data.tasks.find(t=>String(t.id)===String(id));
+ if(!task||task.done)return;
+ if(!commitCrmChange(()=>{
+  const current=data.tasks.find(t=>String(t.id)===String(id));
+  if(!current)throw Error("Hatırlatma artık mevcut değil.");
+  current.done=true;
+ }))return;
+ render();
+});
 document.addEventListener("click",e=>{const btn=e.target.closest("[data-home-agenda]");if(!btn)return;taskView="all";$("taskSearch").value="";showScreen("agenda");render();});
 function render(){
 renderHomeAgenda();
@@ -1268,7 +1280,7 @@ window.addEventListener("message",async event=>{
 function showScreen(name){
  const target=(name==="office"||name==="settings")?"account":name; // eski ofis ve ayar baglantilarini koru
  const selected=appScreens.includes(target)?target:"home";
- if(selected==="home"||selected==="agenda")refreshPortfolioExpiryNotices();
+ if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
  if(selected==="pdf"&&!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=bfab6a0";
