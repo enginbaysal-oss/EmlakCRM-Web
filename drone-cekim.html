@@ -768,7 +768,7 @@ async function startRecording(){
   if(surface&&surface!=="browser"){
    throw Error("Ekran veya pencere degil, 'Bu sekme'yi secmelisiniz. Diger ekranlarin kaydi engellendi.");
   }
-  const mime=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));
+  const mime=["video/mp4;codecs=avc1.42E01E","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));
   const chunks=[],recorder=new MediaRecorder(stream,mime?{mimeType:mime}:{});
   recording={stream,recorder,autoFlight:true};
   $("record").disabled=true;$("stopRecord").hidden=false;
@@ -783,10 +783,10 @@ async function startRecording(){
    if(chunks.length){
     const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
     const url=URL.createObjectURL(blob),link=document.createElement("a");
-    link.href=url;link.download="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+".webm";
+    link.href=url;link.download="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+(recorder.mimeType?.startsWith("video/mp4")?".mp4":".webm");
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
-    status("Yalnizca harita kaydi indirildi; menuler videoya girmedi.");
+    status(recorder.mimeType?.startsWith("video/mp4")?"MP4 video indirildi; menuler videoya girmedi.":"Tarayiciniz dogrudan MP4 kaydini desteklemiyor. WebM video indirildi; MP4 icin donusturme gerekiyor.");
    }else status("Kayit bos olustu. Tekrar 'Bu sekme' secimini deneyin.");
   };
   recorder.onerror=()=>{status("Video kaydinda bir hata olustu.");stopRecording()};
