@@ -245,6 +245,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <section class="homeActions" aria-label="Hızlı işlemler">
 <div class="homeQuickActions"><button type="button" id="quickAddClient">+ Müşteri ekle</button><button type="button" id="quickAddReminder" class="secondary">+ Hatırlatma</button><button type="button" id="quickDownloadBackup" class="secondary">↓ Tam Yedek İndir</button></div>
 </section>
+<section class="card" id="homeAgendaCard" aria-labelledby="homeAgendaTitle" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 id="homeAgendaTitle" style="margin:0">📅 Bugün aranacaklar ve geciken görüşmeler</h2><button type="button" class="secondary" data-go="agenda">Ajandayı Aç</button></div><p class="mini" id="homeAgendaSummary" aria-live="polite"></p><div id="homeAgendaItems"></div></section>
 <p class="homeLocalHint">Veriler öncelikle bu tarayıcıdadır. Düzenli olarak <b>Yedek indir</b> kullan.</p>
 <section id="portfolioExpiryHome" class="portfolioExpiryNotice" hidden aria-live="polite">
   <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
@@ -537,7 +538,23 @@ document.addEventListener("click",e=>{
 let editingTaskId=null;let taskView="today";const dateAfter=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};document.querySelectorAll("[data-task-view]").forEach(b=>b.onclick=()=>{taskView=b.dataset.taskView;render()});
 let customerTypeTab="Tümü";
 document.querySelectorAll("[data-client-type]").forEach(b=>b.onclick=()=>{customerTypeTab=b.dataset.clientType;render()});
+function renderHomeAgenda(){
+ const summary=$("homeAgendaSummary"),items=$("homeAgendaItems");if(!summary||!items)return;
+ const now=new Date(),today=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+ const active=data.tasks.filter(t=>!t.done&&typeof t.date==="string"&&t.date.slice(0,10)<=today)
+  .sort((a,b)=>a.date.localeCompare(b.date));
+ const late=active.filter(t=>t.date.slice(0,10)<today).length;
+ summary.textContent=active.length?late+" geciken, "+(active.length-late)+" bugünkü hatırlatma":"Bugün veya geçmişten bekleyen görüşme bulunmuyor.";
+ items.innerHTML=active.slice(0,8).map(t=>{
+  const client=data.clients.find(c=>String(c.id)===String(t.clientId));
+  const lateItem=t.date.slice(0,10)<today;
+  return '<div class="entry" style="margin:7px 0"><div><b>'+esc(t.title||"Görüşme")+'</b><div class="mini">'+(lateItem?'⚠️ Gecikti · ':'📅 Bugün · ')+esc(t.date.replace("T"," "))+(client?' · '+esc(client.name):'')+'</div>'+(client?.phone?'<a href="tel:'+esc(String(client.phone).replace(/[^+0-9]/g,""))+'">📞 '+esc(client.phone)+'</a>':'')+'</div><button type="button" class="secondary" data-home-agenda="'+esc(t.id)+'">Ajandada Aç</button></div>';
+ }).join("")||'<p class="muted">Takip edilecek kayıt yok.</p>';
+ if(active.length>8)items.insertAdjacentHTML("beforeend",'<p class="mini">İlk 8 kayıt gösteriliyor. Diğerleri için Ajandayı açın.</p>');
+}
+document.addEventListener("click",e=>{const btn=e.target.closest("[data-home-agenda]");if(!btn)return;taskView="all";$("taskSearch").value="";showScreen("agenda");render();});
 function render(){
+renderHomeAgenda();
 const historyPanel=$("historyPanel");if(historyPanel&&$("clientList").contains(historyPanel))$("clientList").after(historyPanel);
 updateMatchCount();
 const typeCounts={Alıcı:0,Satıcı:0,Diğer:0,Tümü:data.clients.length};for(const c of data.clients){if(c.type==="Alıcı"||c.type==="Satıcı")typeCounts[c.type]++;else typeCounts.Diğer++}document.querySelectorAll("[data-client-type]").forEach(b=>{const t=b.dataset.clientType;b.textContent=t+" ("+typeCounts[t]+")";b.classList.toggle("selected",t===customerTypeTab)});
