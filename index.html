@@ -246,7 +246,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <div class="homeQuickActions"><button type="button" id="quickAddClient">+ Müşteri ekle</button><button type="button" id="quickAddReminder" class="secondary">+ Hatırlatma</button><button type="button" id="quickDownloadBackup" class="secondary">↓ Tam Yedek İndir</button></div>
 </section>
 <section class="card" id="homeAgendaCard" aria-labelledby="homeAgendaTitle" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 id="homeAgendaTitle" style="margin:0">📅 Bugün aranacaklar ve geciken görüşmeler</h2><button type="button" class="secondary" data-go="agenda">Ajandayı Aç</button></div><p class="mini" id="homeAgendaSummary" aria-live="polite"></p><div id="homeAgendaItems"></div></section>
-<section class="card" id="homeOffersCard" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">🤝 Teklif ve Pazarlık Takibi</h2><button type="button" class="secondary" data-go="matching">Eşleştirmeyi Aç</button></div><p class="mini" id="homeOffersSummary"></p><div id="homeOffersItems"></div></section>
+<section class="card" id="homeOffersCard" style="margin:14px 0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">🤝 Teklif ve Pazarlık Takibi</h2><button type="button" class="secondary" data-go="matching">Eşleştirmeyi Aç</button></div><p class="mini" id="homeOffersSummary"></p><div class="row" style="gap:8px;align-items:center;margin-bottom:8px"><label for="homeOffersFilter" class="mini">Teklifleri filtrele:</label><select id="homeOffersFilter" aria-label="Teklif durumu filtresi"><option value="active">Aktif teklifler ve pazarlıklar</option><option value="all">Tüm teklifler</option><option value="Kabul edildi">Kabul edilenler</option><option value="Reddedildi">Reddedilenler</option></select></div><div id="homeOffersItems"></div></section>
 <p class="homeLocalHint">Veriler öncelikle bu tarayıcıdadır. Düzenli olarak <b>Yedek indir</b> kullan.</p>
 <section id="portfolioExpiryHome" class="portfolioExpiryNotice" hidden aria-live="polite">
   <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
@@ -584,17 +584,20 @@ document.addEventListener("click",e=>{
  render();
 });
 document.addEventListener("click",e=>{const btn=e.target.closest("[data-home-agenda]");if(!btn)return;taskView="all";$("taskSearch").value="";showScreen("agenda");render();});
+$("homeOffersFilter").addEventListener("change",()=>renderHomeOffers());
 function renderHomeOffers(){
  const summary=$("homeOffersSummary"),items=$("homeOffersItems");if(!summary||!items)return;
  const stages=["Teklif hazırlanıyor","Teklif verildi","Pazarlık sürüyor","Kabul edildi","Reddedildi"];
  const records=presentedRecords.filter(r=>stages.includes(r.offerStatus));
  const active=records.filter(r=>["Teklif hazırlanıyor","Teklif verildi","Pazarlık sürüyor"].includes(r.offerStatus));
  summary.textContent=active.length+" aktif teklif / pazarlık · "+records.filter(r=>r.offerStatus==="Kabul edildi").length+" kabul · "+records.filter(r=>r.offerStatus==="Reddedildi").length+" ret";
- items.innerHTML=records.slice().reverse().slice(0,10).map(r=>{
+ const filter=$("homeOffersFilter")?.value||"active";
+ const shown=filter==="all"?records:filter==="active"?active:records.filter(r=>r.offerStatus===filter);
+ items.innerHTML=shown.slice().reverse().slice(0,10).map(r=>{
   const client=data.clients.find(c=>String(c.id)===String(r.clientId));
   return '<div class="entry" style="margin:7px 0"><div><b>'+esc(r.title||"Portföy")+'</b><div class="mini">'+esc(client?.name||"Müşteri kaydı bulunamadı")+' · '+esc(r.offerStatus)+(r.offerAmount?' · '+esc(Number(r.offerAmount).toLocaleString("tr-TR"))+' TL':'')+'</div>'+(r.feedback?'<div class="mini">'+esc(r.feedback)+'</div>':'')+'</div><button type="button" class="secondary" data-home-offer="'+esc(r.clientId)+'">Müşteriyi Aç</button></div>';
  }).join("")||'<p class="mini">Henüz teklif aşamasında kayıt yok.</p>';
- if(records.length>10)items.insertAdjacentHTML("beforeend",'<p class="mini">Son 10 kayıt gösteriliyor.</p>');
+ if(shown.length>10)items.insertAdjacentHTML("beforeend",'<p class="mini">Son 10 kayıt gösteriliyor.</p>');
 }
 document.addEventListener("click",e=>{
  const btn=e.target.closest("[data-home-offer]");if(!btn)return;
