@@ -580,9 +580,19 @@ function externalDraw(){
    (p.location?'<div class="hint">📍 '+externalEsc(p.location)+'</div>':'')+
    (p.consultant||phone?'<div class="hint" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">👤 Danışman: '+externalEsc(p.consultant||"Belirtilmemiş")+(phone?'<a href="tel:+'+externalEsc(phone.replace(/^0/,"90"))+'" title="Danışmanı ara" style="padding:5px 9px;border-radius:6px;background:#e8f2ff;color:#1454a1;text-decoration:none">📞 Ara</a><a href="'+externalEsc(wa)+'" target="_blank" rel="noopener noreferrer" title="WhatsApp" style="padding:5px 9px;border-radius:6px;background:#e5f8e9;color:#128c42;text-decoration:none">💬 WhatsApp</a>':'')+'</div>':'')+
    (link?'<a href="'+externalEsc(link)+'" target="_blank" rel="noopener noreferrer" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;background:#171717;color:#fff;text-align:center;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:650;font-size:13px;white-space:nowrap">İlanı Aç ↗</a>':'')+
+   '<button type="button" data-import-external="'+externalEsc(p.url)+'" style="align-self:flex-start;background:#176b96;padding:8px 12px;font-size:13px;border-radius:8px">＋ Portföylerime Aktar</button>'+
    '</div></article>';
  }).join(""):'<p class="hint">Filtrelere uygun çekilen portföy bulunamadı.</p>';
 }
+document.getElementById("externalPortfolioResults").addEventListener("click",event=>{
+ const btn=event.target.closest("[data-import-external]");if(!btn)return;
+ const source=externalRead().find(p=>p.url===btn.dataset.importExternal);if(!source)return;
+ if(db.portfolios.some(p=>p.listingUrl===source.url)){alert("Bu ilan zaten Portföylerim bölümünde kayıtlı.");return}
+ const price=externalSortPrice(source);
+ const item={id:id(),title:source.title||"Portföy",location:source.location||"",price:price===null?"":String(price),owner:"",phone:"",listingUrl:source.url||"",start:today(),kind:source.kind||"",propertyType:source.propertyType||"",rooms:"",authStart:"",authDuration:0,authUnit:"month",authEnd:"",sites:[],cover:source.image||"",acts:[],reports:[],city:source.city||"",district:source.district||source.town||"",neighborhood:source.neighborhood||"",createdAt:new Date().toISOString(),importedFrom:source.source||source.url};
+ db.portfolios.push(item);pid=item.id;save();pick();drawCards();
+ alert("Portföylerim bölümüne kopyalandı. Mülk sahibi ve yetki sözleşmesi bilgilerini ayrıca tamamlayabilirsin.");
+});
 for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).addEventListener("change",externalDraw);
 document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).value="";externalDraw()};
 function externalNormalize(raw,source){
