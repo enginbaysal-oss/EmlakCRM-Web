@@ -539,7 +539,7 @@ function externalDraw(){
   const link=safe(p.url),image=safe(p.image);
   const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
   return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column">'+
-   (image?'<img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:165px;object-fit:cover" onerror="this.style.display=&#39;none&#39;">':'')+
+   (image?'<img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:100%;height:165px;object-fit:cover" onerror="this.style.display=&#39;none&#39;">':'')+
    '<div style="padding:12px;display:flex;flex-direction:column;gap:9px;flex:1">'+
    (tags?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+tags+'</div>':'')+
    (p.price?'<strong style="color:#16984a;font-size:19px">'+externalEsc(externalPrice(p.price))+'</strong>':'')+
@@ -560,7 +560,7 @@ function externalNormalize(raw,source){
  location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
  url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
  source,
- price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
+ price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||x.photo?.url||x.photo?.path||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
  }));
 }
 
@@ -611,7 +611,14 @@ function remaxParsePage(html,source){
    const city=x.cityName||x.city?.name||"",town=x.townName||x.town?.name||x.districtName||"",neighborhood=x.neighborhoodName||x.neighborhood?.name||"";
    const title=remaxText(x.title)||"RE/MAX Portföyü";
    const price=x.priceInfo?.amount?String(x.priceInfo.amount)+" "+String(x.priceInfo.amountTypeSymbol||""):"";
-   let photo=x.photo?.url||x.photo?.path||x.photo?.[0]?.url||x.photo?.[0]?.path||x.photoUrl||x.photoPath||x.squarePhotoUrl||x.imageUrl||x.images?.[0]?.url||x.images?.[0]?.path||"";
+   const photoValue=x.photo;
+   const firstPhoto=Array.isArray(photoValue)?photoValue[0]:photoValue;
+   const firstImage=Array.isArray(x.images)?x.images[0]:null;
+   let photo=(typeof firstPhoto==="string"?firstPhoto:firstPhoto?.url||firstPhoto?.path||firstPhoto?.fullPath)||
+     x.photoUrl||x.photoPath||x.squarePhotoUrl||x.imageUrl||
+     (typeof x.image==="string"?x.image:"")||
+     (typeof firstImage==="string"?firstImage:firstImage?.url||firstImage?.path||firstImage?.fullPath)||"";
+   photo=String(photo).trim();
    if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;else if(photo&&!/^https?:\/\//i.test(photo))photo=photo.includes("remax")?"https://"+photo:"https://img.remax.com.tr/"+photo;
    return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
   });
