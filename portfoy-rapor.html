@@ -523,6 +523,7 @@ function externalFillFilters(records){
  const district=document.getElementById(ids[1]).value;
  fill(ids[2],parts.filter(x=>(!city||x[0]===city)&&(!district||x[1]===district)).map(x=>x[2]),values[2],"Tüm mahalleler");
 }
+function externalPhone(value){let s=String(value||"").replace(/\D/g,"");if(s.startsWith("90")&&s.length===12)s="0"+s.slice(2);if(s.length===10&&s.startsWith("5"))s="0"+s;return /^05\d{9}$/.test(s)?s:""}
 function externalDraw(){
  const records=externalRead(),root=document.getElementById("externalPortfolioResults");
  externalFillFilters(records);
@@ -533,19 +534,19 @@ function externalDraw(){
  });
  document.getElementById("externalPortfolioCount").textContent="("+records.length+")";
  document.getElementById("externalFilteredCount").textContent=records.length+" portföyden "+shown.length+" tanesi gösteriliyor.";
- root.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px";
+ root.style.cssText="display:flex;flex-direction:column;gap:10px";
  root.innerHTML=shown.length?shown.map(p=>{
   const safe=u=>{try{const x=new URL(u);return ["http:","https:"].includes(x.protocol)?x.href:""}catch{return ""}};
-  const link=safe(p.url),image=safe(p.image);
+  const link=safe(p.url),image=safe(p.image);const phone=externalPhone(p.phone);const wa=phone?"https://wa.me/"+phone.replace(/^0/,"90"):null;
   const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
-  return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column">'+
-   (image?'<div class="externalPhotoArea"><img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:100%;height:165px;object-fit:cover" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div hidden style="padding:12px;background:#fff3e6;color:#78420d">Fotoğraf adresi bulundu ancak resim yüklenemedi. <a href="'+externalEsc(image)+'" target="_blank" rel="noopener noreferrer">Fotoğraf bağlantısını aç</a></div></div>':'<div style="padding:12px;background:#f1f5f9;color:#475569">Kaynak veride fotoğraf adresi bulunamadı.</div>')+
-   '<div style="padding:12px;display:flex;flex-direction:column;gap:9px;flex:1">'+
+  return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:flex-start;gap:12px;padding:10px;flex-wrap:wrap">'+
+   (image?'<div class="externalPhotoArea"><img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:160px;max-width:38vw;aspect-ratio:4/3;object-fit:cover;border-radius:8px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div hidden style="padding:12px;background:#fff3e6;color:#78420d">Fotoğraf adresi bulundu ancak resim yüklenemedi. <a href="'+externalEsc(image)+'" target="_blank" rel="noopener noreferrer">Fotoğraf bağlantısını aç</a></div></div>':'<div style="padding:12px;background:#f1f5f9;color:#475569">Kaynak veride fotoğraf adresi bulunamadı.</div>')+
+   '<div style="display:flex;flex-direction:column;gap:7px;flex:1;min-width:190px">'+
    (tags?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+tags+'</div>':'')+
    (p.price?'<strong style="color:#16984a;font-size:19px">'+externalEsc(externalPrice(p.price))+'</strong>':'')+
    '<strong>'+externalEsc(p.title||"Portföy")+'</strong>'+
    (p.location?'<div class="hint">📍 '+externalEsc(p.location)+'</div>':'')+
-   (p.consultant?'<div class="hint">👤 Danışman: '+externalEsc(p.consultant)+'</div>':'')+
+   (p.consultant||phone?'<div class="hint" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">👤 Danışman: '+externalEsc(p.consultant||"Belirtilmemiş")+(phone?'<a href="tel:+'+externalEsc(phone.replace(/^0/,"90"))+'" title="Danışmanı ara" style="padding:5px 9px;border-radius:6px;background:#e8f2ff;color:#1454a1;text-decoration:none">📞 Ara</a><a href="'+externalEsc(wa)+'" target="_blank" rel="noopener noreferrer" title="WhatsApp" style="padding:5px 9px;border-radius:6px;background:#e5f8e9;color:#128c42;text-decoration:none">💬 WhatsApp</a>':'')+'</div>':'')+
    (link?'<a href="'+externalEsc(link)+'" target="_blank" rel="noopener noreferrer" style="margin-top:auto;display:block;background:#16a34a;color:white;text-align:center;padding:10px;border-radius:8px;text-decoration:none;font-weight:700">İlanı Aç</a>':'')+
    '</div></article>';
  }).join(""):'<p class="hint">Filtrelere uygun çekilen portföy bulunamadı.</p>';
@@ -560,7 +561,7 @@ function externalNormalize(raw,source){
  location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
  url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
  source,
- price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||x.photo?.url||x.photo?.path||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
+ price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),phone:String(x.phone||x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.consultantPhone||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||x.photo?.url||x.photo?.path||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
  }));
 }
 
@@ -620,7 +621,7 @@ function remaxParsePage(html,source){
      (typeof firstImage==="string"?firstImage:firstImage?.url||firstImage?.path||firstImage?.fullPath)||"";
    photo=String(photo).trim();
    if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;else if(photo&&!/^https?:\/\//i.test(photo))photo=photo.includes("remax")?"https://"+photo:"https://img.remax.com.tr/"+photo;
-   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
+   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",phone:x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.officePhone||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
   });
  }
  throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
