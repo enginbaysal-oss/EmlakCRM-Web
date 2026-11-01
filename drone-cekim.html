@@ -300,9 +300,14 @@ function parcelLabel(feature){
  const p=feature.properties||{};
  const ada=String(p.adaNo??p.girdi_ada??"").trim();
  const parsel=String(p.parselNo??p.girdi_parsel??"").trim();
- if(/^\\d{1,8}$/.test(ada)&&/^\\d{1,8}$/.test(parsel))return ada+"/"+parsel;
- const match=String(p.ozet||"").match(/(\\d{1,8})\\s*\\/\\s*(\\d{1,8})/);
- return match?match[1]+"/"+match[2]:"";
+ if(ada&&parsel&&Number.isFinite(Number(ada))&&Number.isFinite(Number(parsel)))return ada+"/"+parsel;
+ const raw=String(p.ozet||"");
+ const parts=raw.split("/");
+ if(parts.length===2){
+  const left=parts[0].trim(),right=parts[1].trim();
+  if(left&&right&&Number.isFinite(Number(left))&&Number.isFinite(Number(right)))return left+"/"+right;
+ }
+ return "";
 }
 function featureLabelPoint(feature){
  const g=feature.geometry;
