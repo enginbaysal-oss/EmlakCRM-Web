@@ -111,6 +111,13 @@ main > #tabs, main > #actPanel, main > #reportPanel, main > #histPanel, main > #
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
 <p class="hint" id="externalPortfolioStatus" role="status" aria-live="polite"></p>
 <h4>Çekilen Portföyler <span id="externalPortfolioCount"></span></h4>
+<div class="portfolioFilters" id="externalPortfolioFilters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0">
+<select id="externalCityFilter" aria-label="İl"><option value="">Tüm iller</option></select>
+<select id="externalDistrictFilter" aria-label="İlçe"><option value="">Tüm ilçeler</option></select>
+<select id="externalNeighborhoodFilter" aria-label="Mahalle"><option value="">Tüm mahalleler</option></select>
+<select id="externalKindFilter" aria-label="Satılık kiralık"><option value="">Satılık / Kiralık (Tümü)</option><option value="satılık">Satılık</option><option value="kiralık">Kiralık</option></select>
+<button type="button" class="light" id="externalResetFilters">Filtreleri Temizle</button></div>
+<p class="hint" id="externalFilteredCount"></p>
 <div id="externalPortfolioResults"></div>
 </section>
 <section class="panel" id="selectArea"><div id="portfoyler"></div><div class="portfolioHeading"><h3>Portföylerim</h3><div class="row"><button type="button" class="light" id="exportPortfolios">Excel’e Aktar</button><button type="button" id="showAddPortfolio">+ Yeni Portföy</button></div></div><div id="authorizationReminders" class="authorizationReminders" hidden></div><div class="portfolioFilters"><input id="portfolioSearch" type="search" placeholder="Portföy, konum, mülk sahibi veya telefon ara..." aria-label="Portföylerde ara"><select id="portfolioAuthFilter" aria-label="Yetki süresi filtresi"><option value="all">Tüm yetki durumları</option><option value="active">Aktif · Mavi</option><option value="soon">Yaklaşıyor · Turuncu</option><option value="expired">Süresi doldu · Kırmızı</option><option value="missing">Yetki süresi girilmedi</option></select><select id="portfolioSort" aria-label="Portföy sıralaması"><option value="default">Mevcut sıralama</option><option value="auth">Yetki bitişi en yakın</option><option value="priceHigh">Fiyat: yüksekten düşüğe</option><option value="priceLow">Fiyat: düşükten yükseğe</option><option value="title">Portföy adına göre</option></select><select id="portfolioClientFilter" aria-label="Müşteri hareketi filtresi"><option value="all">Tüm müşteri hareketleri</option><option value="offered">Teklif bulunanlar</option><option value="shown">Yerinde gösterilenler</option><option value="presented">Müşteriye sunulanlar</option><option value="none">Henüz sunulmayanlar</option></select></div><p id="portfolioFilterInfo" class="hint" aria-live="polite"></p><div id="portfolioActivitySummary" class="notice" style="margin:10px 0" aria-live="polite"></div><div id="portfolioCards"></div><div class="grid portfolioMeta"><div class="legacyPicker"><label>Portföy seçin</label><select id="pick"></select></div><div><label>Rapor hatırlatması</label><div class="notice" id="due"></div></div></div><div class="row" id="portfolioEditBar"><button type="button" id="editPortfolio" class="light">Portföy bilgilerini düzenle</button><span id="authorizationStatus" style="font-weight:800"></span></div><div id="editPortfolioPanel" class="grid" hidden><div class="full"><label>İlan başlığı</label><input id="eTitle"></div><div><label>Konum</label><input id="eLocation"></div><div><label>İlan bedeli (TL)</label><input id="ePrice"></div><div><label>Gayrimenkul türü</label><select id="eType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="eRooms" placeholder="Örn. 3+1"></div><div><label>Mülk sahibi</label><input id="eOwner"></div><div><label>Mülk sahibi telefonu</label><input id="ePhone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="eListingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="eCover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="eAuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="eAuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="eAuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="eAuthEnd" readonly></div><div class="full row"><button id="savePortfolioEdit">Değişiklikleri kaydet</button><button id="cancelPortfolioEdit" class="light">İptal</button></div></div><div id="portfolioSites" style="margin-top:12px"><h3>İlan siteleri (bu portföye özel)</h3><div id="siteList"></div><div class="row"><input id="newSite" placeholder="Yeni site adı (örn. emlakjet.com)" style="flex:1"><button type="button" id="addSite">Site ekle</button></div><p class="hint">Bir kez kaydedin; raporlarda sonraki haftalarda otomatik görünür.</p></div><details id="newPortfolioDetails"><summary style="cursor:pointer;margin:12px 0;font-weight:800;color:#084b73">Yeni portföy ekle</summary><div class="row"><button type="button" id="closeAddPortfolio" class="light">Kapat ✕</button></div><div class="grid"><div class="full"><label>İlan başlığı</label><input id="title"></div><div><label>Konum</label><input id="loc"></div><div><label>Satış / kira bedeli (TL)</label><input id="price"></div><div><label>Mülk sahibi</label><input id="owner"></div><div><label>Mülk sahibi telefonu</label><input id="phone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="listingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="cover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="AuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="AuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="AuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="AuthEnd" readonly></div><div><label>İşlem</label><select id="kind"><option>Satılık</option><option>Kiralık</option></select></div><div><label>Gayrimenkul türü</label><select id="pType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="pRooms" placeholder="Örn. 3+1"></div><div class="full"><label>Bu portföyün yayımlandığı ilan siteleri (isteğe bağlı)</label><div id="initialSiteChoices" class="row"></div><p class="hint">RE/MAX dahil hiçbir platform zorunlu değildir. Daha sonra site ekleyebilir veya kaldırabilirsiniz.</p></div><button id="saveP">Portföyü kaydet</button></div></details><div id="workspaceParking" hidden></div></section>
@@ -488,26 +495,63 @@ pick();
 const externalPortfolioKey="emlakcrm_external_portfolios_v1";
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+function externalPrice(value){
+ const s=String(value||"").trim();if(!s)return "";
+ const m=s.match(/^([\d.,\s]+)(.*)$/);if(!m)return s;
+ let number=m[1].replace(/\s/g,"");
+ if(/^\d{1,3}(?:[.,]\d{3})+(?:,\d+)?$/.test(number))number=number.replace(/\./g,"").replace(/,/g,".");
+ else if(/^\d+,\d{1,2}$/.test(number))number=number.replace(",",".");
+ else number=number.replace(/,/g,"");
+ const n=Number(number);return Number.isFinite(n)?n.toLocaleString("tr-TR",{maximumFractionDigits:2})+(m[2].trim()?" "+m[2].trim():" TL"):s;
+}
+function externalLocationParts(p){
+ const raw=String(p.location||"").split(/\s*[,/]\s*/).map(s=>s.trim()).filter(Boolean);
+ return [p.city||raw[0]||"",p.district||raw[1]||"",p.neighborhood||raw[2]||""].map(s=>String(s).trim());
+}
+function externalFillFilters(records){
+ const ids=["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter"];
+ const values=ids.map(id=>document.getElementById(id).value);
+ const parts=records.map(externalLocationParts);
+ const fill=(id,items,selected,all)=>{
+  const el=document.getElementById(id),opts=[...new Set(items.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+  el.innerHTML='<option value="">'+all+'</option>'+opts.map(x=>'<option value="'+externalEsc(x)+'">'+externalEsc(x)+'</option>').join("");
+  el.value=opts.includes(selected)?selected:"";
+ };
+ fill(ids[0],parts.map(x=>x[0]),values[0],"Tüm iller");
+ const city=document.getElementById(ids[0]).value;
+ fill(ids[1],parts.filter(x=>!city||x[0]===city).map(x=>x[1]),values[1],"Tüm ilçeler");
+ const district=document.getElementById(ids[1]).value;
+ fill(ids[2],parts.filter(x=>(!city||x[0]===city)&&(!district||x[1]===district)).map(x=>x[2]),values[2],"Tüm mahalleler");
+}
 function externalDraw(){
  const records=externalRead(),root=document.getElementById("externalPortfolioResults");
+ externalFillFilters(records);
+ const city=document.getElementById("externalCityFilter").value,district=document.getElementById("externalDistrictFilter").value,neighborhood=document.getElementById("externalNeighborhoodFilter").value,kind=document.getElementById("externalKindFilter").value;
+ const shown=records.filter(p=>{
+  const loc=externalLocationParts(p),k=String(p.kind||"").toLocaleLowerCase("tr-TR");
+  return (!city||loc[0]===city)&&(!district||loc[1]===district)&&(!neighborhood||loc[2]===neighborhood)&&(!kind||k.includes(kind));
+ });
  document.getElementById("externalPortfolioCount").textContent="("+records.length+")";
+ document.getElementById("externalFilteredCount").textContent=records.length+" portföyden "+shown.length+" tanesi gösteriliyor.";
  root.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px";
- root.innerHTML=records.length?records.map(p=>{
+ root.innerHTML=shown.length?shown.map(p=>{
   const safe=u=>{try{const x=new URL(u);return ["http:","https:"].includes(x.protocol)?x.href:""}catch{return ""}};
   const link=safe(p.url),image=safe(p.image);
   const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
   return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column">'+
-   (image?'<img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:100%;height:165px;object-fit:cover">':'')+
+   (image?'<img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:165px;object-fit:cover" onerror="this.style.display=&#39;none&#39;">':'')+
    '<div style="padding:12px;display:flex;flex-direction:column;gap:9px;flex:1">'+
    (tags?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+tags+'</div>':'')+
-   (p.price?'<strong style="color:#16984a;font-size:19px">'+externalEsc(p.price)+'</strong>':'')+
+   (p.price?'<strong style="color:#16984a;font-size:19px">'+externalEsc(externalPrice(p.price))+'</strong>':'')+
    '<strong>'+externalEsc(p.title||"Portföy")+'</strong>'+
    (p.location?'<div class="hint">📍 '+externalEsc(p.location)+'</div>':'')+
    (p.consultant?'<div class="hint">👤 Danışman: '+externalEsc(p.consultant)+'</div>':'')+
    (link?'<a href="'+externalEsc(link)+'" target="_blank" rel="noopener noreferrer" style="margin-top:auto;display:block;background:#16a34a;color:white;text-align:center;padding:10px;border-radius:8px;text-decoration:none;font-weight:700">İlanı Aç</a>':'')+
    '</div></article>';
- }).join(""):'<p class="hint">Henüz çekilen portföy yok.</p>';
+ }).join(""):'<p class="hint">Filtrelere uygun çekilen portföy bulunamadı.</p>';
 }
+for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter"])document.getElementById(id).addEventListener("change",externalDraw);
+document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter"])document.getElementById(id).value="";externalDraw()};
 function externalNormalize(raw,source){
  const arr=Array.isArray(raw)?raw:Array.isArray(raw?.portfolios)?raw.portfolios:Array.isArray(raw?.ilanlar)?raw.ilanlar:Array.isArray(raw?.items)?raw.items:Array.isArray(raw?.data)?raw.data:null;
  if(!arr)return null;
@@ -516,7 +560,7 @@ function externalNormalize(raw,source){
  location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
  url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
  source,
- price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||"")
+ price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
  }));
 }
 
@@ -567,9 +611,9 @@ function remaxParsePage(html,source){
    const city=x.cityName||x.city?.name||"",town=x.townName||x.town?.name||x.districtName||"",neighborhood=x.neighborhoodName||x.neighborhood?.name||"";
    const title=remaxText(x.title)||"RE/MAX Portföyü";
    const price=x.priceInfo?.amount?String(x.priceInfo.amount)+" "+String(x.priceInfo.amountTypeSymbol||""):"";
-   let photo=x.photo?.url||x.photo?.path||x.photo?.[0]?.url||x.photoUrl||x.imageUrl||"";
-   if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;
-   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||""};
+   let photo=x.photo?.url||x.photo?.path||x.photo?.[0]?.url||x.photo?.[0]?.path||x.photoUrl||x.photoPath||x.squarePhotoUrl||x.imageUrl||x.images?.[0]?.url||x.images?.[0]?.path||"";
+   if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;else if(photo&&!/^https?:\/\//i.test(photo))photo=photo.includes("remax")?"https://"+photo:"https://img.remax.com.tr/"+photo;
+   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
   });
  }
  throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
