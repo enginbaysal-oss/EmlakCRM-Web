@@ -489,9 +489,24 @@ const externalPortfolioKey="emlakcrm_external_portfolios_v1";
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function externalDraw(){
- const records=externalRead();
+ const records=externalRead(),root=document.getElementById("externalPortfolioResults");
  document.getElementById("externalPortfolioCount").textContent="("+records.length+")";
- document.getElementById("externalPortfolioResults").innerHTML=records.length?records.map(p=>'<div style="padding:12px;border-bottom:1px solid #dfe7ed"><strong>'+externalEsc(p.title||"Portföy")+'</strong><p class="hint">'+externalEsc(p.location||"")+' · '+externalEsc(p.source||"")+'</p>'+(p.url?'<a href="'+externalEsc(p.url)+'" target="_blank" rel="noopener noreferrer">Kaynağı Aç</a>':'')+'</div>').join(""):'<p class="hint">Henüz çekilen portföy yok.</p>';
+ root.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:12px";
+ root.innerHTML=records.length?records.map(p=>{
+  const safe=u=>{try{const x=new URL(u);return ["http:","https:"].includes(x.protocol)?x.href:""}catch{return ""}};
+  const link=safe(p.url),image=safe(p.image);
+  const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
+  return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column">'+
+   (image?'<img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:100%;height:165px;object-fit:cover">':'')+
+   '<div style="padding:12px;display:flex;flex-direction:column;gap:9px;flex:1">'+
+   (tags?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+tags+'</div>':'')+
+   (p.price?'<strong style="color:#16984a;font-size:19px">'+externalEsc(p.price)+'</strong>':'')+
+   '<strong>'+externalEsc(p.title||"Portföy")+'</strong>'+
+   (p.location?'<div class="hint">📍 '+externalEsc(p.location)+'</div>':'')+
+   (p.consultant?'<div class="hint">👤 Danışman: '+externalEsc(p.consultant)+'</div>':'')+
+   (link?'<a href="'+externalEsc(link)+'" target="_blank" rel="noopener noreferrer" style="margin-top:auto;display:block;background:#16a34a;color:white;text-align:center;padding:10px;border-radius:8px;text-decoration:none;font-weight:700">İlanı Aç</a>':'')+
+   '</div></article>';
+ }).join(""):'<p class="hint">Henüz çekilen portföy yok.</p>';
 }
 function externalNormalize(raw,source){
  const arr=Array.isArray(raw)?raw:Array.isArray(raw?.portfolios)?raw.portfolios:Array.isArray(raw?.ilanlar)?raw.ilanlar:Array.isArray(raw?.items)?raw.items:Array.isArray(raw?.data)?raw.data:null;
@@ -500,7 +515,8 @@ function externalNormalize(raw,source){
  title:String(x.title||x.baslik||x.name||x.ilan_basligi||"Portföy").slice(0,250),
  location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
  url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
- source
+ source,
+ price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||"")
  }));
 }
 
@@ -553,7 +569,7 @@ function remaxParsePage(html,source){
    const price=x.priceInfo?.amount?String(x.priceInfo.amount)+" "+String(x.priceInfo.amountTypeSymbol||""):"";
    let photo=x.photo?.url||x.photo?.path||x.photo?.[0]?.url||x.photoUrl||x.imageUrl||"";
    if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;
-   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo};
+   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||""};
   });
  }
  throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
@@ -591,8 +607,8 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
  const found=[],errors=[];
  for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
- const existing=externalRead(),seen=new Set(existing.map(x=>x.url+"|"+x.title));
- for(const p of found){const k=p.url+"|"+p.title;if(!seen.has(k)){existing.push(p);seen.add(k)}}
+ const existing=externalRead(),index=new Map(existing.map((x,i)=>[x.url+"|"+x.title,i]));
+ for(const p of found){const k=p.url+"|"+p.title;if(index.has(k)){const i=index.get(k);existing[i]={...existing[i],...p}}else{index.set(k,existing.length);existing.push(p)}}
  try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu, "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
  btn.disabled=false;
 };
