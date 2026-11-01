@@ -102,6 +102,17 @@ main > #tabs, main > #actPanel, main > #reportPanel, main > #histPanel, main > #
 <p id="officeCloudStatus" class="hint" role="status" aria-live="polite">Ofis portföyleri için hesabına giriş yap.</p>
 <div id="officeCloudSharedList"></div>
 </section>
+<section class="panel" id="externalPortfolioPanel">
+<div class="portfolioHeading"><h3>🔗 Portföy Çekme</h3></div>
+<p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
+<label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label>
+<textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://ornek.com/ilanlar, https://ornek.com/manisa"></textarea>
+<p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
+<div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
+<p class="hint" id="externalPortfolioStatus" role="status" aria-live="polite"></p>
+<h4>Çekilen Portföyler <span id="externalPortfolioCount"></span></h4>
+<div id="externalPortfolioResults"></div>
+</section>
 <section class="panel" id="selectArea"><div id="portfoyler"></div><div class="portfolioHeading"><h3>Portföylerim</h3><div class="row"><button type="button" class="light" id="exportPortfolios">Excel’e Aktar</button><button type="button" id="showAddPortfolio">+ Yeni Portföy</button></div></div><div id="authorizationReminders" class="authorizationReminders" hidden></div><div class="portfolioFilters"><input id="portfolioSearch" type="search" placeholder="Portföy, konum, mülk sahibi veya telefon ara..." aria-label="Portföylerde ara"><select id="portfolioAuthFilter" aria-label="Yetki süresi filtresi"><option value="all">Tüm yetki durumları</option><option value="active">Aktif · Mavi</option><option value="soon">Yaklaşıyor · Turuncu</option><option value="expired">Süresi doldu · Kırmızı</option><option value="missing">Yetki süresi girilmedi</option></select><select id="portfolioSort" aria-label="Portföy sıralaması"><option value="default">Mevcut sıralama</option><option value="auth">Yetki bitişi en yakın</option><option value="priceHigh">Fiyat: yüksekten düşüğe</option><option value="priceLow">Fiyat: düşükten yükseğe</option><option value="title">Portföy adına göre</option></select><select id="portfolioClientFilter" aria-label="Müşteri hareketi filtresi"><option value="all">Tüm müşteri hareketleri</option><option value="offered">Teklif bulunanlar</option><option value="shown">Yerinde gösterilenler</option><option value="presented">Müşteriye sunulanlar</option><option value="none">Henüz sunulmayanlar</option></select></div><p id="portfolioFilterInfo" class="hint" aria-live="polite"></p><div id="portfolioActivitySummary" class="notice" style="margin:10px 0" aria-live="polite"></div><div id="portfolioCards"></div><div class="grid portfolioMeta"><div class="legacyPicker"><label>Portföy seçin</label><select id="pick"></select></div><div><label>Rapor hatırlatması</label><div class="notice" id="due"></div></div></div><div class="row" id="portfolioEditBar"><button type="button" id="editPortfolio" class="light">Portföy bilgilerini düzenle</button><span id="authorizationStatus" style="font-weight:800"></span></div><div id="editPortfolioPanel" class="grid" hidden><div class="full"><label>İlan başlığı</label><input id="eTitle"></div><div><label>Konum</label><input id="eLocation"></div><div><label>İlan bedeli (TL)</label><input id="ePrice"></div><div><label>Gayrimenkul türü</label><select id="eType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="eRooms" placeholder="Örn. 3+1"></div><div><label>Mülk sahibi</label><input id="eOwner"></div><div><label>Mülk sahibi telefonu</label><input id="ePhone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="eListingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="eCover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="eAuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="eAuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="eAuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="eAuthEnd" readonly></div><div class="full row"><button id="savePortfolioEdit">Değişiklikleri kaydet</button><button id="cancelPortfolioEdit" class="light">İptal</button></div></div><div id="portfolioSites" style="margin-top:12px"><h3>İlan siteleri (bu portföye özel)</h3><div id="siteList"></div><div class="row"><input id="newSite" placeholder="Yeni site adı (örn. emlakjet.com)" style="flex:1"><button type="button" id="addSite">Site ekle</button></div><p class="hint">Bir kez kaydedin; raporlarda sonraki haftalarda otomatik görünür.</p></div><details id="newPortfolioDetails"><summary style="cursor:pointer;margin:12px 0;font-weight:800;color:#084b73">Yeni portföy ekle</summary><div class="row"><button type="button" id="closeAddPortfolio" class="light">Kapat ✕</button></div><div class="grid"><div class="full"><label>İlan başlığı</label><input id="title"></div><div><label>Konum</label><input id="loc"></div><div><label>Satış / kira bedeli (TL)</label><input id="price"></div><div><label>Mülk sahibi</label><input id="owner"></div><div><label>Mülk sahibi telefonu</label><input id="phone"></div><div class="full"><label>İlan linki (isteğe bağlı)</label><input id="listingUrl" type="url" placeholder="https://..." inputmode="url"></div><div class="full"><label>Kapak fotoğrafı (isteğe bağlı)</label><input type="file" accept="image/*" id="cover"></div><div><label>Yetki sözleşmesi başlangıç tarihi</label><input type="date" id="AuthStart"></div><div><label>Sözleşme süresi</label><div class="authorizationDuration"><input type="number" id="AuthDuration" min="1" max="3650" step="1" placeholder="Süre"><select id="AuthUnit" aria-label="Sözleşme süresi birimi"><option value="month">Ay</option><option value="day">Gün</option><option value="year">Yıl</option></select></div></div><div><label>Yetki bitiş tarihi (otomatik)</label><input type="date" id="AuthEnd" readonly></div><div><label>İşlem</label><select id="kind"><option>Satılık</option><option>Kiralık</option></select></div><div><label>Gayrimenkul türü</label><select id="pType"><option>Daire</option><option>Villa</option><option>Arsa</option><option>İşyeri</option><option>Tarla</option><option>Diğer</option></select></div><div><label>Oda sayısı</label><input id="pRooms" placeholder="Örn. 3+1"></div><div class="full"><label>Bu portföyün yayımlandığı ilan siteleri (isteğe bağlı)</label><div id="initialSiteChoices" class="row"></div><p class="hint">RE/MAX dahil hiçbir platform zorunlu değildir. Daha sonra site ekleyebilir veya kaldırabilirsiniz.</p></div><button id="saveP">Portföyü kaydet</button></div></details><div id="workspaceParking" hidden></div></section>
 <nav class="panel row" id="tabs"><button data-tab="act" class="active">Hareketler</button><button data-tab="report" class="light">Rapor</button><button data-tab="hist" class="light">Geçmiş</button><button data-tab="advisor" class="light">Danışman</button></nav>
 <section class="panel" id="actPanel"><h3>Hareket kaydı</h3><div class="grid"><div><label>Tarih</label><input id="aDate" type="date"></div><div><label>Hareket türü</label><select id="aType"><option>Telefon görüşmesi</option><option>Mesajlaşma</option><option>Yer gösterme</option><option>Teklif</option><option>Sosyal medya</option><option>Diğer</option></select></div><div class="full"><label>Kısa not / sonuç</label><textarea id="aNote"></textarea></div></div><div class="row"><button id="addAct">Hareketi kaydet</button></div><h3>Geçmiş hareketler</h3><div id="actList"></div></section>
@@ -472,4 +483,50 @@ bindThousands(["price","ePrice"]);
 // İlk açılışta tüm kart bileşenleri hazırlandıktan sonra listeyi çiz.
 pick();
 // Ofis oturumunu otomatik baslatma: bireysel portfoy ekraninda ikinci giris yok.
+
+/* Bireysel portfoy cekme: tarayicinin CORS ve kaynak site izinlerine tabidir. */
+const externalPortfolioKey="emlakcrm_external_portfolios_v1";
+const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
+const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+function externalDraw(){
+ const records=externalRead();
+ document.getElementById("externalPortfolioCount").textContent="("+records.length+")";
+ document.getElementById("externalPortfolioResults").innerHTML=records.length?records.map(p=>'<div style="padding:12px;border-bottom:1px solid #dfe7ed"><strong>'+externalEsc(p.title||"Portföy")+'</strong><p class="hint">'+externalEsc(p.location||"")+' · '+externalEsc(p.source||"")+'</p>'+(p.url?'<a href="'+externalEsc(p.url)+'" target="_blank" rel="noopener noreferrer">Kaynağı Aç</a>':'')+'</div>').join(""):'<p class="hint">Henüz çekilen portföy yok.</p>';
+}
+function externalNormalize(raw,source){
+ const arr=Array.isArray(raw)?raw:Array.isArray(raw?.portfolios)?raw.portfolios:Array.isArray(raw?.ilanlar)?raw.ilanlar:Array.isArray(raw?.items)?raw.items:Array.isArray(raw?.data)?raw.data:null;
+ if(!arr)return null;
+ return arr.slice(0,300).filter(x=>x&&typeof x==="object").map(x=>({
+ title:String(x.title||x.baslik||x.name||x.ilan_basligi||"Portföy").slice(0,250),
+ location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
+ url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
+ source
+ }));
+}
+async function externalFetchOne(url){
+ const response=await fetch(url,{mode:"cors",credentials:"omit",redirect:"follow",signal:AbortSignal.timeout(12000)});
+ if(!response.ok)throw Error("HTTP "+response.status);
+ const contentType=response.headers.get("content-type")||"";
+ if(!/json|text\/plain/i.test(contentType))throw Error("Kaynak doğrudan okunabilir JSON portföy listesi sunmuyor");
+ const raw=await response.text();if(raw.length>3000000)throw Error("Kaynak veri çok büyük");
+ let data;try{data=JSON.parse(raw)}catch{throw Error("Geçerli JSON portföy listesi değil")}
+ const records=externalNormalize(data,url);if(!records)throw Error("Desteklenen portföy listesi biçimi bulunamadı");
+ return records;
+}
+document.getElementById("externalPortfolioFetch").onclick=async()=>{
+ const btn=document.getElementById("externalPortfolioFetch"),status=document.getElementById("externalPortfolioStatus");
+ const raw=document.getElementById("externalPortfolioUrls").value;
+ const candidates=[...new Set(raw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean))].slice(0,20);
+ const urls=[],invalid=[];for(const s of candidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();urls.push(u.href)}catch{invalid.push(s)}}
+ if(!urls.length){status.textContent="En az bir geçerli http/https bağlantısı gir.";return}
+ btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
+ const found=[],errors=[];
+ for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
+ const existing=externalRead(),seen=new Set(existing.map(x=>x.url+"|"+x.title));
+ for(const p of found){const k=p.url+"|"+p.title;if(!seen.has(k)){existing.push(p);seen.add(k)}}
+ try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu, "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
+ btn.disabled=false;
+};
+document.getElementById("externalPortfolioClear").onclick=()=>{if(!confirm("Yalnızca çekilen portföy listesini temizlemek istiyor musun?"))return;localStorage.removeItem(externalPortfolioKey);externalDraw();document.getElementById("externalPortfolioStatus").textContent="Çekilen liste temizlendi; kendi portföylerin değişmedi."};
+externalDraw();
 </script></html>
