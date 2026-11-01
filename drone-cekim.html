@@ -11,7 +11,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden}
 #map{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#24465c,#071523)}
-.rasterMap{position:absolute;inset:0;z-index:1;overflow:hidden;background:#122c41}.rasterMap[hidden]{display:none!important}.rasterCamera{position:absolute;top:50%;left:50%;width:0;height:0;transform-origin:0 0;will-change:transform}.rasterScene{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}.rasterScene img{position:absolute;width:256px;height:256px;max-width:none;display:block;pointer-events:none}.rasterScene svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}.rasterUnderlay{z-index:0}.rasterScene:not(.rasterUnderlay){z-index:1}
+.rasterMap{position:absolute;inset:0;z-index:1;overflow:hidden;background:#122c41}.rasterMap[hidden]{display:none!important}.rasterCamera{position:absolute;top:50%;left:50%;width:0;height:0;transform-origin:0 0;will-change:transform}.rasterScene{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}.parcelNumberLabel{position:absolute;z-index:8;color:#fff;background:#132638cc;border:1px solid #ffffff55;border-radius:5px;padding:3px 5px;font:bold 13px system-ui,sans-serif;white-space:nowrap;pointer-events:none;transform-origin:center center;text-shadow:0 1px 2px #000}.rasterScene img{position:absolute;width:256px;height:256px;max-width:none;display:block;pointer-events:none}.rasterScene svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}.rasterUnderlay{z-index:0}.rasterScene:not(.rasterUnderlay){z-index:1}
 .placeHint{display:block;font-size:11px;color:#c8e0ed;margin-top:5px}.placeRetry{border:0;padding:1px 5px;margin-left:4px;color:#6de8d1;background:transparent;font:600 11px system-ui;cursor:pointer;text-decoration:underline}
 .placeHint{margin:3px 0 0;color:#9bd4df;font-size:11px}
 body.recording-clean header,body.recording-clean .panel,body.recording-clean .notice,body.recording-clean .maplibregl-ctrl-top-right,body.recording-clean .maplibregl-ctrl-bottom-left{display:none!important}.rasterCredit{position:absolute;bottom:3px;right:7px;color:#fff;background:#061927c9;padding:4px 7px;font-size:10px;border-radius:5px;z-index:2}.fallbackMap{position:absolute;inset:0;z-index:1;background:radial-gradient(circle at 55% 43%,#20415b,#081826);background-image:linear-gradient(#44aac51f 1px,transparent 1px),linear-gradient(90deg,#44aac51f 1px,transparent 1px),radial-gradient(circle at 55% 43%,#20415b,#081826);background-size:38px 38px,38px 38px,auto;display:grid;place-items:center;pointer-events:none}
@@ -295,6 +295,34 @@ function normalizeGeoJSON(input){
  if(!features.length)throw Error("Dosyada Polygon veya MultiPolygon sınırı bulunamadı.");
  return{type:"FeatureCollection",features};
 }
+// Ada/parsel etiketleri GeoJSON properties alanından okunur.
+function parcelLabel(feature){
+ const p=feature.properties||{};
+ const ada=String(p.adaNo??p.girdi_ada??"").trim();
+ const parsel=String(p.parselNo??p.girdi_parsel??"").trim();
+ if(/^\\d{1,8}$/.test(ada)&&/^\\d{1,8}$/.test(parsel))return ada+"/"+parsel;
+ const match=String(p.ozet||"").match(/(\\d{1,8})\\s*\\/\\s*(\\d{1,8})/);
+ return match?match[1]+"/"+match[2]:"";
+}
+function featureLabelPoint(feature){
+ const g=feature.geometry;
+ const polys=g.type==="Polygon"?[g.coordinates]:g.coordinates;
+ const outer=polys.flatMap(poly=>[poly[0]]).filter(Boolean);
+ let best=outer[0]||[];
+ for(const ring of outer)if(ring.length>best.length)best=ring;
+ if(!best.length)return null;
+ // Koordinat ortalaması: parselin haritadaki yaklaşık etiket noktası.
+ const pts=best.slice(0,-1);
+ if(!pts.length)return null;
+ const sum=pts.reduce((a,p)=>[a[0]+p[0],a[1]+p[1]],[0,0]);
+ return [sum[0]/pts.length,sum[1]/pts.length];
+}
+function parcelLabelData(){
+ return {type:"FeatureCollection",features:parcel.features.flatMap(f=>{
+  const label=parcelLabel(f),pt=featureLabelPoint(f);
+  return label&&pt?[{type:"Feature",properties:{label},geometry:{type:"Point",coordinates:pt}}]:[];
+ })};
+}
 function parseKml(xml){
  const doc=new DOMParser().parseFromString(xml,"application/xml");
  if(doc.querySelector("parsererror"))throw Error("KML dosyası okunamadı.");
@@ -448,6 +476,17 @@ function stageNativeTiles(z,bx,by,radius,p,parcelRef){
   stage.committed=true;
   const scene=$("rasterScene");
   target.appendChild(nativeOverlayGeometry(z,bx,by));
+  for(const feature of parcelRef.features){
+   const label=parcelLabel(feature),pt=featureLabelPoint(feature);
+   if(!label||!pt)continue;
+   const pixel=mercatorPoint(pt[0],pt[1],z);
+   const node=document.createElement("div");
+   node.className="rasterPlaceText parcelNumberLabel";
+   node.textContent=label;
+   node.style.left=(pixel.x-bx*256)+"px";
+   node.style.top=(pixel.y-by*256)+"px";
+   target.appendChild(node);
+  }
   // Eski Esri isim karolarini yeni uydu ustune yerlestir.
   if(z>=7){
    // Esri'nin yer adlari 17. seviyeye kadar hazir; 18'de de
@@ -602,6 +641,7 @@ function useParcel(input,title){
  }
  try{
   map.getSource("parcels").setData(parcel);
+  if(map.getSource("parcel-labels"))map.getSource("parcel-labels").setData(parcelLabelData());
   map.getSource("route").setData(routeData(parcelCenter,info.dx,info.dy));
   map.fitBounds(info.bounds,{padding:{top:110,bottom:Math.min(300,Math.floor(innerHeight*.35)),left:55,right:55},duration:900,maxZoom:17});
   map.once("moveend",()=>{orbitZoom=Math.min(17,Math.max(13,map.getZoom()));});
@@ -884,6 +924,13 @@ function start3DMap(provider="esri"){
     map.addSource("route",{type:"geojson",data:{type:"Feature",geometry:{type:"LineString",coordinates:[]},properties:{}}});
     map.addLayer({id:"parcels-fill",type:"fill",source:"parcels",paint:{"fill-color":["coalesce",["get","renk"],"#ed3035"],"fill-opacity":0.20}});
     map.addLayer({id:"parcels-border",type:"line",source:"parcels",paint:{"line-color":["coalesce",["get","renk"],"#d5222a"],"line-width":1.1,"line-opacity":0.9}});
+    map.addSource("parcel-labels",{type:"geojson",data:parcelLabelData()});
+    map.addLayer({id:"parcel-label-text",type:"symbol",source:"parcel-labels",layout:{
+     "text-field":["get","label"],"text-font":["Open Sans Bold","Arial Unicode MS Bold"],
+     "text-size":14,"text-anchor":"center","text-allow-overlap":false,
+     "text-rotation-alignment":"viewport","text-pitch-alignment":"viewport"
+    },paint:{"text-color":"#ffffff","text-halo-color":"#132638","text-halo-width":3}});
+
     map.addLayer({id:"flight-route",type:"line",source:"route",paint:{"line-color":"#ffe16c","line-dasharray":[1.5,2.5],"line-width":2,"line-opacity":0.88}});
     if(!isMapbox){
      // Yedek Esri sağlayıcısında eski yer isimleri de korunur.
