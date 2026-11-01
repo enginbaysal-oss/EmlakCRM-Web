@@ -116,6 +116,7 @@ main > #tabs, main > #actPanel, main > #reportPanel, main > #histPanel, main > #
 <select id="externalDistrictFilter" aria-label="İlçe"><option value="">Tüm ilçeler</option></select>
 <select id="externalNeighborhoodFilter" aria-label="Mahalle"><option value="">Tüm mahalleler</option></select>
 <select id="externalKindFilter" aria-label="Satılık kiralık"><option value="">Satılık / Kiralık (Tümü)</option><option value="satılık">Satılık</option><option value="kiralık">Kiralık</option></select>
+<select id="externalSort" aria-label="Portföy sıralaması"><option value="default">Sıralama: Varsayılan</option><option value="priceAsc">Fiyat: Artan</option><option value="priceDesc">Fiyat: Azalan</option><option value="dateDesc">Tarih: Yeniden eskiye</option><option value="dateAsc">Tarih: Eskiden yeniye</option></select>
 <button type="button" class="light" id="externalResetFilters">Filtreleri Temizle</button></div>
 <p class="hint" id="externalFilteredCount"></p>
 <div id="externalPortfolioResults"></div>
@@ -524,6 +525,14 @@ function externalFillFilters(records){
  const district=document.getElementById(ids[1]).value;
  fill(ids[2],parts.filter(x=>(!city||x[0]===city)&&(!district||x[1]===district)).map(x=>x[2]),values[2],"Tüm mahalleler");
 }
+function externalDescriptionPhone(value){
+ const description=Array.isArray(value)?(value.find(x=>x?.languageId===1)||value[0]):value;
+ const text=typeof description==="string"?description:String(description?.text||"");
+ const match=text.match(/(?:\+90|0|90)?\s*\(?([5][0-9]{2})\)?\s*[-.\s]*([0-9]{3})\s*[-.\s]*([0-9]{2})\s*[-.\s]*([0-9]{2})/);
+ return match?"0"+match.slice(1).join(""):"";
+}
+function externalSortPrice(p){const v=String(p.price||"").replace(/[^\d.,]/g,"");if(!v)return null;const normalized=v.replace(/\.(?=\d{3}(?:\D|$))/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)?n:null}
+function externalSortDate(p){const raw=p.listingDate||p.date||"";if(!raw)return null;const n=Date.parse(raw);return Number.isFinite(n)?n:null}
 function externalPhone(value){let s=String(value||"").replace(/\D/g,"");if(s.startsWith("90")&&s.length===12)s="0"+s.slice(2);if(s.length===10&&s.startsWith("5"))s="0"+s;return /^05\d{9}$/.test(s)?s:""}
 function externalDraw(){
  const records=externalRead(),root=document.getElementById("externalPortfolioResults");
@@ -532,6 +541,12 @@ function externalDraw(){
  const shown=records.filter(p=>{
   const loc=externalLocationParts(p),k=String(p.kind||"").toLocaleLowerCase("tr-TR");
   return (!city||loc[0]===city)&&(!district||loc[1]===district)&&(!neighborhood||loc[2]===neighborhood)&&(!kind||k.includes(kind));
+ });
+ const sort=document.getElementById("externalSort").value;
+ if(sort!=="default")shown.sort((a,b)=>{
+  const date=sort.startsWith("date"),av=date?externalSortDate(a):externalSortPrice(a),bv=date?externalSortDate(b):externalSortPrice(b);
+  if(av===null)return bv===null?0:1;if(bv===null)return -1;
+  return (sort==="priceAsc"||sort==="dateAsc")?av-bv:bv-av;
  });
  document.getElementById("externalPortfolioCount").textContent="("+records.length+")";
  document.getElementById("externalPortfolioSummaryCount").textContent="("+records.length+")";
@@ -553,8 +568,8 @@ function externalDraw(){
    '</div></article>';
  }).join(""):'<p class="hint">Filtrelere uygun çekilen portföy bulunamadı.</p>';
 }
-for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter"])document.getElementById(id).addEventListener("change",externalDraw);
-document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter"])document.getElementById(id).value="";externalDraw()};
+for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).addEventListener("change",externalDraw);
+document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).value="";externalDraw()};
 function externalNormalize(raw,source){
  const arr=Array.isArray(raw)?raw:Array.isArray(raw?.portfolios)?raw.portfolios:Array.isArray(raw?.ilanlar)?raw.ilanlar:Array.isArray(raw?.items)?raw.items:Array.isArray(raw?.data)?raw.data:null;
  if(!arr)return null;
@@ -563,7 +578,7 @@ function externalNormalize(raw,source){
  location:String(x.location||x.konum||x.city||x.il||"").slice(0,250),
  url:(()=>{try{const u=new URL(String(x.url||x.link||x.ilan_linki||source),source);return ["http:","https:"].includes(u.protocol)?u.href:source}catch{return source}})(),
  source,
- price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),phone:String(x.phone||x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.consultantPhone||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||x.photo?.url||x.photo?.path||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
+ price:String(x.price||x.fiyat||""),consultant:String(x.consultant||x.employeeName||x.danisman||""),phone:String(x.phone||x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.consultantPhone||externalDescriptionPhone(x.description)||""),listingDate:String(x.listingDate||x.publishedAt||x.publishDate||x.createdAt||x.date||""),kind:String(x.kind||x.type||x.operationName||""),propertyType:String(x.propertyType||x.categoryName||""),image:String(x.image||x.imageUrl||x.photoUrl||x.photo?.url||x.photo?.path||""),city:String(x.city||x.il||""),district:String(x.district||x.ilce||""),neighborhood:String(x.neighborhood||x.mahalle||"")
  }));
 }
 
@@ -623,7 +638,7 @@ function remaxParsePage(html,source){
      (typeof firstImage==="string"?firstImage:firstImage?.url||firstImage?.path||firstImage?.fullPath)||"";
    photo=String(photo).trim();
    if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;else if(photo&&!/^https?:\/\//i.test(photo))photo=photo.includes("remax")?"https://"+photo:"https://img.remax.com.tr/"+photo;
-   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",phone:x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.officePhone||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
+   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",phone:x.employeePhone||x.employeeMobilePhone||x.mobilePhone||x.officePhone||externalDescriptionPhone(x.description)||"",listingDate:x.publishDate||x.publishedAt||x.createdAt||x.createDate||x.listingDate||"",image:photo,kind:x.operationName||"",propertyType:x.categoryName||"",city,town,neighborhood,district:town};
   });
  }
  throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
