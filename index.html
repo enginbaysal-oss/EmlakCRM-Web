@@ -222,6 +222,8 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
  body[data-screen="home"] #homeView .tools.homeMainTools .tool .tool-icon{height:28px;width:28px;font-size:17px}
  body[data-screen="home"] #homeView .tools.homeMainTools .tool .tool-title{font-size:13px}
 }
+/* Bireysel abonelik arayuzu: eski ofis modulu veri kaybi olmadan gizlenir. */
+#officeSection,#officeSection + .officeSimple,#cloudSharedPortfolios{display:none!important}
 </style></head><body>
 <div id="crmDataSafety" role="alert" aria-live="assertive" hidden>
  <span id="crmDataSafetyMessage">Bu sekmede kayit catismasi algilandi.</span>
@@ -231,8 +233,8 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1>◆ EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
 <main><div id="homeView" class="view-screen">
 <section class="homeModuleSection" aria-labelledby="homeModulesHeading">
-<div class="homeModuleHeading"><h2 id="homeModulesHeading">Uygulamalar</h2><span>7 ana modül • Tek ekranda</span></div>
-<div class="tools homeMainTools" aria-label="EmlakCRM yedi ana modül">
+<div class="homeModuleHeading"><h2 id="homeModulesHeading">Uygulamalar</h2><span>6 ana modül • Tek ekranda</span></div>
+<div class="tools homeMainTools" aria-label="EmlakCRM ana modüller">
 <button type="button" class="tool crm" data-go="customers"><div class="tool-icon">👥</div><div class="tool-title">Müşteri Yönetimi + Ajanda</div><div class="tool-desc">Müşteriler ve hatırlatmalar</div></button>
 <a href="portfoy-rapor.html#portfoyler" class="tool portfolio"><div class="tool-icon">🏠</div><div class="tool-title">Portföy Yönetimi</div><div class="tool-desc">İlanlar ve yetki süreleri</div></a>
 <a href="https://enginbaysal-oss.github.io/crm/ilan-asistani.html" class="tool ilan-asistani" style="background:#e9f4ed;text-decoration:none;cursor:pointer"><div class="tool-icon">🔎</div><div class="tool-title">İlan Asistanı</div><div class="tool-desc">Kişisel favori aramalar ve yeni ilanlar</div></a>
@@ -240,7 +242,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <button type="button" data-go="assistant" class="tool emlakasistan"><div class="tool-icon">📄</div><div class="tool-title">EmlakAsistan</div><div class="tool-desc">Belgeler ve sözleşmeler</div></button>
 <button type="button" data-go="tapu" class="tool tapumatik"><div class="tool-icon">🧮</div><div class="tool-title">TapuMatik</div><div class="tool-desc">Tapu ve masraf hesaplama</div></button>
 <button type="button" data-go="pdf" class="tool pdf"><div class="tool-icon">✍️</div><div class="tool-title">PDF İmzala</div><div class="tool-desc">İmza ve belge paylaşımı</div></button>
-<button type="button" data-go="office" class="tool ofis"><div class="tool-icon">🏢</div><div class="tool-title">Ofis Yönetimi</div><div class="tool-desc">Danışman ve ortak portföyler</div></button>
+
 </div>
 </section>
 <section class="homeActions" aria-label="Hızlı işlemler">
@@ -347,7 +349,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <a href="portfoy-rapor.html#portfoyler">Portföyleri Aç →</a>
 </section>
 <section class="card"><div id="taskForm" class="hide"><div class="form"><input id="taskTitle" maxlength="120" placeholder="Hatırlatma konusu" aria-label="Hatırlatma konusu"><input id="taskDate" type="datetime-local" aria-label="Tarih saat"><select id="taskClient" class="full" aria-label="İlgili müşteri"><option value="">Genel hatırlatma (müşterisiz)</option></select><button id="saveTask" class="full">Hatırlatmayı kaydet</button><button id="cancelTaskEdit" type="button" class="secondary full hide">Vazgeç</button></div><hr></div><div class="row" style="margin:12px 0"><button type="button" class="secondary" data-task-view="all">Tümü</button><button type="button" class="secondary" data-task-view="today">Bugün</button><button type="button" class="secondary" data-task-view="late">Gecikenler</button><button type="button" class="secondary" data-task-view="upcoming">Yaklaşanlar</button><button type="button" class="secondary" data-task-view="done">Tamamlananlar</button></div><input id="taskSearch" type="search" placeholder="Hatırlatma veya müşteri ara..." aria-label="Ajandada hatırlatma ara" style="width:100%;margin:4px 0 12px"><p id="taskSummary" class="mini"></p><div id="taskList"></div></section>
-</div><p class="notice" id="demoNotice"><b>Veri güvenliği:</b> Müşteri ve ajanda kayıtları öncelikle bu tarayıcıda tutulur. Ayarlar bölümünden tam yerel yedeğinizi indirebilirsiniz. Otomatik cihaz eşitleme yoktur; tek dosyalık yedeğinizi güvenli saklayın. Ofis üyelik başvuruları sunucu tarafında onaylanır; onaylı üyeler için ofis ilan paylaşımı isteğe bağlı hesap bağlantısıyla çalışır. Müşteri verisi ortak paylaşımı ve abonelik henüz tamamlanmadı. Drone Çekim'de sanal uçuş kullanılabilir; gerçek drone veya otomatik kadastro sorgusu değildir.</p></main>
+</div><p class="notice" id="demoNotice"><b>Veri güvenliği:</b> Müşteri ve ajanda kayıtları öncelikle bu tarayıcıda tutulur. Ayarlar bölümünden tam yerel yedeğinizi indirebilirsiniz. Otomatik cihaz eşitleme yoktur; tek dosyalık yedeğinizi güvenli saklayın. Ofis üyeliği yeni bireysel abonelik modelinde kullanılmaz. Müşteri verisi ortak paylaşımı ve abonelik henüz tamamlanmadı. Drone Çekim'de sanal uçuş kullanılabilir; gerçek drone veya otomatik kadastro sorgusu değildir.</p></main>
 <script>
 "use strict";
 const key="emlakcrm_demo_v1";let data;
