@@ -682,33 +682,39 @@ function remaxParsePage(html,source){
 async function remaxDetailMobile(listingUrl){
  try{
   const u=new URL(listingUrl);
-  if(!["remax.com.tr","www.remax.com.tr"].includes(u.hostname)||!/^\/tr\/portfoy\/P\d+/i.test(u.pathname))return "";
+  if(!["remax.com.tr","www.remax.com.tr"].includes(u.hostname)||!/^\/tr\/portfoy\/P\d+/i.test(u.pathname))return {phone:"",reason:"Geçersiz ilan adresi"};
   const proxy="https://sesliportfoy-proxy.engin-baysal.workers.dev/?url="+encodeURIComponent(u.href);
-  const response=await fetch(proxy,{mode:"cors",credentials:"omit",signal:AbortSignal.timeout(12000)});
-  if(!response.ok)return "";
+  const response=await fetch(proxy,{mode:"cors",credentials:"omit",signal:AbortSignal.timeout(16000)});
+  if(!response.ok)return {phone:"",reason:"HTTP "+response.status};
   const html=await response.text();
-  // Sadece telefonla ilişkili alanlardan numara al; ilandaki başka numaraları danışmana atama.
   const flight=remaxFlightData(html)||"";
-  const chunks=[flight,html];
-  for(const chunk of chunks){
-   for(const pattern of [
-    /"(?:employeeMobilePhone|mobilePhone|gsm|gsmPhone|cellPhone|mobileNumber|employeePhone|consultantPhone)"\s*:\s*"([^"]{10,35})"/gi,
-    /"(?:mobile|mobile_phone|mobileNumber|phoneNumber)"\s*:\s*"([^"]{10,35})"/gi
-   ]){
-    let match;while((match=pattern.exec(chunk))!==null){const phone=externalPhone(match[1]);if(phone)return phone}
+  const decoded=html.replace(/\\u002[bB]/g,"+").replace(/\\u003[aA]/g,":").replace(/\\u0020/g," ").replace(/&nbsp;|&#160;/gi," ").replace(/&#43;|&plus;/gi,"+");
+  const phonePattern=/(?:\+?90[\s.()-]*)?0?5\d{2}[\s.()-]*\d{3}[\s.()-]*\d{2}[\s.()-]*\d{2}/g;
+  // Telefonla ilgili etiketlerin yanındaki cep numaralarını al.
+  for(const chunk of [flight,decoded]){
+   const label=/(?:employeeMobilePhone|mobilePhone|gsmPhone|cellPhone|mobileNumber|employeePhone|consultantPhone|phoneNumber|mobile|gsm|İletişim Bilgileri|Cep Telefonu|cep telefonu|tel:)/gi;
+   let m;
+   while((m=label.exec(chunk))!==null){
+    const nearby=chunk.slice(m.index,Math.min(chunk.length,m.index+350));
+    const matches=nearby.match(phonePattern)||[];
+    for(const raw of matches){const phone=externalPhone(raw);if(phone)return {phone,reason:"Bulundu"}}
    }
   }
-  return "";
- }catch{return ""}
+  return {phone:"",reason:"Sayfa okundu, cep telefonu ayrıştırılamadı"};
+ }catch(e){return {phone:"",reason:e.name==="TimeoutError"?"Zaman aşımı":"Sayfa erişimi başarısız"}}
 }
 async function remaxFillMissingMobiles(records,status){
  const missing=records.filter(p=>!externalPhone(p.phone)&&/^https:\/\/(?:www\.)?remax\.com\.tr\/tr\/portfoy\/P\d+/i.test(p.url||""));
- let checked=0,found=0;
+ let checked=0,found=0;const reasons={};
  for(let i=0;i<missing.length;i+=4){
-  await Promise.all(missing.slice(i,i+4).map(async p=>{const mobile=await remaxDetailMobile(p.url);if(mobile){p.phone=mobile;found++}checked++}));
-  if(status)status.textContent="Danışman cep telefonları kontrol ediliyor: "+checked+"/"+missing.length+" ("+found+" bulundu)";
+  await Promise.all(missing.slice(i,i+4).map(async p=>{
+   const result=await remaxDetailMobile(p.url);
+   if(result.phone){p.phone=result.phone;found++}else reasons[result.reason]=(reasons[result.reason]||0)+1;
+   checked++;
+  }));
+  if(status)status.textContent="Danışman cep telefonları: "+checked+"/"+missing.length+" kontrol edildi, "+found+" bulundu.";
  }
- return {checked,found};
+ return {checked,found,reasons};
 }
 async function externalFetchOne(url){
  const host=new URL(url).hostname.toLowerCase();
@@ -743,10 +749,10 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
  const found=[],errors=[];
  for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
- await remaxFillMissingMobiles(found,status);
+ const phoneCheck=await remaxFillMissingMobiles(found,status);
  const existing=externalRead(),index=new Map(existing.map((x,i)=>[x.url+"|"+x.title,i]));
  for(const p of found){const k=p.url+"|"+p.title;if(index.has(k)){const i=index.get(k);existing[i]={...existing[i],...p,phone:externalPhone(p.phone)||existing[i].phone||""}}else{index.set(k,existing.length);existing.push(p)}}
- try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu, "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
+ try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu; telefon kontrolü: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+(Object.keys(phoneCheck.reasons).length?" Bulunamayanların nedeni: "+Object.entries(phoneCheck.reasons).map(([k,v])=>k+" ("+v+")").join(", ")+".":"")+" "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
  btn.disabled=false;
 };
 document.getElementById("externalPortfolioClear").onclick=()=>{if(!confirm("Yalnızca çekilen portföy listesini temizlemek istiyor musun?"))return;localStorage.removeItem(externalPortfolioKey);externalDraw();document.getElementById("externalPortfolioStatus").textContent="Çekilen liste temizlendi; kendi portföylerin değişmedi."};
