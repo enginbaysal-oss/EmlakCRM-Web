@@ -106,7 +106,7 @@ main > #tabs, main > #actPanel, main > #reportPanel, main > #histPanel, main > #
 <div class="portfolioHeading"><h3>🔗 Portföy Çekme</h3></div>
 <p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
 <label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label>
-<textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://ornek.com/ilanlar, https://ornek.com/manisa"></textarea>
+<textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://ornek.com/manisa"></textarea>
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
 <p class="hint" id="externalPortfolioStatus" role="status" aria-live="polite"></p>
@@ -503,7 +503,76 @@ function externalNormalize(raw,source){
  source
  }));
 }
+
+function remaxFlightData(html){
+ const chunks=[];const re=/self\.__next_f\.push\(\[1,("(?:\\.|[^"\\])*")\]\)/g;let m;
+ while((m=re.exec(html))!==null){try{chunks.push(JSON.parse(m[1]))}catch{}}
+ return chunks.join("");
+}
+function remaxBalancedObject(text,from){
+ const start=text.indexOf("{",from);if(start<0)return null;
+ let depth=0,quoted=false,escaped=false;
+ for(let i=start;i<text.length;i++){const ch=text[i];if(quoted){if(escaped)escaped=false;else if(ch==="\\")escaped=true;else if(ch==='"')quoted=false;continue}
+ if(ch==='"'){quoted=true;continue}if(ch==="{")depth++;if(ch==="}"&&!--depth)return text.slice(start,i+1)}
+ return null;
+}
+function remaxFlightRows(flight){
+ const rows={};const lines=flight.split("\n");
+ for(const line of lines){const m=line.match(/^([0-9a-fA-F]+):(.*)$/);if(!m)continue;
+ try{rows[m[1]]=JSON.parse(m[2])}catch{rows[m[1]]=m[2]}}
+ return rows;
+}
+function remaxResolveRefs(value,rows,seen=new Set()){
+ if(Array.isArray(value))return value.map(v=>remaxResolveRefs(v,rows,seen));
+ if(value&&typeof value==="object")return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,remaxResolveRefs(v,rows,seen)]));
+ if(typeof value==="string"&&/^\$L?[0-9a-fA-F]+$/.test(value)){const id=value.replace(/^\$L?/,"");if(Object.hasOwn(rows,id)&&!seen.has(id)){const next=new Set(seen);next.add(id);return remaxResolveRefs(rows[id],rows,next)}}
+ return value;
+}
+function remaxItems(data){
+ if(Array.isArray(data))return data;
+ if(!data||typeof data!=="object")return null;
+ for(const candidate of [data.data?.data,data.data,data.listings,data.items,data.results,...Object.values(data)])if(Array.isArray(candidate))return candidate;
+ return null;
+}
+function remaxText(v){
+ if(typeof v==="string"||typeof v==="number")return String(v);
+ if(Array.isArray(v)){const tr=v.find(x=>x&&x.languageId===1);return remaxText((tr||v[0])?.text||"")}
+ return "";
+}
+function remaxParsePage(html,source){
+ const flight=remaxFlightData(html);if(!flight)throw Error("RE/MAX sayfa veri bloğu bulunamadı");
+ const rows=remaxFlightRows(flight);
+ for(const key of ["officeDetailPropertyListingData","searchPropertyListingData","propertyListingData","listingData"]){
+  const pos=flight.indexOf('"'+key+'"');if(pos<0)continue;
+  const raw=remaxBalancedObject(flight,pos+key.length+2);if(!raw)continue;
+  let data;try{data=remaxResolveRefs(JSON.parse(raw),rows)}catch{continue}
+  const items=remaxItems(data);if(!items)continue;
+  return items.filter(x=>x&&typeof x==="object"&&x.code).map(x=>{
+   const city=x.cityName||x.city?.name||"",town=x.townName||x.town?.name||x.districtName||"",neighborhood=x.neighborhoodName||x.neighborhood?.name||"";
+   const title=remaxText(x.title)||"RE/MAX Portföyü";
+   const price=x.priceInfo?.amount?String(x.priceInfo.amount)+" "+String(x.priceInfo.amountTypeSymbol||""):"";
+   let photo=x.photo?.url||x.photo?.path||x.photo?.[0]?.url||x.photoUrl||x.imageUrl||"";
+   if(photo.startsWith("//"))photo="https:"+photo;else if(photo.startsWith("/"))photo="https://www.remax.com.tr"+photo;
+   return {title,location:[city,town,neighborhood].filter(Boolean).join(", ")||x.address||"",url:"https://www.remax.com.tr/tr/portfoy/"+encodeURIComponent(String(x.code)),source,price,consultant:x.employeeName||"",image:photo};
+  });
+ }
+ throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
+}
 async function externalFetchOne(url){
+ const host=new URL(url).hostname.toLowerCase();
+ if(host==="remax.com.tr"||host==="www.remax.com.tr"){
+  const all=[],seen=new Set();
+  for(let page=1;page<=20;page++){
+   const target=new URL(url);target.searchParams.set("page",String(page));
+   const proxy="https://sesliportfoy-proxy.engin-baysal.workers.dev/?url="+encodeURIComponent(target.href);
+   const response=await fetch(proxy,{mode:"cors",credentials:"omit",signal:AbortSignal.timeout(16000)});
+   if(!response.ok)throw Error("RE/MAX veri servisi HTTP "+response.status);
+   const html=await response.text();const list=remaxParsePage(html,url);let added=0;
+   for(const p of list){if(!seen.has(p.url)){seen.add(p.url);all.push(p);added++}}
+   if(list.length<10||added===0)break;
+  }
+  return all;
+ }
  const response=await fetch(url,{mode:"cors",credentials:"omit",redirect:"follow",signal:AbortSignal.timeout(12000)});
  if(!response.ok)throw Error("HTTP "+response.status);
  const contentType=response.headers.get("content-type")||"";
