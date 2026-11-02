@@ -1434,6 +1434,22 @@ async function showScreen(name){
  window.scrollTo({top:0,behavior:"instant"});
  if(name==="office")requestAnimationFrame(()=>$("officeSection")?.scrollIntoView({block:"start",behavior:"instant"}));
 }
+// Ayrı HTML sayfalarına giden kartları da aynı lisans kontrolünden geçir.
+document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
+ link.addEventListener("click",async event=>{
+  event.preventDefault();
+  const href=link.href;
+  try{
+   const entitlement=await crmCheckEntitlement();
+   if(entitlement.allowed){window.location.assign(href);return}
+   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Yıllık ücret 750 TL (KDV dahil). Ödeme altyapısı henüz aktif değil.");
+  }catch(_){
+   alert("Devam etmek için önce Ayarlar bölümünden giriş yapın.");
+  }
+  location.hash="account";
+  void showScreen("account");
+ });
+});
 document.querySelectorAll("[data-go]").forEach(el=>el.addEventListener("click",()=>{location.hash=el.dataset.go;showScreen(el.dataset.go)}));
 function quickDo(screen,button){location.hash=screen;showScreen(screen);const action=$(button);if(action&&!action.disabled)action.click();}
 $("quickAddClient").addEventListener("click",()=>quickDo("customers","addClient"));
