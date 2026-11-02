@@ -1379,7 +1379,12 @@ function showScreen(name){
  if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
- if(selected==="pdf"&&!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=1b666c4b5add";
+ if(selected==="pdf"){
+  if(!$("pdfWebFrame").src)$("pdfWebFrame").src="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=1b666c4b5add";
+  void sendPdfSession();
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
+ }
  if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html");
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
