@@ -278,6 +278,13 @@ body[data-screen="tapu"]>header,body[data-screen="pdf"]>header,body[data-screen=
 <div><span>Abonelik durumu</span><strong id="accountSubscriptionStatus">Giriş bekleniyor</strong></div>
 <div><span>Veri saklama</span><strong>Bu tarayıcıda</strong></div>
 </div>
+<section class="card" aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
+<h3 style="margin:0 0 8px">EmlakCRM Yıllık Abonelik</h3>
+<p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(KDV dahil / 12 ay)</span></p>
+<p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
+<p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
+<p class="muted" style="font-size:13px">Otomatik yenileme yoktur. iyzico incelemesi devam ettiği için ödeme şu anda alınmamaktadır. Ödeme açıldığında yalnızca doğrulanmış başarılı işlem sonrası lisans başlayacaktır.</p>
+</section>
 <p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme, abonelik ve ödeme henüz hazır değil.</p>
 <div class="accountCloud" id="crmInlineAuth">
 <h3>EmlakCRM Giriş / Kayıt</h3><p class="muted">Giriş işlemleri bu ekranda tamamlanır. Ayrı bir dosyaya geçilmez.</p>
@@ -1320,18 +1327,20 @@ async function crmCheckEntitlement(){
 }
 async function updateAccountStatus(){
  const status=$("accountSessionStatus"),sub=$("accountSubscriptionStatus"),logout=$("accountLogout"),login=$("crmInlineAuth");
+ const licenseStart=$("crmLicenseStart"),licenseEnd=$("crmLicenseEnd"),licenseMessage=$("crmLicenseMessage");
+ licenseStart.textContent="—";licenseEnd.textContent="—";licenseMessage.textContent="Abonelik kontrol ediliyor...";
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
- if(!saved?.access_token){status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;return}
+ if(!saved?.access_token){status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
  status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
   const {user}=await crmAuthenticatedSession();
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
   const entitlement=await crmCheckEntitlement();
-  if(entitlement.role==="super_admin")sub.textContent="Süper Yönetici · Süresiz abonelik";
-  else if(entitlement.allowed)sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";
-  else sub.textContent="Aktif abonelik bulunamadı";
- }catch(err){
+  if(entitlement.role==="super_admin"){sub.textContent="Süper Yönetici · Süresiz abonelik";licenseStart.textContent="Süresiz";licenseEnd.textContent="Süresiz";licenseMessage.textContent="Kurucu yönetici hesabı: ödeme zorunluluğu yok.";}
+  else if(entitlement.allowed){sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";licenseEnd.textContent=new Date(entitlement.expiresAt).toLocaleDateString("tr-TR");licenseMessage.textContent="Aboneliğiniz aktif.";}
+  else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Ödeme sistemi henüz açık değil.";}
+ }catch(err){licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
   if(status.textContent==="Oturum doğrulanıyor..."){sessionStorage.removeItem(crmAuthSessionKey);status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
   else{sub.textContent="Abonelik kontrol edilemedi"}
  }
