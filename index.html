@@ -275,7 +275,7 @@ body[data-screen="tapu"]>header,body[data-screen="pdf"]>header,body[data-screen=
 <div class="accountHead"><div class="accountAvatar">👤</div><div><h3>Hesap / Giriş / Kayıt</h3><p class="muted">Tek yerden hesap oluştur, giriş yap ve ofisine katıl.</p></div></div>
 <div class="accountInfo">
 <div><span>Oturum durumu</span><strong id="accountSessionStatus">Kontrol ediliyor</strong></div>
-<div><span>Abonelik durumu</span><strong>Henüz aktif değil</strong></div>
+<div><span>Abonelik durumu</span><strong id="accountSubscriptionStatus">Giriş bekleniyor</strong></div>
 <div><span>Veri saklama</span><strong>Bu tarayıcıda</strong></div>
 </div>
 <p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme, abonelik ve ödeme henüz hazır değil.</p>
@@ -1305,15 +1305,26 @@ $("crmInlineForgot").onclick=async()=>{
  finally{btn.disabled=false}
 };
 async function updateAccountStatus(){
- const status=$("accountSessionStatus"),logout=$("accountLogout"),login=$("crmInlineAuth");
+ const status=$("accountSessionStatus"),sub=$("accountSubscriptionStatus"),logout=$("accountLogout"),login=$("crmInlineAuth");
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
- if(!saved?.access_token){status.textContent="Giriş yapılmadı";logout.hidden=true;login.hidden=false;return}
- status.textContent="Oturum doğrulanıyor...";
+ if(!saved?.access_token){status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;return}
+ status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
-  const {user}=await crmAuthenticatedSession();
+  const {user,token}=await crmAuthenticatedSession();
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
- }catch(_){sessionStorage.removeItem(crmAuthSessionKey);status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false}
+  const response=await fetch(crmApiBase+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+token}});
+  if(!response.ok)throw Error("Abonelik bilgisi alınamadı");
+  const records=await response.json();
+  const now=Date.now();
+  const active=records.find(r=>r.status==="active"&&r.starts_at&&r.expires_at&&new Date(r.starts_at).getTime()<=now&&new Date(r.expires_at).getTime()>now);
+  if(active){sub.textContent="Aktif · "+new Date(active.expires_at).toLocaleDateString("tr-TR")+" tarihine kadar"}
+  else if(records.some(r=>r.status==="active"||r.status==="expired")){sub.textContent="Süresi dolmuş / aktif abonelik yok"}
+  else{sub.textContent="Aktif abonelik bulunamadı"}
+ }catch(err){
+  if(status.textContent==="Oturum doğrulanıyor..."){sessionStorage.removeItem(crmAuthSessionKey);status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
+  else{sub.textContent="Abonelik kontrol edilemedi"}
+ }
 }
 $("accountLogout").onclick=()=>{
  sessionStorage.removeItem(crmAuthSessionKey);
