@@ -55,7 +55,7 @@ $("restore").onclick=()=>$("upload").click();$("addMore").onclick=()=>$("upload"
   }
   let bundled=[];\n  let bundleErrorMessage="";
   try{
-   const response=await fetch("assets/emlakcrm-genel-sablonlar-8.json",{cache:"no-cache"});
+   const response=await fetch(new URL("assets/emlakcrm-genel-sablonlar-8.json",window.location.href),{cache:"no-store"});
    if(!response.ok)throw Error("HTTP "+response.status);
    bundled=await response.json();
    validate(bundled);
