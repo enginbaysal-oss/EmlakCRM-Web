@@ -1313,6 +1313,14 @@ async function updateAccountStatus(){
   const {user,token}=await crmAuthenticatedSession();
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
+  // Süresiz kurucu yönetici yetkisi sunucudaki kullanıcı kimliğiyle doğrulanır.
+  const adminResponse=await fetch(crmApiBase+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+token}});
+  if(!adminResponse.ok)throw Error("Yönetici yetkisi kontrol edilemedi");
+  const adminRows=await adminResponse.json();
+  if(Array.isArray(adminRows)&&adminRows.some(r=>r.user_id===user.id)){
+   sub.textContent="Süper Yönetici · Süresiz abonelik";
+   return;
+  }
   const response=await fetch(crmApiBase+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+token}});
   if(!response.ok)throw Error("Abonelik bilgisi alınamadı");
   const records=await response.json();
