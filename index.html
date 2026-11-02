@@ -1394,9 +1394,25 @@ window.addEventListener("message",async event=>{
  if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
  void sendPdfSession();
 });
-function showScreen(name){
+let crmNavigationRequest=0;
+async function showScreen(name){
+ const request=++crmNavigationRequest;
  const target=(name==="office"||name==="settings")?"account":name; // eski ofis ve ayar baglantilarini koru
- const selected=appScreens.includes(target)?target:"home";
+ let selected=appScreens.includes(target)?target:"home";
+ if(!["home","account"].includes(selected)){
+  try{
+   const entitlement=await crmCheckEntitlement();
+   if(request!==crmNavigationRequest)return;
+   if(!entitlement.allowed){
+    selected="account";
+    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Yıllık abonelik 750 TL (KDV dahil). Ödeme sistemi henüz açılmadı; ödeme alınmıyor.");
+   }
+  }catch(err){
+   if(request!==crmNavigationRequest)return;
+   selected="account";
+   alert("Devam etmek için Ayarlar bölümünden giriş yapın. Oturum veya abonelik doğrulanamadı.");
+  }
+ }
  if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
