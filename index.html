@@ -224,6 +224,17 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 }
 /* Bireysel abonelik arayuzu: eski ofis modulu veri kaybi olmadan gizlenir. */
 #officeSection,#officeSection + .officeSimple,#cloudSharedPortfolios{display:none!important}
+
+/* Mobile header and section-heading readability; no functional changes. */
+@media(max-width:600px){
+ header .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+ header .top>div:first-child{min-width:0;flex:1 1 180px}
+ header h1{font-size:clamp(24px,7vw,36px);line-height:1.15;overflow-wrap:anywhere}
+ header .header-actions{flex:0 0 auto}
+ .homeModuleHeading{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+ .homeModuleHeading h2{margin:0;line-height:1.25}
+ .homeModuleHeading span{font-size:13px;line-height:1.4;white-space:normal}
+}
 </style></head><body>
 <div id="crmDataSafety" role="alert" aria-live="assertive" hidden>
  <span id="crmDataSafetyMessage">Bu sekmede kayit catismasi algilandi.</span>
