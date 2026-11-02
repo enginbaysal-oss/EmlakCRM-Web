@@ -274,7 +274,7 @@ body[data-screen="home"] #homeView .homeLocalHint{margin:10px 0 5px;font-size:11
 <div class="accountHead"><div class="accountAvatar">👤</div><div><h3>Hesap / Giriş / Kayıt</h3><p class="muted">Tek yerden hesap oluştur, giriş yap ve ofisine katıl.</p></div></div>
 <div class="accountInfo">
 <div><span>Oturum durumu</span><strong id="accountSessionStatus">Kontrol ediliyor</strong></div>
-<div><span>Abonelik durumu</span><strong>Henüz aktif değil</strong></div>
+<div><span>Abonelik durumu</span><strong id="crmLicenseStatus">Giriş sonrası kontrol edilir</strong><small id="crmLicenseDates" style="display:block;margin-top:6px;color:#526577" aria-live="polite"></small></div>
 <div><span>Veri saklama</span><strong>Bu tarayıcıda</strong></div>
 </div>
 <p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme, abonelik ve ödeme henüz hazır değil.</p>
@@ -923,6 +923,41 @@ async function crmAuthenticatedSession(){
  if(!response.ok)throw Error("Oturum süresi dolmuş; tekrar giriş yapın.");
  return {token:saved.access_token,user:await response.json()};
 }
+// Abonelik durumu salt okunur; başarısız sorgu kullanıcı erişimini değiştirmez.
+async function crmRefreshLicenseStatus(){
+ const status=document.getElementById("crmLicenseStatus");
+ const dates=document.getElementById("crmLicenseDates");
+ if(!status||!dates)return;
+ status.textContent="Kontrol ediliyor...";
+ dates.textContent="";
+ try{
+  const {token}=await crmAuthenticatedSession();
+  const response=await fetch(crmApiBase+"/functions/v1/emlakcrm-license-status",{
+   headers:{"apikey":crmPublicKey,"Authorization":"Bearer "+token}
+  });
+  if(!response.ok)throw Error("Lisans sorgusu şu anda kullanılamıyor ("+response.status+")");
+  const license=await response.json();
+  if(license.has_active_license&&license.expires_at){
+   status.textContent="Aktif";
+   const fmt=v=>new Date(v).toLocaleDateString("tr-TR");
+   dates.textContent="Başlangıç: "+fmt(license.starts_at)+" · Bitiş: "+fmt(license.expires_at);
+  }else{
+   status.textContent="Aktif lisans bulunamadı";
+   dates.textContent="Ödeme sistemi henüz aktif değil. Mevcut kullanımınız etkilenmez.";
+  }
+ }catch(err){
+  status.textContent="Lisans durumu görüntülenemedi";
+  dates.textContent=err.message==="Önce giriş yapın."?"Giriş yaptığınızda kontrol edilir.":"Geçici bağlantı sorunu; mevcut verileriniz korunur.";
+ }
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const account=document.getElementById("accountView");
+ if(!account)return;
+ const observer=new MutationObserver(()=>{if(!account.hidden)crmRefreshLicenseStatus()});
+ observer.observe(account,{attributes:true,attributeFilter:["hidden"]});
+ if(!account.hidden)crmRefreshLicenseStatus();
+});
+
 // Tek yedekleme: eski bulut yedekleme islemleri devre disi. Sunucudaki mevcut kayitlar korunur.
 
 
