@@ -1278,6 +1278,8 @@ async function crmAuthPost(route,payload){
  const d=await response.json().catch(()=>({}));
  if(!response.ok){
   const err=String(d.msg||d.error_description||d.message||d.error||"Sunucu hatası "+response.status);
+  if(response.status===429||/email.*rate.*limit|rate.*limit.*email|over_email_send_rate_limit|email rate limit exceeded/i.test(err))throw Error("Doğrulama e-postası gönderim sınırına ulaşıldı. Bu geçici bir sunucu kısıtlamasıdır; lütfen bir süre sonra tekrar deneyin. Sorun sürerse destek ekibiyle iletişime geçin.");
+  if(/user already registered|already registered/i.test(err))throw Error("Bu e-posta adresiyle zaten hesap oluşturulmuş. Giriş Yap veya Şifremi Unuttum seçeneğini kullanın.");
   if(/email not confirmed/i.test(err))throw Error("E-posta adresinizi doğrulamanız gerekiyor. Gelen kutunuzu kontrol edin.");
   if(/invalid login credentials/i.test(err))throw Error("E-posta veya şifre hatalı. Hesabınız yoksa Hesap Oluştur bölümünü kullanın.");
   throw Error(err);
