@@ -1304,31 +1304,33 @@ $("crmInlineForgot").onclick=async()=>{
  catch(err){result.textContent=err.message}
  finally{btn.disabled=false}
 };
+// Merkezi lisans kararı: ödeme altyapısı devreye girene kadar yalnızca durum okur.
+async function crmCheckEntitlement(){
+ const {user,token}=await crmAuthenticatedSession();
+ const headers={apikey:crmPublicKey,Authorization:"Bearer "+token};
+ const admin=await fetch(crmApiBase+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
+ if(!admin.ok)throw Error("Yönetici yetkisi kontrol edilemedi");
+ const admins=await admin.json();
+ if(admins.some(r=>r.user_id===user.id))return {allowed:true,role:"super_admin",expiresAt:null};
+ const res=await fetch(crmApiBase+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
+ if(!res.ok)throw Error("Abonelik bilgisi alınamadı");
+ const records=await res.json(),now=Date.now();
+ const active=records.find(r=>r.status==="active"&&r.starts_at&&r.expires_at&&Date.parse(r.starts_at)<=now&&Date.parse(r.expires_at)>now);
+ return {allowed:!!active,role:active?"subscriber":"unsubscribed",expiresAt:active?.expires_at||null};
+}
 async function updateAccountStatus(){
  const status=$("accountSessionStatus"),sub=$("accountSubscriptionStatus"),logout=$("accountLogout"),login=$("crmInlineAuth");
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
  if(!saved?.access_token){status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;return}
  status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
-  const {user,token}=await crmAuthenticatedSession();
+  const {user}=await crmAuthenticatedSession();
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
-  // Süresiz kurucu yönetici yetkisi sunucudaki kullanıcı kimliğiyle doğrulanır.
-  const adminResponse=await fetch(crmApiBase+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+token}});
-  if(!adminResponse.ok)throw Error("Yönetici yetkisi kontrol edilemedi");
-  const adminRows=await adminResponse.json();
-  if(Array.isArray(adminRows)&&adminRows.some(r=>r.user_id===user.id)){
-   sub.textContent="Süper Yönetici · Süresiz abonelik";
-   return;
-  }
-  const response=await fetch(crmApiBase+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+token}});
-  if(!response.ok)throw Error("Abonelik bilgisi alınamadı");
-  const records=await response.json();
-  const now=Date.now();
-  const active=records.find(r=>r.status==="active"&&r.starts_at&&r.expires_at&&new Date(r.starts_at).getTime()<=now&&new Date(r.expires_at).getTime()>now);
-  if(active){sub.textContent="Aktif · "+new Date(active.expires_at).toLocaleDateString("tr-TR")+" tarihine kadar"}
-  else if(records.some(r=>r.status==="active"||r.status==="expired")){sub.textContent="Süresi dolmuş / aktif abonelik yok"}
-  else{sub.textContent="Aktif abonelik bulunamadı"}
+  const entitlement=await crmCheckEntitlement();
+  if(entitlement.role==="super_admin")sub.textContent="Süper Yönetici · Süresiz abonelik";
+  else if(entitlement.allowed)sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";
+  else sub.textContent="Aktif abonelik bulunamadı";
  }catch(err){
   if(status.textContent==="Oturum doğrulanıyor..."){sessionStorage.removeItem(crmAuthSessionKey);status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
   else{sub.textContent="Abonelik kontrol edilemedi"}
