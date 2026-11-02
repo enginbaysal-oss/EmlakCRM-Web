@@ -1356,17 +1356,21 @@ $("pdfWebFrame").addEventListener("load",()=>{
  }catch(err){console.info("PDF üst menü düzenlenemedi:",err.message)}
 });
 // Yalnızca PDF İmzala iframe'inin güvenilir isteğine yanıt ver.
-window.addEventListener("message",async event=>{
+async function sendPdfSession(){
  const frame=$("pdfWebFrame");
- if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
+ if(!frame?.contentWindow)return;
  try{
   await crmAuthenticatedSession();
   const saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null");
   if(!saved?.access_token)return;
-  frame.contentWindow.postMessage({type:"emlakcrm-pdf-session",session:{
-   access_token:saved.access_token,refresh_token:saved.refresh_token||"",expires_at:saved.expires_at||0
-  }},"https://enginbaysal-oss.github.io");
- }catch(err){console.info("PDF İmzala normal giriş ekranını kullanacak:",err.message)}
+  frame.contentWindow.postMessage({type:"emlakcrm-pdf-session",session:{access_token:saved.access_token,refresh_token:saved.refresh_token||"",expires_at:saved.expires_at||0}},"https://enginbaysal-oss.github.io");
+ }catch(err){console.info("PDF oturum aktarımı:",err.message)}
+}
+$("pdfWebFrame").addEventListener("load",()=>{void sendPdfSession()});
+window.addEventListener("message",async event=>{
+ const frame=$("pdfWebFrame");
+ if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
+ void sendPdfSession();
 });
 function showScreen(name){
  const target=(name==="office"||name==="settings")?"account":name; // eski ofis ve ayar baglantilarini koru
