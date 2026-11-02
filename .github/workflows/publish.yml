@@ -39,6 +39,10 @@ jobs:
                       raise SystemExit("Mapbox token placeholder missing")
                   content = content.replace(marker, 'const MAPBOX_PUBLIC_TOKEN="' + token + '";')
               (dest / src.name).write_text(content, encoding="utf-8")
+          # Publish static image assets used by legal and payment sections.
+          assets = Path("assets")
+          if assets.is_dir():
+              shutil.copytree(assets, dest / "assets", dirs_exist_ok=True)
           (dest / ".nojekyll").touch()
           PY
       - uses: actions/configure-pages@v5
