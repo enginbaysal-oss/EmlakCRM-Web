@@ -1,4 +1,38 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EmlakCRM — Genel Şablonlar</title>
+<!doctype html><html lang="tr"><head>
+<style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
+<script>
+/* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
+(async function(){
+ const base="https://tffvwxskvjuxoekwgdef.supabase.co",key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+ const home="index.html#account";
+ try{
+  const saved=JSON.parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||"null");
+  if(!saved?.access_token)throw Error("Oturum bulunamadı");
+  let token=saved.access_token;
+  let userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+  if(!userRes.ok&&saved.refresh_token){
+   const refresh=await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:saved.refresh_token})});
+   if(refresh.ok){
+    const updated=await refresh.json();token=updated.access_token;
+    sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify({...saved,access_token:token,refresh_token:updated.refresh_token,expires_at:Date.now()+(updated.expires_in||3600)*1000}));
+    userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+   }
+  }
+  if(!userRes.ok)throw Error("Oturum doğrulanamadı");
+  const user=await userRes.json(),headers={apikey:key,Authorization:"Bearer "+token};
+  const admin=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
+  if(!admin.ok)throw Error("Yetki kontrolü başarısız");
+  const admins=await admin.json();let allowed=admins.some(a=>a.user_id===user.id);
+  if(!allowed){
+   const res=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
+   if(!res.ok)throw Error("Abonelik kontrolü başarısız");
+   const now=Date.now();allowed=(await res.json()).some(s=>s.status==="active"&&Date.parse(s.starts_at)<=now&&Date.parse(s.expires_at)>now);
+  }
+  if(!allowed)throw Error("Aktif abonelik yok");
+  document.getElementById("emlakcrm-access-pending")?.remove();
+ }catch(e){location.replace(home);}
+})();
+</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EmlakCRM — Genel Şablonlar</title>
 <style>
 :root{font:15px system-ui,Segoe UI,sans-serif;background:#edf3f8;color:#183651}*{box-sizing:border-box}body{margin:0}header{background:#0f2f55;color:white;padding:13px 18px}.wrap{max-width:1050px;margin:auto;padding:15px}header .wrap{padding:0;display:flex;justify-content:space-between;align-items:center;gap:10px}header a{color:#dbfcfa;text-decoration:none}h1{font-size:21px;margin:0}h2{font-size:18px}button,.btn{background:#0d8195;color:white;border:0;border-radius:10px;padding:10px 13px;font:600 13px system-ui;cursor:pointer}.btn{display:inline-block}button:disabled{opacity:.5;cursor:default}input[type=file]{max-width:100%}.card{background:white;border-radius:15px;padding:15px;box-shadow:0 5px 20px #173b5610;margin-bottom:12px}.note{color:#536b80;font-size:13px;line-height:1.5}.warn{background:#fff6e3;border:1px solid #f0dbab;border-radius:10px;padding:11px}.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{background:#eaf4fa;color:#15476a;text-align:left;border:1px solid #c9dfe9;min-height:62px}.tile.active{background:#c8efec;border:2px solid #0a8a96}.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.badge{background:#e8f6f4;color:#096775;padding:6px 9px;border-radius:30px;font-size:12px}.page{position:relative;width:min(100%,680px);margin:12px auto;background:white;box-shadow:0 5px 20px #102c5133}.page img{display:block;width:100%;height:auto}.overlay{position:absolute;border:1px solid #0b96b1;background:#dbffffde;border-radius:3px;font:12px system-ui;color:#102e52;padding:1px;min-width:0}.overlay:focus{outline:2px solid #ff9e48;z-index:2}.overlay.sig{background:#fff4cfdf;border-color:#bd892c}.fields{max-height:330px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:12px;margin-bottom:4px;color:#41596c}.field input{width:100%;padding:8px;border:1px solid #bccdda;border-radius:8px}#status{min-height:24px}.hide{display:none!important}@media(max-width:650px){.list,.fields{grid-template-columns:1fr}.wrap{padding:10px}.overlay{font-size:9px}}
 #printAll{position:absolute;left:-100000px;top:0;width:210mm;visibility:hidden;pointer-events:none}.printValue{position:absolute;white-space:pre-wrap;overflow:hidden;font:12px Arial,sans-serif;color:#101010;line-height:1.2;word-break:break-word}#printAll .page{width:100%;max-width:680px}
