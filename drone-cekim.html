@@ -1,6 +1,40 @@
 <!doctype html>
 <html lang="tr">
 <head>
+<style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
+<script>
+/* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
+(async function(){
+ const base="https://tffvwxskvjuxoekwgdef.supabase.co",key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+ const home="index.html#account";
+ try{
+  const saved=JSON.parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||"null");
+  if(!saved?.access_token)throw Error("Oturum bulunamadı");
+  let token=saved.access_token;
+  let userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+  if(!userRes.ok&&saved.refresh_token){
+   const refresh=await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:saved.refresh_token})});
+   if(refresh.ok){
+    const updated=await refresh.json();token=updated.access_token;
+    sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify({...saved,access_token:token,refresh_token:updated.refresh_token,expires_at:Date.now()+(updated.expires_in||3600)*1000}));
+    userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+   }
+  }
+  if(!userRes.ok)throw Error("Oturum doğrulanamadı");
+  const user=await userRes.json(),headers={apikey:key,Authorization:"Bearer "+token};
+  const admin=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
+  if(!admin.ok)throw Error("Yetki kontrolü başarısız");
+  const admins=await admin.json();let allowed=admins.some(a=>a.user_id===user.id);
+  if(!allowed){
+   const res=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
+   if(!res.ok)throw Error("Abonelik kontrolü başarısız");
+   const now=Date.now();allowed=(await res.json()).some(s=>s.status==="active"&&Date.parse(s.starts_at)<=now&&Date.parse(s.expires_at)>now);
+  }
+  if(!allowed)throw Error("Aktif abonelik yok");
+  document.getElementById("emlakcrm-access-pending")?.remove();
+ }catch(e){location.replace(home);}
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Drone Çekim • EmlakCRM</title>
