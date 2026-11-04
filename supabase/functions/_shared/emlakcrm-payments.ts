@@ -28,6 +28,9 @@ export async function db(method:string,path:string,data?:unknown,prefer?:string)
   ...(data===undefined?{}:{body:JSON.stringify(data)}),
   signal:AbortSignal.timeout(12000),cache:"no-store"
  });
+ return readDbResponse(response);
+}
+export async function readDbResponse(response:Response):Promise<unknown>{
  if(!response.ok)throw Error("database_operation_failed_"+response.status);
  // PostgREST returns 201 with an empty body for Prefer: return=minimal.
  // Never parse a successful bodyless INSERT/PATCH response as JSON.
