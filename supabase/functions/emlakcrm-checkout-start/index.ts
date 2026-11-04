@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {CF_START,callIyzico,verifyIyzicoResponse} from "../_shared/iyzico.ts";
 import {cors,reply,db,loggedInUser,jsonBody,paymentReleaseEnabled} from "../_shared/emlakcrm-payments.ts";
+import {openCheckoutAction} from "../_shared/emlakcrm-checkout-state.ts";
 const safeText=(v:unknown,max:number)=>typeof v==="string"&&v.trim().length>0&&v.trim().length<=max?v.trim():"";
 const checkoutCallback="https://tffvwxskvjuxoekwgdef.supabase.co/functions/v1/emlakcrm-checkout-callback";
 function buyerDetails(data:Record<string,unknown>,verifiedEmail:string){
@@ -31,12 +32,30 @@ Deno.serve(async(req:Request)=>{
   const body=await jsonBody(req),buyer=buyerDetails(body,user.email);
   const admins=await db("GET","emlakcrm_super_admins?user_id=eq."+user.id+"&select=user_id&limit=1");
   if(Array.isArray(admins)&&admins.length)return reply(409,{error:"lifetime_admin_does_not_need_subscription"});
-  const open=await db("GET","emlakcrm_checkout_sessions?user_id=eq."+user.id+"&status=in.(created,pending)&select=id,status,checkout_url,created_at&order=created_at.desc&limit=1");
+  // Prevent an accidental second charge while the customer already has access.
+  const subscriptions=await db("GET","emlakcrm_subscriptions?user_id=eq."+user.id+
+    "&status=eq.active&expires_at=gt."+encodeURIComponent(new Date().toISOString())+
+    "&select=id&limit=1");
+  if(Array.isArray(subscriptions)&&subscriptions.length)
+    return reply(409,{error:"subscription_already_active"});
+  const open=await db("GET","emlakcrm_checkout_sessions?user_id=eq."+user.id+
+    "&status=in.(created,pending)&select=id,status,checkout_url,provider_token,created_at"+
+    "&order=created_at.desc&limit=1");
   if(Array.isArray(open)&&open.length){
-   const existing=open[0];
-   if(existing.status==="pending"&&typeof existing.checkout_url==="string")
+   const existing=open[0],action=openCheckoutAction(existing);
+   if(action==="resume")
      return reply(200,{order_id:existing.id,payment_page_url:existing.checkout_url,existing:true});
-   return reply(409,{error:"checkout_in_progress"});
+   if(action==="release_unissued"){
+    const released=await db("PATCH","emlakcrm_checkout_sessions?id=eq."+existing.id+
+      "&status=eq.created&provider_token=is.null&checkout_url=is.null",
+      {status:"failed",updated_at:new Date().toISOString()},"return=representation");
+    if(!Array.isArray(released)||released.length!==1)
+      return reply(409,{error:"checkout_state_changed"});
+   }else if(action==="review")
+     return reply(409,{error:"checkout_requires_review",order_id:existing.id,
+       message:"Check the previous payment status before another attempt"});
+   else
+     return reply(409,{error:"checkout_in_progress",order_id:existing.id});
   }
   const id=crypto.randomUUID();
   await db("POST","emlakcrm_checkout_sessions",{id,user_id:user.id,
