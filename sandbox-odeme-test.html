@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>EmlakCRM | iyzico Sandbox Testi</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf5fa;color:#17314c;font:16px/1.5 system-ui,Arial,sans-serif}
+header{background:#163e68;color:white;padding:22px}main{max-width:680px;margin:26px auto;padding:0 15px}
+section{background:white;border-radius:14px;padding:22px;box-shadow:0 6px 22px #12345619;margin-bottom:16px}
+h1{font-size:23px;margin:0}h2{font-size:19px;margin:0 0 8px}
+p{margin:10px 0}.test{font-size:30px;font-weight:800;color:#12668a}small{color:#63798d}
+label{display:block;margin:12px 0 5px;font-weight:650}input{width:100%;border:1px solid #becdd9;border-radius:8px;padding:11px;font:inherit}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+button{font:inherit;font-weight:750;background:#f18b25;color:#202b38;border:0;border-radius:10px;padding:12px 18px;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}a{color:#095f88}
+@media(max-width:500px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>EmlakCRM · iyzico SANDBOX</h1></header>
+<main>
+<section><h2>Test ödemesi — gerçek tahsilat yok</h2>
+<div class="test">750 TL <small>sanal ödeme</small></div>
+<p>Yalnızca Sandbox ortamında ödeme formu ve imzalı sonuç doğrulamasını test eder. <strong>Gerçek abonelik oluşturmaz.</strong></p>
+<p>Önce <a href="./index.html">EmlakCRM</a> uygulamasında <strong>Süper Yönetici olmayan normal test hesabıyla</strong> giriş yap. Ardından bu sekmeye geri dön.</p>
+<p id="availability" aria-live="polite">Test bağlantısı kontrol ediliyor…</p>
+</section>
+<section><h2>Sandbox alıcı bilgileri</h2>
+<p><small>Bu formda gerçek kimlik, adres veya kredi kartı bilgilerini kullanma. Yalnızca Sandbox test verisi gir. Kart bilgileri yalnızca iyzico test sayfasında istenir.</small></p>
+<form id="testForm">
+<div class="grid">
+<div><label for="name">Test ad</label><input id="name" value="Sandbox" required maxlength="100"></div>
+<div><label for="surname">Test soyad</label><input id="surname" value="Kullanici" required maxlength="100"></div>
+<div><label for="gsmNumber">Test telefon</label><input id="gsmNumber" value="+905350000000" required maxlength="20"></div>
+<div><label for="identityNumber">Sandbox test kimlik numarası</label><input id="identityNumber" value="74300864791" required maxlength="25" placeholder="İyzico örnek test numarası"></div>
+<div><label for="city">Test il</label><input id="city" value="Manisa" required maxlength="80"></div>
+<div><label for="zipCode">Test posta kodu</label><input id="zipCode" value="45000" required maxlength="15"></div></div>
+<label for="address">Test adres</label><input id="address" value="Test Mahallesi Test Sokak No 1" required maxlength="350">
+<p><button id="start" type="submit" disabled>Sandbox ödeme sayfasına geç</button></p>
+<p id="result" role="status" aria-live="polite"></p></form>
+<p><small>Resmî <a href="https://docs.iyzico.com/ek-bilgiler/test-kartlari" target="_blank" rel="noopener noreferrer">iyzico test kartları</a> yalnızca Sandbox ödeme ekranında kullanılmalıdır.</small></p>
+</section><p><a href="./index.html">EmlakCRM'ye dön</a></p></main>
+<script>
+"use strict";
+const supabase="https://tffvwxskvjuxoekwgdef.supabase.co";
+const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const e=id=>document.getElementById(id);
+const button=e("start"),message=e("result");
+function session(){
+ for(const [storage,keyName] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
+  try{const auth=JSON.parse(storage.getItem(keyName)||"null");if(auth?.access_token)return auth.access_token}catch{}
+ }return null;
+}
+async function readiness(){
+ try{
+  const res=await fetch(supabase+"/functions/v1/emlakcrm-sandbox-readiness",{cache:"no-store"});
+  const json=await res.json();
+  const ready=res.ok&&json.sandbox_credentials_ready===true&&json.environment==="sandbox"&&json.real_subscription_activation===false;
+  button.disabled=!ready;
+  e("availability").textContent=ready?"Sandbox anahtarları hazır. Normal test hesabıyla başlayabilirsin.":
+   "Sandbox anahtarları henüz doğrulanmadı; test devre dışı.";
+ }catch{button.disabled=true;e("availability").textContent="Sandbox kontrolü şu an alınamadı."}
+}
+e("testForm").addEventListener("submit",async event=>{
+ event.preventDefault();if(button.disabled)return;
+ const access=session();
+ if(!access){message.textContent="Önce ana EmlakCRM uygulamasında normal test hesabıyla giriş yap.";return}
+ button.disabled=true;message.textContent="iyzico Sandbox ödeme bağlantısı hazırlanıyor…";
+ const fields=["name","surname","identityNumber","gsmNumber","address","city","zipCode"];
+ const body=Object.fromEntries(fields.map(k=>[k,e(k).value.trim()]));
+ try{
+  const response=await fetch(supabase+"/functions/v1/emlakcrm-sandbox-checkout-start",{
+   method:"POST",headers:{"apikey":key,"authorization":"Bearer "+access,"content-type":"application/json"},
+   body:JSON.stringify(body),cache:"no-store"
+  });
+  const data=await response.json();
+  if(!response.ok){
+   message.textContent=data.error==="normal_test_account_required"?
+    "Süper Yönetici hesabıyla değil, normal bir EmlakCRM test hesabıyla giriş yap.":
+    data.error==="previous_sandbox_checkout_pending"?
+    "Önceki Sandbox denemesi hâlâ beklemede; tekrar işlem başlatılmadı.":
+    "Sandbox ödeme bağlantısı oluşturulamadı. Hata: "+(data.error||response.status);
+   return;
+  }
+  if(data.environment!=="sandbox"||data.real_payment!==false)throw Error("wrong_environment");
+  const url=new URL(data.payment_page_url);
+  if(url.protocol!=="https:"||!["sandbox-cpp.iyzipay.com","sandbox-api.iyzipay.com","sandbox-ode.iyzico.com"].includes(url.hostname))
+   throw Error("wrong_host");
+  location.assign(url.href);
+ }catch{message.textContent="Sandbox bağlantısı açılamadı; gerçek ödeme denenmedi."}
+ finally{button.disabled=false}
+});
+void readiness();
+</script></body></html>
