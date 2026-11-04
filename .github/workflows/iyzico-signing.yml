@@ -21,6 +21,7 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/**"
+      - "tests/**"
       - "tests/iyzico-*.ts"
       - "tests/emlakcrm-sandbox-isolation.test.ts"
       - "supabase/functions/emlakcrm-sandbox-**"
