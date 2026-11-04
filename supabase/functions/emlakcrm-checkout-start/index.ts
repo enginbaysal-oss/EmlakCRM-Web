@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {CF_START,callIyzico,verifyIyzicoResponse} from "../_shared/iyzico.ts";
-import {cors,reply,db,loggedInUser,jsonBody,validUuid} from "../_shared/emlakcrm-payments.ts";
+import {cors,reply,db,loggedInUser,jsonBody,paymentReleaseEnabled} from "../_shared/emlakcrm-payments.ts";
 const safeText=(v:unknown,max:number)=>typeof v==="string"&&v.trim().length>0&&v.trim().length<=max?v.trim():"";
 const checkoutCallback="https://tffvwxskvjuxoekwgdef.supabase.co/functions/v1/emlakcrm-checkout-callback";
 function buyerDetails(data:Record<string,unknown>,verifiedEmail:string){
@@ -24,7 +24,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return reply(405,{error:"method_not_allowed"});
  // Explicit two-person release gate. Having production credentials is not sufficient.
- if(Deno.env.get("EMLAKCRM_PAYMENT_LIVE_ENABLED")!=="true")
+ if(!paymentReleaseEnabled())
   return reply(503,{error:"checkout_not_released",payment_enabled:false});
  try{
   const user=await loggedInUser(req);
