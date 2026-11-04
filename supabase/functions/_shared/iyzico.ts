@@ -28,3 +28,41 @@ export async function callIyzico(path:typeof CF_START|typeof CF_RESULT,body:Reco
  if(!res.ok||data.status!=="success")throw Error("provider_error");
  return data;
 }
+
+/** Verify the signature on iyzico Checkout Form initialize/retrieve responses.
+ * Official colon-joined parameter order; trailing decimal zeros are trimmed.
+ * HMAC verification uses WebCrypto's native constant-time verifier.
+ */
+export function normalizeIyzicoAmount(v:unknown):string{
+ if(typeof v!=="number"&&typeof v!=="string")throw Error("invalid_price");
+ const s=String(v).trim();
+ if(!/^\d+(?:\.\d+)?$/.test(s))throw Error("invalid_price");
+ return s.includes(".")?s.replace(/0+$/,"").replace(/\.$/,""):s;
+}
+export function amountKurus(v:unknown):number{
+ const s=normalizeIyzicoAmount(v),parts=s.split(".");
+ const cents=Number(parts[0])*100+Number((parts[1]||"").padEnd(2,"0"));
+ if(!Number.isSafeInteger(cents)||!parts[1]||parts[1].length<=2)return cents;
+ throw Error("fractional_kurus");
+}
+function signatureFields(kind:"initialize"|"retrieve",body:Record<string,unknown>){
+ const fields=kind==="initialize"
+ ?["conversationId","token"]
+ :["paymentStatus","paymentId","currency","basketId","conversationId","paidPrice","price","token"];
+ return fields.map(field=>{
+  const value=body[field];
+  if(value===undefined||value===null||value==="")throw Error("missing_signature_field_"+field);
+  return field==="price"||field==="paidPrice"?normalizeIyzicoAmount(value):String(value);
+ });
+}
+export async function verifyIyzicoResponse(kind:"initialize"|"retrieve",body:Record<string,unknown>):Promise<boolean>{
+ const secret=Deno.env.get("IYZICO_SECRET_KEY");
+ const hex=body.signature;
+ if(!secret||typeof hex!=="string"||!/^[0-9a-f]{64}$/i.test(hex))return false;
+ try{
+  const message=signatureFields(kind,body).join(":");
+  const key=await crypto.subtle.importKey("raw",encoder.encode(secret),{name:"HMAC",hash:"SHA-256"},false,["verify"]);
+  const bytes=Uint8Array.from(hex.match(/.{2}/g)!,part=>parseInt(part,16));
+  return crypto.subtle.verify("HMAC",key,bytes,encoder.encode(message));
+ }catch{return false}
+}
