@@ -6,6 +6,12 @@ on:
       - "supabase/functions/_shared/iyzico.ts"
       - "tests/iyzico-signing.test.ts"
       - ".github/workflows/iyzico-signing.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "tests/iyzico-*.ts"
+      - ".github/workflows/iyzico-signing.yml"
   workflow_dispatch:
 permissions:
   contents: read
