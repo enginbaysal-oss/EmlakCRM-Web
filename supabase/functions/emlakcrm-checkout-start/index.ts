@@ -13,6 +13,13 @@ function buyerDetails(data:Record<string,unknown>,verifiedEmail:string){
   throw Error("missing_billing_details");
  return {name,surname,identityNumber,gsmNumber,address,city,zipCode,email:verifiedEmail};
 }
+function clientIp(req:Request):string{
+ // This value is forwarded by Supabase's gateway; never use it for authorization.
+ const raw=req.headers.get("x-forwarded-for")||req.headers.get("x-real-ip")||"";
+ const first=raw.split(",")[0].trim();
+ if(first.length>45||!first||!/^[a-f0-9:.]+$/i.test(first))throw Error("buyer_ip_unavailable");
+ return first;
+}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return reply(405,{error:"method_not_allowed"});
@@ -41,7 +48,7 @@ Deno.serve(async(req:Request)=>{
     callbackUrl:checkoutCallback,
     buyer:{id:user.id,name:buyer.name,surname:buyer.surname,identityNumber:buyer.identityNumber,
       email:buyer.email,gsmNumber:buyer.gsmNumber,registrationAddress:buyer.address,
-      city:buyer.city,country:"Turkey",zipCode:buyer.zipCode},
+      city:buyer.city,country:"Turkey",zipCode:buyer.zipCode,ip:clientIp(req)},
     billingAddress:{address:buyer.address,contactName:buyer.name+" "+buyer.surname,
       city:buyer.city,country:"Turkey",zipCode:buyer.zipCode},
     basketItems:[{id:"EMLAKCRM-12AY",price:"750.00",name:"EmlakCRM 12 Aylik Tek Seferlik Erisim",
