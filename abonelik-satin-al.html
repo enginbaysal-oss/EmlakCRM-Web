@@ -29,7 +29,7 @@ a{color:#0b678b}@media(max-width:540px){.grid{grid-template-columns:1fr}}
 <label for="address">Fatura adresi</label><input id="address" maxlength="350" autocomplete="street-address" required>
 <label class="checkbox"><input type="checkbox" id="approve" required><span>750 TL (KDV dahil) tutarında, 12 aylık ve otomatik yenilemesiz abonelik satın alacağımı anladım. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Mesafeli Satış Sözleşmesi</a>, <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">Teslimat ve İade</a> ve <a href="./gizlilik-politikasi.html" target="_blank" rel="noopener noreferrer">Gizlilik Politikası</a> metinlerini inceleme imkânı buldum.</span></label>
 <button type="submit" id="pay" disabled>Güvenli ödeme sayfasına geç</button>
-<p class="muted">Ödeme açılışı henüz test aşamasında; gerçek para tahsilatı etkin değildir.</p><p id="result" role="status" aria-live="polite"></p>
+<p id="checkoutNotice" class="muted">Ödeme henüz güvenlik testlerinde; gerçek para tahsilatı etkin değildir.</p><p id="result" role="status" aria-live="polite"></p>
 </form></section><p><a href="./index.html">EmlakCRM ana sayfaya dön</a></p></main>
 <script>
 "use strict";
@@ -44,10 +44,11 @@ function token(){
 }
 async function availability(){
  try{
-  const r=await fetch(base+"/functions/v1/emlakcrm-payment-activation",{cache:"no-store"});
+  const r=await fetch(base+"/functions/v1/emlakcrm-checkout-config",{cache:"no-store"});
   const d=await r.json();
   const ready=d.payment_enabled===true&&d.activation_enabled===true;
   pay.disabled=!ready;
+  byId("checkoutNotice").textContent=ready?"Devam ettiğinizde iyzico'nun güvenli sayfasında gerçek bir 750 TL tahsilatı başlatabilirsiniz.":"Ödeme henüz güvenlik testlerinde; gerçek para tahsilatı etkin değildir.";
   if(!ready){result.textContent="Ödeme henüz etkin değil. Bu ekran test amaçlıdır.";result.className="muted"}
  }catch{pay.disabled=true;result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
 }
