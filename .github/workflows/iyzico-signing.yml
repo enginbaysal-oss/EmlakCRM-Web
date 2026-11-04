@@ -1,0 +1,21 @@
+name: iyzico Signing Tests
+on:
+  push:
+    branches: [feature/iyzico-guvenli-odeme-20261104]
+    paths:
+      - "supabase/functions/_shared/iyzico.ts"
+      - "tests/iyzico-signing.test.ts"
+      - ".github/workflows/iyzico-signing.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test --no-check tests/iyzico-signing.test.ts
