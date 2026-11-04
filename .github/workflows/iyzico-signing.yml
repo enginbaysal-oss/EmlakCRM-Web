@@ -8,6 +8,7 @@ on:
       - "tests/iyzico-response.test.ts"
       - "tests/emlakcrm-payments-db.test.ts"
       - "tests/emlakcrm-checkout-classify.test.ts"
+      - "tests/emlakcrm-payment-release.test.ts"
       - "supabase/functions/_shared/emlakcrm-checkout-finalize.ts"
       - "supabase/functions/_shared/emlakcrm-payments.ts"
       - ".github/workflows/iyzico-signing.yml"
@@ -30,6 +31,6 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno test --allow-env=IYZICO_SECRET_KEY tests/iyzico-signing.test.ts tests/iyzico-response.test.ts tests/emlakcrm-payments-db.test.ts tests/emlakcrm-checkout-classify.test.ts
+      - run: deno test --allow-env=IYZICO_SECRET_KEY tests/iyzico-signing.test.ts tests/iyzico-response.test.ts tests/emlakcrm-payments-db.test.ts tests/emlakcrm-checkout-classify.test.ts tests/emlakcrm-payment-release.test.ts
       - name: Compile isolated payment functions
-        run: deno check supabase/functions/emlakcrm-checkout-start/index.ts supabase/functions/emlakcrm-checkout-status/index.ts supabase/functions/emlakcrm-checkout-callback/index.ts
+        run: deno check supabase/functions/emlakcrm-checkout-start/index.ts supabase/functions/emlakcrm-checkout-status/index.ts supabase/functions/emlakcrm-checkout-callback/index.ts supabase/functions/emlakcrm-checkout-config/index.ts
