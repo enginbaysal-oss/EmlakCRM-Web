@@ -29,8 +29,11 @@ export async function db(method:string,path:string,data?:unknown,prefer?:string)
   signal:AbortSignal.timeout(12000),cache:"no-store"
  });
  if(!response.ok)throw Error("database_operation_failed_"+response.status);
+ // PostgREST returns 201 with an empty body for Prefer: return=minimal.
+ // Never parse a successful bodyless INSERT/PATCH response as JSON.
  if(response.status===204)return null;
- return response.json();
+ const responseText=await response.text();
+ return responseText.length?JSON.parse(responseText):null;
 }
 export async function loggedInUser(req:Request):Promise<{id:string,email:string}>{
  const bearer=req.headers.get("authorization")||"";
