@@ -63,7 +63,26 @@ byId("checkout").addEventListener("submit",async e=>{
    method:"POST",headers:{"apikey":key,"authorization":"Bearer "+access,"content-type":"application/json"},
    body:JSON.stringify(body),cache:"no-store"});
   const data=await r.json();
-  if(!r.ok)throw Error("payment_not_ready");
+  if(!r.ok){
+   if(data.error==="subscription_already_active"){
+    result.textContent="Aboneliğiniz zaten aktif. Yanlışlıkla ikinci ödeme alınmasını önlemek için satın alma durduruldu.";
+    result.className="muted";return;
+   }
+   if(data.error==="checkout_requires_review"){
+    result.textContent="Önceki ödemenizin sonucu kesinleşmemiş. Yeni ödeme yapmayın. ";
+    result.className="error";
+    if(typeof data.order_id==="string"&&/^[0-9a-f-]{36}$/i.test(data.order_id)){
+     const link=document.createElement("a");link.href="./odeme-sonucu.html?order="+encodeURIComponent(data.order_id);
+     link.textContent="Önceki ödemenin durumunu kontrol et";result.appendChild(link);
+    }
+    return;
+   }
+   if(data.error==="checkout_in_progress"){
+    result.textContent="Ödeme işleminiz başka bir istekte hazırlanıyor. Biraz sonra durumu kontrol edin.";
+    result.className="muted";return;
+   }
+   throw Error("payment_not_ready");
+  }
   const url=new URL(data.payment_page_url);
   if(url.protocol!=="https:"||!(url.hostname==="iyzipay.com"||url.hostname.endsWith(".iyzipay.com")||
    url.hostname==="iyzico.com"||url.hostname.endsWith(".iyzico.com")))throw Error("invalid_redirect");
