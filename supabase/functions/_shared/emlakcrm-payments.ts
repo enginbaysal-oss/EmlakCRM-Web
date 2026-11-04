@@ -59,3 +59,15 @@ export async function jsonBody(req:Request){
  if(!result||typeof result!=="object"||Array.isArray(result))throw Error("invalid_json");
  return result as Record<string,unknown>;
 }
+
+// One release decision for both the hosted purchase page and the payment API.
+// iyzico credentials and a real production environment are required in addition
+// to the explicit LIVE opt-in. This function NEVER returns the secret values.
+export function paymentReleaseEnabled(
+ getSecret:(name:string)=>string|undefined=(name)=>Deno.env.get(name)
+):boolean{
+ return getSecret("EMLAKCRM_PAYMENT_LIVE_ENABLED")==="true" &&
+        getSecret("IYZICO_ENVIRONMENT")==="production" &&
+        Boolean(getSecret("IYZICO_API_KEY")?.trim()) &&
+        Boolean(getSecret("IYZICO_SECRET_KEY")?.trim());
+}
