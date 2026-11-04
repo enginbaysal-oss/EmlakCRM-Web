@@ -1,34 +1,53 @@
-// Run: node tests/admin-overview-smoke.mjs (Node 20+).
-// For additional tests, provide ADMIN_ACCESS_TOKEN or NORMAL_ACCESS_TOKEN as environment variables.
-// Never commit access tokens.
+// Node.js 20+ read-only smoke test for the EmlakCRM admin API.
+// Optional ADMIN_ACCESS_TOKEN and NORMAL_ACCESS_TOKEN are temporary CI secrets.
+// Never commit bearer tokens, production credentials, or raw test responses.
 import assert from "node:assert/strict";
 const url = "https://tffvwxskvjuxoekwgdef.supabase.co/functions/v1/emlakcrm-admin-overview";
-const key = "sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-async function request(token) {
-  return fetch(url, { headers: { apikey: key, ...(token ? { Authorization: "Bearer " + token } : {}) } });
+const publicKey = "sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const origin = "https://enginbaysal-oss.github.io";
+async function request(method = "GET", token) {
+  return fetch(url, { method, headers: {
+    apikey: publicKey,
+    Origin: origin,
+    ...(method === "OPTIONS" ? { "Access-Control-Request-Method": "GET",
+      "Access-Control-Request-Headers": "authorization,apikey" } : {}),
+    ...(token ? { Authorization: "Bearer " + token } : {}),
+  } });
 }
-async function expectStatus(label, token, accepted) {
-  const response = await request(token);
-  assert(accepted.includes(response.status), label + ": got HTTP " + response.status);
+async function assertStatus(label, response, acceptable) {
+  assert(acceptable.includes(response.status),
+    label + ": expected " + acceptable.join("/") + ", got HTTP " + response.status);
   console.log("PASS", label, response.status);
-  return response;
 }
 try {
-  await expectStatus("Anonymous rejected", null, [401,403]);
-  await expectStatus("Invalid token rejected", "not-a-real-jwt", [401,403]);
+  const preflight = await request("OPTIONS");
+  await assertStatus("Browser preflight", preflight, [200, 204]);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), origin,
+    "CORS must allow EmlakCRM origin");
+  console.log("PASS CORS origin");
+  const unauth = await request();
+  await assertStatus("Anonymous denied", unauth, [401, 403]);
+  const invalid = await request("GET", "not-a-real-jwt");
+  await assertStatus("Invalid JWT denied", invalid, [401, 403]);
+  const writeAttempt = await request("POST");
+  await assertStatus("Unauthenticated POST cannot modify data", writeAttempt, [401, 403, 405]);
   if (process.env.NORMAL_ACCESS_TOKEN) {
-    await expectStatus("Nonadmin rejected", process.env.NORMAL_ACCESS_TOKEN, [403]);
-  } else console.log("SKIP nonadmin: provide NORMAL_ACCESS_TOKEN");
+    const nonAdmin = await request("GET", process.env.NORMAL_ACCESS_TOKEN);
+    await assertStatus("Signed-in non-admin denied", nonAdmin, [403]);
+  } else console.log("SKIP nonadmin API test (no NORMAL_ACCESS_TOKEN)");
   if (process.env.ADMIN_ACCESS_TOKEN) {
-    const response = await expectStatus("Admin accepted", process.env.ADMIN_ACCESS_TOKEN, [200]);
-    const data = await response.json();
-    for (const field of ["subscriptions_total","subscriptions_active","subscriptions_expiring_30_days","payment_events_total"]) {
-      assert(Number.isInteger(data[field]) && data[field] >= 0, "Invalid " + field);
+    const admin = await request("GET", process.env.ADMIN_ACCESS_TOKEN);
+    await assertStatus("Admin overview", admin, [200]);
+    const data = await admin.json();
+    for (const k of ["subscriptions_total","subscriptions_active",
+      "subscriptions_expiring_30_days","payment_events_total"]) {
+      assert(Number.isInteger(data[k]) && data[k] >= 0, "Invalid count field: " + k);
     }
-    assert.equal(data.activation_enabled, false);
-    console.log("PASS overview schema, payment activation disabled");
-  } else console.log("SKIP admin: provide ADMIN_ACCESS_TOKEN");
-} catch (err) {
-  console.error("FAIL", String(err));
+    assert.equal(data.activation_enabled, false,
+      "Payment activation must remain disabled pending provider approval");
+    console.log("PASS overview schema and payment-activation safety");
+  } else console.log("SKIP admin API test (no ADMIN_ACCESS_TOKEN)");
+} catch (error) {
+  console.error("FAIL", error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 }
