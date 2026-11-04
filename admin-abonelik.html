@@ -11,14 +11,14 @@ button{border:0;background:#ed8625;color:#151e25;border-radius:9px;font:inherit;
 button:disabled{opacity:.55;cursor:wait}.secondary{background:#e8eff4}.error{color:#ae2828}.success{color:#116e4a}
 [hidden]{display:none!important}footer{font-size:13px;color:#687c8c;margin-top:24px}
 @media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:420px){.grid{grid-template-columns:1fr}}
-</style></head><body>
+.remember-row{display:flex;align-items:center;gap:8px}.remember-row input{width:18px;height:18px;flex:none}.remember-note{font-size:13px;margin:0 0 9px}</style></head><body>
 <header><h1>EmlakCRM · Abonelik Yönetimi</h1><div>Yalnızca yetkili Süper Yöneticiler</div></header>
 <main>
 <section class="panel" id="loginSection">
 <h2>Yönetici girişi</h2><p class="muted">Supabase'de yetkili hesabınızın e-posta ve parolasıyla giriş yapın. Giriş bilgileri yalnızca kimlik doğrulama servisine gönderilir; bu sayfada saklanmaz.</p>
 <form id="loginForm"><label for="email">E-posta</label><input type="email" id="email" required autocomplete="username">
 <label for="password">Parola</label><input type="password" id="password" required autocomplete="current-password">
-<div><button id="loginButton" type="submit">Giriş yap</button></div></form></section>
+<label class="remember-row"><input type="checkbox" id="rememberMe"> Oturum açık kalsın</label><p class="muted remember-note">Bu cihazda tekrar giriş yapmadan devam eder. Ortak bilgisayarda işaretlemeyin.</p><div><button id="loginButton" type="submit">Giriş yap</button></div></form></section>
 <section id="dashboard" hidden>
 <div class="panel"><strong>Yönetici oturumu açık</strong> <button class="secondary" id="logoutButton">Çıkış yap</button> <button id="refreshButton">Yenile</button>
 <p class="muted">Bu ekran yalnızca doğrulanmış, toplulaştırılmış abonelik sayılarını gösterir. Ödeme veya abonelik değiştirme özelliği yoktur.</p></div>
@@ -37,34 +37,40 @@ button:disabled{opacity:.55;cursor:wait}.secondary{background:#e8eff4}.error{col
 "use strict";
 const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const publicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-let token=null;
-const id=(name)=>document.getElementById(name);
-function message(value,isError=false){id("message").textContent=value;id("message").className=isError?"error":"success";}
-function logout(){token=null;id("password").value="";id("loginSection").hidden=false;id("dashboard").hidden=true;["total","active","expiring","events"].forEach(k=>id(k).textContent="—");id("asof").textContent="";message("Oturum kapatıldı.");}
-async function refresh(){
- if(!token)return;id("refreshButton").disabled=true;message("Veriler getiriliyor...");
- try{
-  const response=await fetch(base+"/functions/v1/emlakcrm-admin-overview",{headers:{"Authorization":"Bearer "+token,"apikey":publicKey},cache:"no-store"});
-  const data=await response.json();
-  if(!response.ok){if(response.status===401){logout();message("Oturum süresi doldu. Yeniden giriş yapın.",true);}else if(response.status===403){logout();message("Bu hesapta Süper Yönetici yetkisi yok.",true);}else message("Yönetici verileri şu an alınamadı.",true);return;}
-  const ids={total:"subscriptions_total",active:"subscriptions_active",expiring:"subscriptions_expiring_30_days",events:"payment_events_total"};
-  for(const [node,key] of Object.entries(ids)){if(typeof data[key]!=="number")throw Error("invalid_response");id(node).textContent=String(data[key]);}
-  id("asof").textContent="Güncelleme: "+new Date(data.as_of).toLocaleString("tr-TR");
-  message("Veriler güncellendi.");
- }catch{message("Bağlantı kurulamadı veya sunucu yanıtı okunamadı.",true)}
- finally{id("refreshButton").disabled=false;}
+const storageKey="emlakcrm.admin.session.v2";
+const el=n=>document.getElementById(n);
+let auth=null,remember=false,epoch=0;
+function note(s,err=false){el("message").textContent=s;el("message").className=err?"error":"success";}
+function wipe(){sessionStorage.removeItem(storageKey);localStorage.removeItem(storageKey);}
+function store(){wipe();if(auth)(remember?localStorage:sessionStorage).setItem(storageKey,JSON.stringify(auth));}
+function view(open){el("loginSection").hidden=open;el("dashboard").hidden=!open;if(!open){for(const k of ["total","active","expiring","events"])el(k).textContent="—";el("asof").textContent="";}}
+function reset(s="Oturum kapatıldı.",err=false){epoch++;auth=null;wipe();el("password").value="";view(false);note(s,err);}
+async function authPost(path,data){const r=await fetch(base+"/auth/v1/"+path,{method:"POST",headers:{"apikey":publicKey,"content-type":"application/json"},body:JSON.stringify(data),cache:"no-store"});if(!r.ok)throw Error("bad_auth");return r.json();}
+function assign(d){if(!d.access_token||!d.refresh_token)throw Error("bad_auth");auth={access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Math.floor(Date.now()/1000)+Number(d.expires_in||3600)};}
+async function rotate(){if(!auth?.refresh_token)throw Error("bad_auth");const d=await authPost("token?grant_type=refresh_token",{refresh_token:auth.refresh_token});assign(d);store();}
+async function query(retry=false){
+ if(!auth)throw Error("bad_auth");
+ if(auth.expires_at<=Date.now()/1000+60)await rotate();
+ const r=await fetch(base+"/functions/v1/emlakcrm-admin-overview",{headers:{"apikey":publicKey,"authorization":"Bearer "+auth.access_token},cache:"no-store"});
+ if(r.status===401&&!retry){await rotate();return query(true);}
+ if(r.status===401)throw Error("bad_auth");
+ if(r.status===403)throw Error("forbidden");
+ if(!r.ok)throw Error("unavailable");
+ const data=await r.json(),fields={total:"subscriptions_total",active:"subscriptions_active",expiring:"subscriptions_expiring_30_days",events:"payment_events_total"};
+ for(const [field,key] of Object.entries(fields)){if(!Number.isInteger(data[key])||data[key]<0)throw Error("unavailable");el(field).textContent=String(data[key]);}
+ el("asof").textContent="Güncelleme: "+new Date(data.as_of).toLocaleString("tr-TR");
 }
-id("loginForm").addEventListener("submit",async(event)=>{
- event.preventDefault();id("loginButton").disabled=true;message("Giriş doğrulanıyor...");
- try{
-  const response=await fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":publicKey,"Content-Type":"application/json"},body:JSON.stringify({email:id("email").value.trim(),password:id("password").value})});
-  const data=await response.json();
-  if(!response.ok||typeof data.access_token!=="string"){message("Giriş yapılamadı. E-posta veya parola hatalı olabilir.",true);return;}
-  token=data.access_token;id("password").value="";id("loginSection").hidden=true;id("dashboard").hidden=false;
-  await refresh();
- }catch{message("Giriş servisine ulaşılamadı.",true)}
- finally{id("loginButton").disabled=false;}
-});
-id("logoutButton").addEventListener("click",logout);
-id("refreshButton").addEventListener("click",refresh);
+async function refresh(){if(!auth)return;const ownEpoch=epoch;el("refreshButton").disabled=true;note("Veriler getiriliyor...");
+ try{await query();if(ownEpoch!==epoch)return;store();view(true);note("Veriler güncellendi.");}
+ catch(e){if(ownEpoch!==epoch)return;if(e.message==="forbidden")reset("Bu hesapta Süper Yönetici yetkisi yok.",true);else if(e.message==="bad_auth")reset("Oturum süresi doldu. Yeniden giriş yapın.",true);else note("Veriler alınamadı; tekrar deneyin.",true);}
+ finally{el("refreshButton").disabled=false;}}
+el("loginForm").addEventListener("submit",async e=>{e.preventDefault();el("loginButton").disabled=true;note("Giriş doğrulanıyor...");
+ try{const d=await authPost("token?grant_type=password",{email:el("email").value.trim(),password:el("password").value});assign(d);remember=el("rememberMe").checked;el("password").value="";await refresh();}
+ catch{reset("Giriş yapılamadı. E-posta veya parola hatalı olabilir.",true);}
+ finally{el("loginButton").disabled=false;}});
+el("logoutButton").addEventListener("click",async()=>{const token=auth?.access_token;reset();if(token){try{await fetch(base+"/auth/v1/logout",{method:"POST",headers:{"apikey":publicKey,"authorization":"Bearer "+token}});}catch{}}});
+el("refreshButton").addEventListener("click",refresh);
+(async()=>{try{let raw=sessionStorage.getItem(storageKey);remember=false;if(!raw){raw=localStorage.getItem(storageKey);remember=!!raw;}if(!raw)return;
+ const saved=JSON.parse(raw);if(!saved.access_token||!saved.refresh_token){wipe();return;}auth=saved;el("rememberMe").checked=remember;await refresh();}
+ catch{reset("Oturum geri yüklenemedi. Yeniden giriş yapın.",true);}})();
 </script></body></html>
