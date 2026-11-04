@@ -56,8 +56,8 @@ function signatureFields(kind:"initialize"|"retrieve",body:Record<string,unknown
   return field==="price"||field==="paidPrice"?normalizeIyzicoAmount(value):String(value);
  });
 }
-export async function verifyIyzicoResponse(kind:"initialize"|"retrieve",body:Record<string,unknown>):Promise<boolean>{
- const secret=Deno.env.get("IYZICO_SECRET_KEY");
+export async function verifyIyzicoResponse(kind:"initialize"|"retrieve",body:Record<string,unknown>,environment:"production"|"sandbox"="production"):Promise<boolean>{
+ const secret=Deno.env.get(environment==="sandbox"?"IYZICO_SANDBOX_SECRET_KEY":"IYZICO_SECRET_KEY");
  const hex=body.signature;
  if(!secret||typeof hex!=="string"||!/^[0-9a-f]{64}$/i.test(hex))return false;
  try{
@@ -66,4 +66,25 @@ export async function verifyIyzicoResponse(kind:"initialize"|"retrieve",body:Rec
   const bytes=Uint8Array.from(hex.match(/.{2}/g)!,part=>parseInt(part,16));
   return crypto.subtle.verify("HMAC",key,bytes,encoder.encode(message));
  }catch{return false}
+}
+
+/** Sandbox exclusively: never uses production credentials or production API host. */
+export async function callIyzicoSandbox(path:typeof CF_START|typeof CF_RESULT,body:Record<string,unknown>){
+ if(path!==CF_START&&path!==CF_RESULT)throw Error("sandbox_path_not_allowed");
+ const apiKey=Deno.env.get("IYZICO_SANDBOX_API_KEY");
+ const secretKey=Deno.env.get("IYZICO_SANDBOX_SECRET_KEY");
+ if(!apiKey?.startsWith("sandbox-")||!secretKey?.startsWith("sandbox-"))
+  throw Error("sandbox_credentials_missing");
+ const payload=JSON.stringify(body);
+ const randomKey=Date.now().toString()+"-"+crypto.randomUUID().replaceAll("-","");
+ const headers=await signedHeaders(path,payload,apiKey,secretKey,randomKey);
+ const response=await fetch("https://sandbox-api.iyzipay.com"+path,{
+   method:"POST",headers,body:payload,signal:AbortSignal.timeout(15000)
+ });
+ const raw=await response.text();
+ if(raw.length>100000)throw Error("sandbox_provider_response_too_large");
+ let result:Record<string,unknown>;
+ try{result=JSON.parse(raw)}catch{throw Error("sandbox_provider_invalid_json")}
+ if(!response.ok||result.status!=="success")throw Error("sandbox_provider_error");
+ return result;
 }
