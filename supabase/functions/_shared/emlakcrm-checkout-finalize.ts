@@ -12,9 +12,10 @@ export async function orderByUser(id:string,userId:string):Promise<Order|null>{
  return Array.isArray(rows)&&rows.length?rows[0] as Order:null;
 }
 /** Pure decision after signed provider retrieval; does not mutate the database. */
-export async function classifyVerifiedResult(order:Order,result:Record<string,unknown>):
+export async function classifyVerifiedResult(order:Order,result:Record<string,unknown>,
+ environment:"production"|"sandbox"="production"):
   Promise<"approved"|"failed"|"pending"|"review">{
- if(!await verifyIyzicoResponse("retrieve",result))throw Error("invalid_provider_signature");
+ if(!await verifyIyzicoResponse("retrieve",result,environment))throw Error("invalid_provider_signature");
  if(result.token!==order.provider_token ||result.conversationId!==order.id ||
     result.basketId!==order.id ||result.currency!=="TRY" ||
     amountKurus(result.price)!==75000||amountKurus(result.paidPrice)!==75000||
