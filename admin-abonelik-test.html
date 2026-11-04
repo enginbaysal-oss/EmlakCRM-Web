@@ -20,7 +20,7 @@ button:disabled{opacity:.55;cursor:wait}.secondary{background:#e8eff4}.error{col
 <label for="password">Parola</label><input type="password" id="password" required autocomplete="current-password">
 <label class="remember-row"><input type="checkbox" id="rememberMe"> Oturum açık kalsın</label><p class="muted remember-note">Bu cihazda tekrar giriş yapmadan devam eder. Ortak bilgisayarda işaretlemeyin.</p><div><button id="loginButton" type="submit">Giriş yap</button></div></form></section>
 <section id="dashboard" hidden>
-<div class="panel"><strong>Yönetici oturumu açık</strong> <button class="secondary" id="logoutButton">Çıkış yap</button> <button id="refreshButton">Yenile</button>
+<div class="panel"><strong>Yönetici oturumu açık</strong> <button class="secondary" id="logoutButton">Çıkış yap</button> <button id="refreshButton">Yenile</button> <button id="goToAppButton" type="button">EmlakCRM Uygulamasına Git</button>
 <p class="muted">Bu ekran yalnızca doğrulanmış, toplulaştırılmış abonelik sayılarını gösterir. Ödeme veya abonelik değiştirme özelliği yoktur.</p></div>
 <div class="grid">
 <div class="panel"><div class="muted">Toplam abonelik</div><div class="metric" id="total">—</div></div>
@@ -70,6 +70,16 @@ el("loginForm").addEventListener("submit",async e=>{e.preventDefault();el("login
  finally{el("loginButton").disabled=false;}});
 el("logoutButton").addEventListener("click",async()=>{const token=auth?.access_token;reset();if(token){try{await fetch(base+"/auth/v1/logout",{method:"POST",headers:{"apikey":publicKey,"authorization":"Bearer "+token}});}catch{}}});
 el("refreshButton").addEventListener("click",refresh);
+el("goToAppButton").addEventListener("click",()=>{
+ if(!auth?.access_token||!auth?.refresh_token){note("Oturum yok; yeniden giriş yapın.",true);return;}
+ // The admin panel and CRM app are same-origin pages. No tokens are placed in URLs.
+ const appSession={access_token:auth.access_token,refresh_token:auth.refresh_token,
+  expires_at:auth.expires_at*1000};
+ sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify(appSession));
+ if(remember)localStorage.setItem("emlakcrm_auth_remember_v1",JSON.stringify(appSession));
+ else localStorage.removeItem("emlakcrm_auth_remember_v1");
+ window.location.assign("./index.html");
+});
 (async()=>{try{let raw=sessionStorage.getItem(storageKey);remember=false;if(!raw){raw=localStorage.getItem(storageKey);remember=!!raw;}if(!raw)return;
  const saved=JSON.parse(raw);if(!saved.access_token||!saved.refresh_token){wipe();return;}auth=saved;el("rememberMe").checked=remember;await refresh();}
  catch{reset("Oturum geri yüklenemedi. Yeniden giriş yapın.",true);}})();
