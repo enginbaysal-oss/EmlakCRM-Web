@@ -39,7 +39,7 @@ Deno.serve(async(req:Request)=>{
   if(Array.isArray(subscriptions)&&subscriptions.length)
     return reply(409,{error:"subscription_already_active"});
   const open=await db("GET","emlakcrm_checkout_sessions?user_id=eq."+user.id+
-    "&status=in.(created,pending)&select=id,status,checkout_url,provider_token,created_at"+
+    "&status=in.(created,pending,review)&select=id,status,checkout_url,provider_token,created_at"+
     "&order=created_at.desc&limit=1");
   if(Array.isArray(open)&&open.length){
    const existing=open[0],action=openCheckoutAction(existing);
