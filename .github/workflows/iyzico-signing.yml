@@ -10,6 +10,7 @@ on:
       - "tests/emlakcrm-checkout-classify.test.ts"
       - "tests/emlakcrm-payment-release.test.ts"
       - "tests/emlakcrm-checkout-state.test.ts"
+      - "tests/emlakcrm-sandbox-isolation.test.ts"
       - "supabase/functions/_shared/emlakcrm-checkout-finalize.ts"
       - "supabase/functions/_shared/emlakcrm-checkout-state.ts"
       - "supabase/functions/_shared/emlakcrm-payments.ts"
@@ -19,6 +20,8 @@ on:
     paths:
       - "supabase/functions/**"
       - "tests/iyzico-*.ts"
+      - "tests/emlakcrm-sandbox-isolation.test.ts"
+      - "supabase/functions/emlakcrm-sandbox-**"
       - "tests/emlakcrm-payments-db.test.ts"
       - ".github/workflows/iyzico-signing.yml"
   workflow_dispatch:
@@ -33,6 +36,6 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno test --allow-env=IYZICO_SECRET_KEY tests/iyzico-signing.test.ts tests/iyzico-response.test.ts tests/emlakcrm-payments-db.test.ts tests/emlakcrm-checkout-classify.test.ts tests/emlakcrm-payment-release.test.ts tests/emlakcrm-checkout-state.test.ts
+      - run: deno test --allow-env=IYZICO_SECRET_KEY tests/iyzico-signing.test.ts tests/iyzico-response.test.ts tests/emlakcrm-payments-db.test.ts tests/emlakcrm-checkout-classify.test.ts tests/emlakcrm-payment-release.test.ts tests/emlakcrm-checkout-state.test.ts tests/emlakcrm-sandbox-isolation.test.ts
       - name: Compile isolated payment functions
-        run: deno check supabase/functions/emlakcrm-checkout-start/index.ts supabase/functions/emlakcrm-checkout-status/index.ts supabase/functions/emlakcrm-checkout-callback/index.ts supabase/functions/emlakcrm-checkout-config/index.ts
+        run: deno check supabase/functions/emlakcrm-checkout-start/index.ts supabase/functions/emlakcrm-checkout-status/index.ts supabase/functions/emlakcrm-checkout-callback/index.ts supabase/functions/emlakcrm-checkout-config/index.ts supabase/functions/emlakcrm-sandbox-checkout-start/index.ts supabase/functions/emlakcrm-sandbox-checkout-callback/index.ts supabase/functions/emlakcrm-sandbox-readiness/index.ts
