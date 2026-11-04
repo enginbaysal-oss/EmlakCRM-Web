@@ -41,9 +41,10 @@ export function normalizeIyzicoAmount(v:unknown):string{
 }
 export function amountKurus(v:unknown):number{
  const s=normalizeIyzicoAmount(v),parts=s.split(".");
+ if(parts[1] && parts[1].length>2)throw Error("fractional_kurus");
  const cents=Number(parts[0])*100+Number((parts[1]||"").padEnd(2,"0"));
- if(!Number.isSafeInteger(cents)||!parts[1]||parts[1].length<=2)return cents;
- throw Error("fractional_kurus");
+ if(!Number.isSafeInteger(cents)||cents<0)throw Error("invalid_kurus");
+ return cents;
 }
 function signatureFields(kind:"initialize"|"retrieve",body:Record<string,unknown>){
  const fields=kind==="initialize"
