@@ -11,28 +11,35 @@ export async function orderByUser(id:string,userId:string):Promise<Order|null>{
  const rows=await db("GET","emlakcrm_checkout_sessions?id=eq."+id+"&user_id=eq."+userId+"&select=id,user_id,provider_token,status,amount_kurus,currency,subscription_id,provider_payment_id&limit=1");
  return Array.isArray(rows)&&rows.length?rows[0] as Order:null;
 }
-export async function reconcile(order:Order){
- if(order.status==="paid")return {status:"paid",subscription_id:order.subscription_id};
- if(!["pending","review"].includes(order.status)||!order.provider_token)
-  return {status:order.status,subscription_id:null};
- const result=await callIyzico(CF_RESULT,{locale:"tr",conversationId:order.id,token:order.provider_token});
+/** Pure decision after signed provider retrieval; does not mutate the database. */
+export async function classifyVerifiedResult(order:Order,result:Record<string,unknown>):
+  Promise<"approved"|"failed"|"pending"|"review">{
  if(!await verifyIyzicoResponse("retrieve",result))throw Error("invalid_provider_signature");
  if(result.token!==order.provider_token ||result.conversationId!==order.id ||
     result.basketId!==order.id ||result.currency!=="TRY" ||
     amountKurus(result.price)!==75000||amountKurus(result.paidPrice)!==75000||
     order.amount_kurus!==75000||order.currency!=="TRY")
    throw Error("provider_order_amount_mismatch");
- if(result.paymentStatus!=="SUCCESS"){
-   if(result.paymentStatus==="FAILURE"){
-    await db("PATCH","emlakcrm_checkout_sessions?id=eq."+order.id+"&status=in.(pending,review)",
-      {status:"failed",updated_at:new Date().toISOString()},"return=minimal");
-    return {status:"failed",subscription_id:null};
-   }
-   return {status:"pending",subscription_id:null};
- }
- if(result.fraudStatus!==1)return {status:"review",subscription_id:null};
+ if(result.paymentStatus==="FAILURE")return "failed";
+ if(result.paymentStatus!=="SUCCESS")return "pending";
+ if(result.fraudStatus!==1)return "review";
  const paymentId=String(result.paymentId||"");
  if(!/^[a-zA-Z0-9_-]{1,120}$/.test(paymentId))throw Error("invalid_payment_reference");
+ return "approved";
+}
+export async function reconcile(order:Order){
+ if(order.status==="paid")return {status:"paid",subscription_id:order.subscription_id};
+ if(!["pending","review"].includes(order.status)||!order.provider_token)
+  return {status:order.status,subscription_id:null};
+ const result=await callIyzico(CF_RESULT,{locale:"tr",conversationId:order.id,token:order.provider_token});
+ const state=await classifyVerifiedResult(order,result);
+ if(state==="failed"){
+  await db("PATCH","emlakcrm_checkout_sessions?id=eq."+order.id+"&status=in.(pending,review)",
+    {status:"failed",updated_at:new Date().toISOString()},"return=minimal");
+  return {status:"failed",subscription_id:null};
+ }
+ if(state!=="approved")return {status:state==="review"?"review":"pending",subscription_id:null};
+ const paymentId=String(result.paymentId);
  // Atomically locks the order and prevents duplicate receipts and duplicate licences.
  // Only this server-side verified path calls the service-role-only RPC.
  const id=await db("POST","rpc/emlakcrm_activate_verified_checkout",{
