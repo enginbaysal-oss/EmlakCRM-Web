@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>EmlakCRM | 12 Aylık Abonelik</title>
+<style>
+:root{font:16px/1.5 system-ui,Segoe UI,sans-serif;color:#17354d;background:#eef4fb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 0% 10%,#d5eff5,transparent 50%),linear-gradient(155deg,#f7fbff,#e8eef9)}
+header{padding:24px;background:linear-gradient(125deg,#0c2e52,#176687);color:white;box-shadow:0 8px 18px #153d6b22}
+main{max-width:740px;margin:25px auto;padding:0 16px 40px}.panel{background:#fff;border:1px solid #dfeaf4;box-shadow:0 10px 26px #1b45691c;border-radius:16px;padding:22px;margin:15px 0}
+h1{font-size:24px;margin:0}h2{margin:0 0 13px;font-size:20px}.price{font-size:35px;font-weight:800;color:#0c617e}.muted{color:#577084}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-weight:650;font-size:13px;display:block;margin:10px 0 4px}
+input{width:100%;padding:11px;border-radius:9px;border:1px solid #b2c7d6;font:inherit}
+button{background:#ef8926;color:#142d3a;font:inherit;font-weight:800;border:0;border-radius:10px;padding:13px 18px;cursor:pointer;box-shadow:0 4px 0 #994d0a45}
+button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}.error{color:#ae2626}.success{color:#147655}
+.checkbox{display:flex;gap:10px;align-items:flex-start;font-weight:550;margin:15px 0}.checkbox input{width:18px;flex:none;margin-top:4px}
+a{color:#0b678b}@media(max-width:540px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><header><h1>EmlakCRM · Yıllık Abonelik</h1></header>
+<main><section class="panel"><h2>12 aylık erişim</h2><div class="price">750 TL <small style="font-size:15px;font-weight:500">KDV dahil</small></div>
+<p>Tek seferlik ödeme. Otomatik yenileme veya otomatik ücret tahsilatı yapılmaz. Ödeme sunucu tarafından doğrulanırsa hesabınıza 12 aylık erişim tanımlanır.</p></section>
+<section class="panel"><h2>Fatura ve alıcı bilgileri</h2>
+<p class="muted">Bu alanlar iyzico üzerinden güvenli ödeme başlatabilmek içindir. Kart bilgilerini yalnızca iyzico'nun kendi ödeme ekranında gireceksiniz.</p>
+<form id="checkout">
+<div class="grid"><div><label for="name">Ad</label><input id="name" maxlength="100" autocomplete="given-name" required></div>
+<div><label for="surname">Soyad</label><input id="surname" maxlength="100" autocomplete="family-name" required></div>
+<div><label for="gsmNumber">Cep telefonu</label><input id="gsmNumber" type="tel" placeholder="+905XXXXXXXXX" maxlength="20" autocomplete="tel" required></div>
+<div><label for="identityNumber">Kimlik / vergi numarası</label><input id="identityNumber" maxlength="25" autocomplete="off" required></div>
+<div><label for="city">İl</label><input id="city" maxlength="80" autocomplete="address-level1" required></div>
+<div><label for="zipCode">Posta kodu</label><input id="zipCode" maxlength="15" autocomplete="postal-code" required></div></div>
+<label for="address">Fatura adresi</label><input id="address" maxlength="350" autocomplete="street-address" required>
+<label class="checkbox"><input type="checkbox" id="approve" required><span>750 TL (KDV dahil) tutarında, 12 aylık ve otomatik yenilemesiz abonelik satın alacağımı anladım. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Mesafeli Satış Sözleşmesi</a>, <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">Teslimat ve İade</a> ve <a href="./gizlilik-politikasi.html" target="_blank" rel="noopener noreferrer">Gizlilik Politikası</a> metinlerini inceleme imkânı buldum.</span></label>
+<button type="submit" id="pay" disabled>Güvenli ödeme sayfasına geç</button>
+<p id="checkoutNotice" class="muted">Ödeme henüz güvenlik testlerinde; gerçek para tahsilatı etkin değildir.</p><p id="result" role="status" aria-live="polite"></p>
+</form></section><p><a href="./index.html">EmlakCRM ana sayfaya dön</a></p></main>
+<script>
+"use strict";
+const base="https://tffvwxskvjuxoekwgdef.supabase.co";
+const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const byId=id=>document.getElementById(id);
+const result=byId("result"),pay=byId("pay");
+function token(){
+ for(const [storage,key] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
+  try{const s=JSON.parse(storage.getItem(key)||"null");if(s?.access_token)return s.access_token}catch{}
+ }return null;
+}
+async function availability(){
+ try{
+  const r=await fetch(base+"/functions/v1/emlakcrm-checkout-config",{cache:"no-store"});
+  const d=await r.json();
+  const ready=d.payment_enabled===true&&d.activation_enabled===true;
+  pay.disabled=!ready;
+  byId("checkoutNotice").textContent=ready?"Devam ettiğinizde iyzico'nun güvenli sayfasında gerçek bir 750 TL tahsilatı başlatabilirsiniz.":"Ödeme henüz güvenlik testlerinde; gerçek para tahsilatı etkin değildir.";
+  if(!ready){result.textContent="Ödeme henüz etkin değil. Bu ekran test amaçlıdır.";result.className="muted"}
+ }catch{pay.disabled=true;result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
+}
+byId("checkout").addEventListener("submit",async e=>{
+ e.preventDefault();if(pay.disabled)return;
+ const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
+ pay.disabled=true;result.textContent="İyzico güvenli ödeme sayfası hazırlanıyor…";result.className="muted";
+ const fields=["name","surname","identityNumber","gsmNumber","city","zipCode","address"];
+ const body=Object.fromEntries(fields.map(x=>[x,byId(x).value.trim()]));
+ try{
+  const r=await fetch(base+"/functions/v1/emlakcrm-checkout-start",{
+   method:"POST",headers:{"apikey":key,"authorization":"Bearer "+access,"content-type":"application/json"},
+   body:JSON.stringify(body),cache:"no-store"});
+  const data=await r.json();
+  if(!r.ok){
+   if(data.error==="subscription_already_active"){
+    result.textContent="Aboneliğiniz zaten aktif. Yanlışlıkla ikinci ödeme alınmasını önlemek için satın alma durduruldu.";
+    result.className="muted";return;
+   }
+   if(data.error==="checkout_requires_review"){
+    result.textContent="Önceki ödemenizin sonucu kesinleşmemiş. Yeni ödeme yapmayın. ";
+    result.className="error";
+    if(typeof data.order_id==="string"&&/^[0-9a-f-]{36}$/i.test(data.order_id)){
+     const link=document.createElement("a");link.href="./odeme-sonucu.html?order="+encodeURIComponent(data.order_id);
+     link.textContent="Önceki ödemenin durumunu kontrol et";result.appendChild(link);
+    }
+    return;
+   }
+   if(data.error==="checkout_in_progress"){
+    result.textContent="Ödeme işleminiz başka bir istekte hazırlanıyor. Biraz sonra durumu kontrol edin.";
+    result.className="muted";return;
+   }
+   throw Error("payment_not_ready");
+  }
+  const url=new URL(data.payment_page_url);
+  if(url.protocol!=="https:"||!(url.hostname==="iyzipay.com"||url.hostname.endsWith(".iyzipay.com")||
+   url.hostname==="iyzico.com"||url.hostname.endsWith(".iyzico.com")))throw Error("invalid_redirect");
+  window.location.assign(url.href);
+ }catch{result.textContent="Ödeme başlatılamadı. Lütfen tekrar denemeden önce destekle iletişime geçin.";result.className="error";pay.disabled=false}
+});
+void availability();
+</script></body></html>
