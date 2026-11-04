@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>EmlakCRM | Sandbox Ödeme Test Sonucu</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,sans-serif;background:#eff5fb;color:#19354b}
+header{background:#123d69;color:#fff;padding:22px}main{margin:38px auto;max-width:680px;padding:0 16px}
+article{background:white;padding:25px;border-radius:15px;box-shadow:0 10px 28px #19354b1c}
+h1{font-size:22px;margin:0}h2{font-size:21px}.muted{color:#597288}
+a{color:#0d628d;font-weight:650}.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button{border:0;border-radius:10px;font:inherit;font-weight:750;padding:11px 15px;background:#f08b28;color:#1a2f40;cursor:pointer}
+</style></head><body>
+<header><h1>EmlakCRM · iyzico Sandbox</h1></header>
+<main><article><h2 id="status">Test ödeme sonucu kontrol ediliyor…</h2>
+<p id="detail" role="status" aria-live="polite">iyzico test kayıtları doğrulanıyor.</p>
+<p class="muted">Bu işlem yalnızca Sandbox ortamındadır. Gerçek para tahsil edilmez ve gerçek EmlakCRM aboneliği açılmaz.</p>
+<div class="actions"><button id="again" type="button">Tekrar kontrol et</button>
+<a href="./sandbox-odeme-test.html">Sandbox test ekranına dön</a></div>
+</article></main>
+<script>
+"use strict";
+const base="https://tffvwxskvjuxoekwgdef.supabase.co";
+const apikey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const order=new URL(location.href).searchParams.get("order");
+const byId=x=>document.getElementById(x),title=byId("status"),detail=byId("detail");
+function session(){
+ for(const [storage,key] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
+  try{const data=JSON.parse(storage.getItem(key)||"null");if(data?.access_token)return data.access_token}catch{}
+ }
+ return null;
+}
+async function verify(){
+ if(!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(order||"")){
+  title.textContent="Test sipariş numarası bulunamadı";
+  detail.textContent="Sandbox test ekranından tekrar başlayabilirsin.";return;
+ }
+ const access=session();
+ if(!access){
+  title.textContent="Test hesabının oturumu bulunamadı";
+  detail.textContent="Aynı tarayıcı sekmesinde normal EmlakCRM test hesabıyla giriş yapıp bu sayfaya dön.";return;
+ }
+ byId("again").disabled=true;
+ try{
+  const response=await fetch(base+"/functions/v1/emlakcrm-sandbox-checkout-status?order="+encodeURIComponent(order),{
+   headers:{"apikey":apikey,"authorization":"Bearer "+access},cache:"no-store"
+  });
+  const state=await response.json();
+  if(response.status===401){
+   title.textContent="Oturum süresi dolmuş";
+   detail.textContent="Normal test hesabına tekrar giriş yapman gerekiyor.";return;
+  }
+  if(!response.ok)throw Error("status_unavailable");
+  if(state.environment!=="sandbox"||state.production_subscription_granted!==false)throw Error("invalid_env");
+  if(state.status==="approved"){
+   title.textContent="Sandbox testi başarılı";
+   detail.textContent="750 TL sanal ödeme iyzico tarafından doğrulandı. Gerçek abonelik açılmadı.";
+  }else if(state.status==="failed"){
+   title.textContent="Sandbox test ödemesi başarısız";
+   detail.textContent="Bu testte ödeme doğrulanmadı. Gerçek para çekilmedi.";
+  }else if(state.status==="review"){
+   title.textContent="Sandbox testi incelemede";
+   detail.textContent="iyzico risk kontrolü sonucunu kesinleştirmedi; yeni ödeme başlatma.";
+  }else{
+   title.textContent="Sandbox sonucu henüz kesinleşmedi";
+   detail.textContent="Kayıt oluşturulmuş ancak ödeme henüz doğrulanmamış. Tekrar ödeme yapmadan önce durumunu yeniden kontrol et.";
+  }
+ }catch{
+  title.textContent="Sandbox durumu alınamadı";
+  detail.textContent="Sonuç belirsiz. Yeniden ödeme başlatmadan önce tekrar kontrol et.";
+ }finally{byId("again").disabled=false}
+}
+byId("again").addEventListener("click",verify);void verify();
+</script></body></html>
