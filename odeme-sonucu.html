@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>EmlakCRM | Ödeme Durumu</title>
+<style>
+:root{font:16px/1.5 system-ui,Segoe UI,sans-serif;color:#17354d;background:#eef4fb}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 0%,#cee7f5,transparent 45%),linear-gradient(150deg,#f7fbff,#e8f0f8)}
+header{background:linear-gradient(115deg,#0d2c52,#17688a);color:white;padding:24px}
+main{max-width:650px;margin:40px auto;padding:0 18px}
+.card{background:white;padding:28px;border-radius:16px;box-shadow:0 12px 35px #1739561b;border:1px solid #e2ebf5}
+h1{font-size:23px;margin:0}h2{margin-top:0}.muted{color:#607487}
+a{color:#085a7c;font-weight:650}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px}
+button,.button{display:inline-block;background:#ef8e2a;color:#1a2833;border:0;border-radius:11px;padding:11px 16px;font:inherit;font-weight:750;text-decoration:none;cursor:pointer;box-shadow:0 4px 0 #9d602c55}
+button:focus-visible,a:focus-visible{outline:3px solid #f6a651;outline-offset:3px}
+</style></head><body>
+<header><h1>EmlakCRM · Abonelik Ödemesi</h1></header>
+<main><section class="card"><h2 id="title">Ödeme durumu kontrol ediliyor…</h2>
+<p id="detail" role="status" aria-live="polite" class="muted">Ödeme tamamlanmış olsa bile hesabınızı yalnızca iyzico doğrulaması ardından açabiliriz.</p>
+<div class="actions"><button id="check">Durumu tekrar kontrol et</button>
+<a class="button" href="./index.html">EmlakCRM Ana Sayfa</a></div></section></main>
+<script>
+"use strict";
+const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co/functions/v1/emlakcrm-checkout-status";
+const publicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const id=new URL(location.href).searchParams.get("order");
+const title=document.getElementById("title"),detail=document.getElementById("detail"),check=document.getElementById("check");
+function session(){for(const key of ["emlakcrm_auth_session_v1","emlakcrm_auth_remember_v1"]){try{const s=(key.includes("remember")?localStorage:sessionStorage).getItem(key);if(s){const v=JSON.parse(s);if(v?.access_token)return v.access_token}}catch{}}return null}
+async function status(){
+ if(!/^[0-9a-f-]{36}$/i.test(id||"")){title.textContent="Geçersiz ödeme bağlantısı";detail.textContent="EmlakCRM hesabınıza dönüp abonelik ekranını açın.";return}
+ const token=session();if(!token){title.textContent="Oturum açmanız gerekiyor";detail.textContent="Ödeme durumunu görmek için EmlakCRM uygulamasına giriş yapın.";return}
+ check.disabled=true;title.textContent="Ödeme kontrol ediliyor…";
+ try{
+  const response=await fetch(endpoint+"?order="+encodeURIComponent(id),{headers:{"apikey":publicKey,"authorization":"Bearer "+token},cache:"no-store"});
+  const data=await response.json();
+  if(response.status===401){title.textContent="Oturum süresi doldu";detail.textContent="Lütfen EmlakCRM hesabınıza giriş yapın ve yeniden kontrol edin.";return}
+  if(!response.ok&&response.status!==202){throw Error("status_unavailable")}
+  if(data.status==="paid"&&data.subscription_active){title.textContent="Ödeme onaylandı";detail.textContent="12 aylık EmlakCRM aboneliğiniz etkinleştirildi. Uygulamayı kullanabilirsiniz.";return}
+  if(data.status==="failed"){title.textContent="Ödeme tamamlanamadı";detail.textContent="Abonelik etkinleştirilmedi. Kartınızdan ödeme alındığını düşünüyorsanız yeniden ödeme denemeden önce destekle iletişime geçin.";return}
+  title.textContent="Ödeme doğrulaması bekleniyor";
+  detail.textContent="Ödeme sonucu henüz kesinleşmedi. Aynı ödemeyi tekrar yapmayın; kısa süre sonra durumu yeniden kontrol edin.";
+ }catch{title.textContent="Durum şu an öğrenilemedi";detail.textContent="Bu sonuç ödeme başarısız demek değildir. Yeniden ödeme yapmadan önce tekrar kontrol edin."}
+ finally{check.disabled=false}
+}
+check.addEventListener("click",status);void status();
+</script></body></html>
