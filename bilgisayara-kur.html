@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102e50">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./assets/emlakcrm-logo.svg" type="image/svg+xml">
+<title>EmlakCRM · Bilgisayara Kur</title>
+<meta name="description" content="EmlakCRM'yi Windows bilgisayarınıza masaüstü uygulaması olarak yükleyin.">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px/1.55 system-ui,Segoe UI,sans-serif;color:#1b344d;background:linear-gradient(145deg,#eef5fb,#f9fbfe)}
+header{background:linear-gradient(110deg,#102e50,#195c83);padding:22px;color:white}.top{max-width:850px;margin:auto;display:flex;align-items:center;gap:12px}
+header img{width:53px;height:53px;background:white;border-radius:13px}header h1{margin:0;font-size:23px}
+main{max-width:850px;margin:35px auto;padding:0 18px 35px}section{background:#fff;border-radius:17px;padding:25px;border:1px solid #e0e9f2;box-shadow:0 8px 26px #1236530d;margin-bottom:18px}
+h2{margin-top:0;font-size:25px}h3{font-size:18px}.lead{color:#536c82}.action{display:inline-block;margin:8px 7px 8px 0;border:0;background:#ef852b;color:#173247;border-radius:10px;padding:13px 19px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}
+.action:disabled{opacity:.65;cursor:default}.alt{background:#eaf2f7;color:#184e71}.hint{font-size:14px;color:#587186}ol{padding-left:25px}li{margin:10px 0}a{color:#125d93}
+@media(max-width:520px){header{padding:15px}main{margin-top:17px}section{padding:18px}}
+</style></head>
+<body><header><div class="top"><img src="./assets/emlakcrm-logo.svg" alt=""><h1>EmlakCRM · Masaüstü Uygulaması</h1></div></header>
+<main><section><h2>EmlakCRM'yi bilgisayarına kur</h2>
+<p class="lead">Windows masaüstünde EmlakCRM simgesi olsun. Uygulama ayrı bir pencerede açılsın; güncellemeler web üzerinden gelsin.</p>
+<button id="install" class="action" type="button">Bilgisayara Yükle</button>
+<a class="action alt" href="./index.html">EmlakCRM'yi Aç</a>
+<p id="status" class="hint" aria-live="polite">Kurulum seçeneği denetleniyor…</p></section>
+<section id="manual"><h3>Kurulum penceresi açılmazsa</h3>
+<p><strong>Microsoft Edge (Windows) — en kolay yol:</strong></p>
+<ol><li>Bu sayfayı Microsoft Edge'de aç.</li><li>Sağ üstteki üç nokta (<strong>⋯</strong>) menüsünden <strong>Uygulamalar → Bu siteyi uygulama olarak yükle</strong> seçeneğine tıkla.</li><li>Uygulama adına <strong>EmlakCRM</strong> yazıp <strong>Yükle</strong> de. Masaüstü kısayolu ve görev çubuğuna sabitleme seçeneğini kullanabilirsin.</li></ol>
+<p><strong>Google Chrome:</strong> Adres çubuğundaki <strong>Yükle</strong> simgesini veya üç nokta menüsündeki <strong>Kaydet ve paylaş / Yayınla, kaydet ve paylaş → Sayfayı uygulama olarak yükle</strong> seçeneğini kullan.</p>
+<p class="hint">Bu kurulum .exe dosyası değildir. EmlakCRM internet bağlantısıyla çalışır; başka bilgisayar veya tarayıcıda daha önce tarayıcıya kaydedilmiş müşteri verileri otomatik taşınmayabilir. Düzenli yedek al.</p></section>
+</main><script>
+"use strict";
+let installPrompt=null;
+const button=document.getElementById("install"),status=document.getElementById("status");
+const installed=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+if(installed()){status.textContent="EmlakCRM zaten uygulama olarak açılmış.";button.disabled=true;}
+else{status.textContent="Yükleme penceresi görünmezse aşağıdaki Microsoft Edge adımlarını kullan.";}
+window.addEventListener("beforeinstallprompt",event=>{event.preventDefault();installPrompt=event;if(!installed()){button.disabled=false;status.textContent="EmlakCRM bilgisayarına kurulmaya hazır. 'Bilgisayara Yükle'ye bas.";}}); 
+button.addEventListener("click",async()=>{
+ if(installed()){status.textContent="EmlakCRM zaten kurulu.";return;}
+ if(!installPrompt){status.textContent="Tarayıcı otomatik kurulum penceresi göstermedi. Aşağıdaki Edge veya Chrome adımlarını uygula.";document.getElementById("manual").scrollIntoView({behavior:"smooth",block:"start"});return;}
+ const prompt=installPrompt;installPrompt=null;
+ try{await prompt.prompt();const result=await prompt.userChoice;status.textContent=result?.outcome==="accepted"?"Kurulum onaylandı. Masaüstünde EmlakCRM simgesini kontrol et.":"Kurulum iptal edildi. Dilersen tarayıcı menüsünden yeniden deneyebilirsin.";}
+ catch{status.textContent="Tarayıcı kurulumu başlatamadı. Aşağıdaki manuel kurulum adımlarını uygula.";}
+});
+window.addEventListener("appinstalled",()=>{status.textContent="EmlakCRM bilgisayara kuruldu. Artık masaüstünden açabilirsin.";button.disabled=true;});
+</script></body></html>
