@@ -1,0 +1,90 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portföy Teklif Mektubu | EmlakCRM</title><meta name="robots" content="noindex,nofollow">
+<style>
+:root{font:15px system-ui,Segoe UI,sans-serif;color:#17324d;background:#f2f6fb}*{box-sizing:border-box}body{margin:0}header{background:#102e50;color:#fff;padding:16px}header>div,main{max-width:1080px;margin:auto}main{padding:18px 14px 45px}.back{background:#ef7316;color:#fff;text-decoration:none;border-radius:9px;padding:10px 13px;display:inline-block;font-weight:750}h1{font-size:22px;margin:10px 0 2px}h2{font-size:18px}.panel{background:#fff;border:1px solid #dce6ee;border-radius:13px;padding:18px;margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-weight:650;font-size:13px;margin:0 0 5px}input,textarea,select{font:inherit;width:100%;border:1px solid #bbcbda;padding:10px;border-radius:8px;background:#fff}textarea{min-height:70px}button{background:#117e91;color:white;border:0;border-radius:9px;padding:11px 14px;font:inherit;font-weight:750;cursor:pointer}.orange{background:#ef7316}.secondary{background:#e6f0f5;color:#14465a}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.hint{font-size:12px;color:#61778a}.paper{background:#fff;max-width:794px;min-height:900px;margin:12px auto;padding:54px 58px;box-shadow:0 3px 20px #11334d17;color:#172b3d;line-height:1.65}.paper h2{text-align:center;letter-spacing:.05em;font-size:19px;margin:28px 0}.paper .line{border-bottom:2px solid #234d67;margin:10px 0 25px}.paper table{width:100%;border-collapse:collapse}.paper td{padding:8px;border-bottom:1px solid #dce5ee;vertical-align:top}.paper td:first-child{width:38%;font-weight:650}.sign{display:flex;justify-content:space-between;gap:20px;margin-top:56px}.sign>div{width:48%}.sigline{border-bottom:1px solid #889bac;height:55px}.history{display:flex;flex-direction:column;gap:7px}.history>div{padding:9px;background:#f4f8fb;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.history select{width:auto}.warn{background:#fff6e6;border:1px solid #f0d69d;border-radius:9px;padding:10px;font-size:13px}.hidden{display:none!important}@media(max-width:700px){.grid{grid-template-columns:1fr}.paper{padding:28px 20px;min-height:700px}.sign{gap:12px}}@media print{header,.noPrint,#formPanel,#historyPanel{display:none!important}body{background:white}.paper{box-shadow:none;margin:0;max-width:none;min-height:0;padding:20mm 16mm}@page{size:A4;margin:0}}
+</style></head><body>
+<header><div><a class="back" href="./portfoy-rapor.html#portfoyler">← Portföylerime Dön</a><h1>📄 Teklif Mektubu</h1><div style="color:#dceaf5;font-size:13px">Mülk sahibine alım teklifi bildirimi</div></div></header>
+<main><div id="gate" class="panel">Oturum ve abonelik kontrol ediliyor...</div>
+<div id="app" class="hidden">
+<section class="panel noPrint" id="formPanel"><h2>Teklif Bilgileri</h2><div class="warn">Bu mektup mülk sahibine iletilecek bir teklif bildirimidir; tek başına satış sözleşmesi veya teklifin kabulü anlamına gelmez.</div>
+<p class="hint" id="portfolioLabel"></p><div class="grid">
+<div><label for="buyer">Teklif veren alıcı adı *</label><input id="buyer" maxlength="120" required></div>
+<div><label for="amount">Teklif tutarı (TL) *</label><input id="amount" inputmode="decimal" placeholder="3.000.000" required></div>
+<div><label for="payment">Ödeme şekli</label><select id="payment"><option>Nakit</option><option>Kredi + Nakit</option><option>Kredi</option><option>Takas</option><option>Diğer</option></select></div>
+<div><label for="validUntil">Teklifin son geçerlilik tarihi *</label><input id="validUntil" type="date" required></div>
+<div><label for="offerDate">Teklif tarihi</label><input id="offerDate" type="date"></div>
+<div><label for="owner">Mülk sahibi / muhatap</label><input id="owner" maxlength="120"></div>
+<div style="grid-column:1/-1"><label for="conditions">Özel şartlar</label><textarea id="conditions" maxlength="1200" placeholder="Örnek: kredi onayı şartıyla"></textarea></div>
+</div><div class="actions"><button type="button" id="preview">Önizlemeyi Güncelle</button><button class="orange" type="button" id="save">Teklifi Kaydet</button><button class="secondary" type="button" id="pdf">PDF / Yazdır</button><button class="secondary" type="button" id="whatsapp">💬 WhatsApp ile İlet</button></div><p class="hint">PDF / Yazdır seçeneğinden “PDF olarak kaydet” kullanılabilir. WhatsApp butonu mektup özetini hazırlar; PDF dosyasını WhatsApp'a ayrıca ekleyebilirsiniz.</p><p id="feedback" role="status"></p>
+</section>
+<section class="paper" id="letter" aria-label="Teklif mektubu önizlemesi">
+<div style="font-size:22px;font-weight:800;color:#123e5d">EMLAKCRM <span style="font-size:11px;font-weight:500"> | Gayrimenkul Teklif Bildirimi</span></div><div class="line"></div>
+<div style="text-align:right">Tarih: <span id="vDate">—</span></div>
+<h2>GAYRİMENKUL ALIM TEKLİF MEKTUBU</h2>
+<p>Sayın <strong id="vOwner">Mülk Sahibi</strong>,</p>
+<p>Danışmanlığımız kapsamında satışa sunulan aşağıdaki gayrimenkulünüz için tarafımıza iletilen satın alma teklifini değerlendirmenize sunuyoruz.</p>
+<table><tbody>
+<tr><td>Gayrimenkul</td><td id="vTitle">—</td></tr>
+<tr><td>Konum</td><td id="vLocation">—</td></tr>
+<tr><td>İlan / Portföy Bedeli</td><td id="vPrice">—</td></tr>
+<tr><td>Teklif Veren</td><td id="vBuyer">—</td></tr>
+<tr><td>Alım Teklifi</td><td><strong id="vAmount">—</strong></td></tr>
+<tr><td>Ödeme Şekli</td><td id="vPayment">—</td></tr>
+<tr><td>Geçerlilik Tarihi</td><td id="vUntil">—</td></tr>
+<tr><td>Özel Şartlar</td><td id="vConditions">Belirtilmedi</td></tr>
+</tbody></table>
+<p>Teklif, belirtilen geçerlilik tarihi sonuna kadar değerlendirmeye açıktır. Teklifin kabulü hâlinde tarafların ayrıca mutabakat sağlaması, gerekli belgelerin hazırlanması ve resmî işlemlerin tamamlanması gerekecektir.</p>
+<p>Değerlendirmenizi tarafımıza bildirmenizi rica ederiz.</p>
+<div class="sign"><div><strong>Gayrimenkul Danışmanı</strong><div id="vAdvisor">—</div><div id="vPhone"></div><div class="sigline"></div><small>İmza</small></div><div><strong>Mülk Sahibi</strong><div id="vOwnerSign">—</div><div class="sigline"></div><small>Bilgilendirildim / imza (isteğe bağlı)</small></div></div>
+</section>
+<section class="panel noPrint" id="historyPanel"><h2>Bu Portföyün Teklif Geçmişi</h2><div id="history" class="history"></div></section>
+</div></main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const dataKey="emlakcrm_portfoy_rapor_v1";
+const paramId=new URLSearchParams(location.search).get("id");
+let portfolio=null,db=null;
+const iso=()=>new Date().toLocaleDateString("en-CA");
+const dateTR=s=>s?new Date(s+"T12:00:00").toLocaleDateString("tr-TR"):"—";
+const money=v=>{const n=Number(String(v||"").replace(/\./g,"").replace(",",".").replace(/[^0-9.]/g,""));return Number.isFinite(n)&&n>0?n.toLocaleString("tr-TR",{maximumFractionDigits:2})+" TL":"—"};
+function set(id,v){$(id).textContent=String(v??"—")}
+function read(){const raw=localStorage.getItem(dataKey);const parsed=raw?JSON.parse(raw):null;if(!parsed||!Array.isArray(parsed.portfolios))throw Error("Portföy verisi bulunamadı.");return parsed}
+function refreshPortfolio(){db=read();portfolio=db.portfolios.find(p=>String(p.id)===String(paramId));if(!portfolio)throw Error("Seçilen portföy bu tarayıcıda bulunamadı.");$("portfolioLabel").textContent="Portföy: "+portfolio.title+" • "+(portfolio.location||"Konum belirtilmedi")}
+async function access(){
+ let session;try{session=JSON.parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1")||"null")}catch{}
+ if(!session?.access_token)throw Error("Oturum bulunamadı. Önce EmlakCRM uygulamasından giriş yapın.");
+ const base="https://tffvwxskvjuxoekwgdef.supabase.co",key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+ let token=session.access_token;
+ const headers=()=>({apikey:key,Authorization:"Bearer "+token});
+ let userRes=await fetch(base+"/auth/v1/user",{headers:headers()});
+ if(!userRes.ok&&session.refresh_token){const refreshed=await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:session.refresh_token})});if(refreshed.ok){const j=await refreshed.json();session={...session,...j};token=j.access_token;sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify(session));if(localStorage.getItem("emlakcrm_auth_remember_v1"))localStorage.setItem("emlakcrm_auth_remember_v1",JSON.stringify(session));userRes=await fetch(base+"/auth/v1/user",{headers:headers()})}}
+ if(!userRes.ok)throw Error("Oturum doğrulanamadı.");
+ const user=await userRes.json();
+ const a=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers:headers()});if(!a.ok)throw Error("Yönetici yetkisi sorgulanamadı.");
+ if((await a.json()).some(x=>x.user_id===user.id))return;
+ const b=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&limit=20",{headers:headers()});if(!b.ok)throw Error("Abonelik sorgulanamadı.");
+ const now=Date.now();if(!(await b.json()).some(x=>x.status==="active"&&Date.parse(x.starts_at)<=now&&Date.parse(x.expires_at)>now))throw Error("Aktif abonelik bulunamadı.");
+}
+function values(){
+ const buyer=$("buyer").value.trim(),raw=$("amount").value.trim().replace(/\./g,"").replace(",",".");
+ const n=Number(raw);if(!buyer)throw Error("Teklif veren alıcının adını girin.");if(!Number.isFinite(n)||n<=0)throw Error("Geçerli bir teklif tutarı girin.");if(!$("validUntil").value)throw Error("Geçerlilik tarihini girin.");if($("offerDate").value&&$("validUntil").value<$("offerDate").value)throw Error("Teklifin geçerlilik tarihi, teklif tarihinden önce olamaz.");
+ return {id:"offer_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),buyer,amount:n,payment:$("payment").value,validUntil:$("validUntil").value,date:$("offerDate").value,owner:$("owner").value.trim(),conditions:$("conditions").value.trim(),status:"Değerlendiriliyor",createdAt:new Date().toISOString()};
+}
+function preview(){
+ try{const o=values();set("vTitle",portfolio.title||"—");set("vLocation",portfolio.location||"—");set("vPrice",money(portfolio.price));set("vBuyer",o.buyer);set("vAmount",money(o.amount));set("vPayment",o.payment);set("vDate",dateTR(o.date));set("vUntil",dateTR(o.validUntil));set("vOwner",o.owner||portfolio.owner||"Mülk Sahibi");set("vOwnerSign",o.owner||portfolio.owner||"—");set("vConditions",o.conditions||"Belirtilmedi");set("vAdvisor",portfolio.consultant||db.advisor?.name||"Gayrimenkul Danışmanı");set("vPhone",portfolio.consultantPhone||db.advisor?.phone||"");$("feedback").textContent="Önizleme güncellendi.";return o}catch(e){$("feedback").textContent=e.message;throw e}
+}
+function history(){
+ const list=$("history");list.replaceChildren();
+ const offers=Array.isArray(portfolio.offers)?portfolio.offers.slice().reverse():[];
+ if(!offers.length){list.textContent="Henüz kayıtlı teklif bulunmuyor.";return}
+ for(const o of offers){const row=document.createElement("div");const info=document.createElement("span");info.textContent=(o.buyer||"Alıcı")+" · "+money(o.amount)+" · "+dateTR(o.validUntil)+" · ";row.append(info);
+ const select=document.createElement("select");for(const name of ["Değerlendiriliyor","Kabul Edildi","Reddedildi"]){const opt=document.createElement("option");opt.value=name;opt.textContent=name;select.append(opt)}select.value=o.status||"Değerlendiriliyor";select.addEventListener("change",()=>{try{const latest=read(),p=latest.portfolios.find(p=>String(p.id)===String(paramId)),record=p?.offers?.find(x=>x.id===o.id);if(!record)throw Error("Teklif bulunamadı");record.status=select.value;record.updatedAt=new Date().toISOString();localStorage.setItem(dataKey,JSON.stringify(latest));refreshPortfolio();history()}catch(e){alert("Durum kaydedilemedi: "+e.message)}});row.append(select);
+ const load=document.createElement("button");load.className="secondary";load.textContent="Aç";load.onclick=()=>{$("buyer").value=o.buyer||"";$("amount").value=String(o.amount||"");$("payment").value=o.payment||"Nakit";$("validUntil").value=o.validUntil||"";$("offerDate").value=o.date||iso();$("owner").value=o.owner||"";$("conditions").value=o.conditions||"";preview();window.scrollTo({top:0,behavior:"smooth"})};row.append(load);list.append(row)}
+}
+$("preview").onclick=()=>{try{preview()}catch{}};
+$("save").onclick=()=>{try{const o=preview();const latest=read(),p=latest.portfolios.find(x=>String(x.id)===String(paramId));if(!p)throw Error("Portföy bulunamadı");if(!Array.isArray(p.offers))p.offers=[];p.offers.push(o);localStorage.setItem(dataKey,JSON.stringify(latest));refreshPortfolio();history();$("feedback").textContent="Teklif bu portföyün geçmişine kaydedildi."}catch(e){$("feedback").textContent="Kayıt başarısız: "+e.message}};
+$("pdf").onclick=()=>{try{preview();window.print()}catch{}};
+$("whatsapp").onclick=()=>{try{const o=preview();const text="Sayın "+(o.owner||portfolio.owner||"Mülk Sahibi")+", "+(portfolio.title||"gayrimenkul")+" ("+(portfolio.location||"konum belirtilmedi")+") için "+o.buyer+" tarafından "+money(o.amount)+" tutarında "+o.payment+" ödeme şekliyle teklif iletilmiştir. Son geçerlilik: "+dateTR(o.validUntil)+". Özel şartlar: "+(o.conditions||"Yok")+". Değerlendirmenizi rica ederiz.";const digits=String(portfolio.phone||"").replace(/\D/g,"");const num=digits.startsWith("0")?"90"+digits.slice(1):digits;window.open("https://wa.me/"+(num||"")+"?text="+encodeURIComponent(text),"_blank","noopener,noreferrer")}catch{}};
+(async()=>{try{await access();refreshPortfolio();$("offerDate").value=iso();$("validUntil").value=iso();$("owner").value=portfolio.owner||"";$("gate").classList.add("hidden");$("app").classList.remove("hidden");history();}catch(e){$("gate").textContent=e.message+" Ana uygulamaya dönüp portföyü tekrar açın."}})();
+</script></body></html>
