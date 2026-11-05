@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Süper Yönetici | EmlakCRM</title><link rel="icon" href="./assets/emlakcrm-logo.svg" type="image/svg+xml">
+<style>
+:root{font:15px system-ui,Segoe UI,sans-serif;color:#17324d;background:#f2f6fb}*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(120deg,#102e50,#164768);color:#fff;padding:21px 16px}main{max-width:1120px;margin:0 auto;padding:18px 16px 42px}h1{font-size:24px;margin:10px 0 4px}h2{font-size:18px;margin:4px 0 14px}.muted{color:#64748b}header .muted{color:#d9eaf1}.back{display:inline-block;padding:11px 15px;background:#f76b12;color:#fff;border-radius:10px;text-decoration:none;font-weight:750}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px}.stat,.card{background:#fff;border:1px solid #dfe8f1;border-radius:14px;padding:17px;box-shadow:0 3px 14px #14385d08}.stat strong{font-size:30px;display:block;margin-top:7px}.stat span{font-size:12px;color:#66788c}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.toolbar input,.toolbar select{border:1px solid #cad7e3;border-radius:9px;padding:10px;font:inherit;background:#fff}.toolbar input{flex:2;min-width:170px}.toolbar select{min-width:160px}button{border:0;border-radius:9px;padding:10px 14px;background:#087e96;color:#fff;font-weight:700;cursor:pointer}button:disabled{opacity:.5}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:13px 10px;border-bottom:1px solid #e8edf3;font-size:13px;vertical-align:top}th{background:#f4f8fb;color:#486277}td{overflow-wrap:anywhere}.scroll{overflow-x:auto}.pill{display:inline-block;border-radius:50px;background:#e6eff5;color:#234761;font-size:12px;font-weight:700;padding:5px 9px}.pill.ok{background:#e5f7ef;color:#126842}.pill.warn{background:#fff0db;color:#945b10}.notice{border:1px solid #ead59b;background:#fff8e8;padding:12px;border-radius:10px;font-size:13px;margin:15px 0}#error{color:#a92c34;white-space:pre-wrap}#gate{margin:18px auto;max-width:650px}.hidden{display:none!important}@media(max-width:680px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{padding:9px 7px}}
+</style></head><body>
+<header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
+<main>
+<section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
+<div id="dashboard" class="hidden">
+<div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
+<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Liste yalnızca yetkili süper yöneticilere gösterilir. Ödeme ve lisans kayıtları burada değiştirilemez.</p>
+<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
+<div class="notice">Bu ekran salt okunurdur. Ücretli abonelik yalnızca doğrulanmış ödeme veya ayrıca yetkilendirilmiş sunucu işlemiyle aktifleştirilmelidir.</div>
+</div></main>
+<script>
+"use strict";
+const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co";
+const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const sessionKey="emlakcrm_auth_session_v1";
+const rememberedKey="emlakcrm_auth_remember_v1";
+const $=id=>document.getElementById(id);
+let userRows=[];
+function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
+function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
+function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
+function addCell(tr,value,cls){const td=document.createElement("td");if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
+function render(){
+ const term=$("search").value.toLocaleLowerCase("tr").trim(),filter=$("filter").value;
+ const filtered=userRows.filter(u=>(!filter||u.subscription_status===filter)&&(!term||String(u.email||"").toLocaleLowerCase("tr").includes(term)));
+ $("rows").replaceChildren();
+ for(const u of filtered){
+  const tr=document.createElement("tr"),status=u.subscription_status||"none";
+  addCell(tr,u.email||"E-posta bulunamadı");
+  addCell(tr,statusText(status),"pill "+(["active","unlimited"].includes(status)?"ok":status==="none"?"warn":""));
+  addCell(tr,fmt(u.created_at));addCell(tr,fmt(u.last_sign_in_at));
+  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.starts_at));
+  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.expires_at));
+  addCell(tr,u.payment_provider||"—");$("rows").append(tr);
+ }
+ $("empty").classList.toggle("hidden",filtered.length>0);
+ $("total").textContent=userRows.length;$("admins").textContent=userRows.filter(u=>u.is_super_admin).length;
+ $("active").textContent=userRows.filter(u=>u.subscription_status==="active").length;
+ $("none").textContent=userRows.filter(u=>u.subscription_status==="none").length;
+}
+async function verifiedToken(){
+ let saved;try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||localStorage.getItem(rememberedKey)||"null")}catch{}
+ if(!saved?.access_token)throw Error("Oturum bulunamadı. Önce Ayarlar üzerinden giriş yapın.");
+ let token=saved.access_token;
+ const authHeaders=()=>({apikey:apiKey,Authorization:"Bearer "+token});
+ let res=await fetch(endpoint+"/auth/v1/user",{headers:authHeaders()});
+ if(!res.ok&&saved.refresh_token){
+  const refresh=await fetch(endpoint+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:apiKey,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:saved.refresh_token})});
+  if(refresh.ok){const next=await refresh.json();saved={...saved,...next};token=next.access_token;sessionStorage.setItem(sessionKey,JSON.stringify(saved));if(localStorage.getItem(rememberedKey))localStorage.setItem(rememberedKey,JSON.stringify(saved));res=await fetch(endpoint+"/auth/v1/user",{headers:authHeaders()})}
+ }
+ if(!res.ok)throw Error("Oturum geçersiz. Yeniden giriş yapın.");
+ return token;
+}
+async function load(){
+ $("refresh").disabled=true;$("error").textContent="";
+ try{
+  const token=await verifiedToken();
+  const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
+  if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
+  const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+ }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
+ finally{$("refresh").disabled=false}
+}
+$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);load();
+</script></body></html>
