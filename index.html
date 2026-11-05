@@ -377,6 +377,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(KDV dahil / 12 ay)</span></p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
+<p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a></p>
 <p style="margin:10px 0"><a href="abonelik-satin-al.html" style="color:#116f96;font-weight:700">750 TL abonelik ödeme ekranı</a></p>
 <p class="muted" style="font-size:13px">Otomatik yenileme yoktur. Güvenli ödeme sayfası canlı durumu sunucudan kontrol eder. Yalnızca doğrulanmış başarılı ödeme sonrasında 12 aylık lisans başlatılır.</p>
 </section>
@@ -1451,17 +1452,18 @@ async function updateAccountStatus(){
  const licenseStart=$("crmLicenseStart"),licenseEnd=$("crmLicenseEnd"),licenseMessage=$("crmLicenseMessage");
  licenseStart.textContent="—";licenseEnd.textContent="—";licenseMessage.textContent="Abonelik kontrol ediliyor...";
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
- if(!saved?.access_token){status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
+ if(!saved?.access_token){$("crmAdminPanelLink").hidden=true;status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
  status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
   const {user}=await crmAuthenticatedSession();
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
   const entitlement=await crmCheckEntitlement();
+  $("crmAdminPanelLink").hidden=entitlement.role!=="super_admin";
   if(entitlement.role==="super_admin"){sub.textContent="Süper Yönetici · Süresiz abonelik";licenseStart.textContent="Süresiz";licenseEnd.textContent="Süresiz";licenseMessage.textContent="Kurucu yönetici hesabı: ödeme zorunluluğu yok.";}
   else if(entitlement.allowed){sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";licenseEnd.textContent=new Date(entitlement.expiresAt).toLocaleDateString("tr-TR");licenseMessage.textContent="Aboneliğiniz aktif.";}
   else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Ödeme sistemi henüz açık değil.";}
- }catch(err){licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
+ }catch(err){$("crmAdminPanelLink").hidden=true;licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
   if(status.textContent==="Oturum doğrulanıyor..."){crmClearAuthSession();status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
   else{sub.textContent="Abonelik kontrol edilemedi"}
  }
