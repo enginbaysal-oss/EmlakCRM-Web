@@ -377,8 +377,8 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(KDV dahil / 12 ay)</span></p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
-<p style="margin:10px 0"><a href="abonelik-satin-al.html" style="color:#116f96;font-weight:700">750 TL abonelik ödeme ekranı (test aşamasında)</a></p>
-<p class="muted" style="font-size:13px">Otomatik yenileme yoktur. iyzico sözleşme onayı tamamlandı. Canlı ödeme henüz açılmadığından şu anda tahsilat yapılmamaktadır. Açıldığında yalnızca doğrulanmış başarılı ödeme sonrasında 12 aylık lisans başlayacaktır.</p>
+<p style="margin:10px 0"><a href="abonelik-satin-al.html" style="color:#116f96;font-weight:700">750 TL abonelik ödeme ekranı</a></p>
+<p class="muted" style="font-size:13px">Otomatik yenileme yoktur. Güvenli ödeme sayfası canlı durumu sunucudan kontrol eder. Yalnızca doğrulanmış başarılı ödeme sonrasında 12 aylık lisans başlatılır.</p>
 </section>
 <p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme, abonelik ve ödeme henüz hazır değil.</p>
 <div class="accountCloud" id="crmInlineAuth">
@@ -1535,7 +1535,7 @@ async function showScreen(name){
    if(request!==crmNavigationRequest)return;
    if(!entitlement.allowed){
     selected="account";
-    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Yıllık abonelik 750 TL (KDV dahil). Ödeme sistemi henüz açılmadı; ödeme alınmıyor.");
+    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Yıllık abonelik 750 TL (KDV dahil). Ödeme için güvenli ödeme ekranını kontrol edin.");
    }
   }catch(err){
    if(request!==crmNavigationRequest)return;
@@ -1572,7 +1572,7 @@ document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
   try{
    const entitlement=await crmCheckEntitlement();
    if(entitlement.allowed){window.location.assign(href);return}
-   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Yıllık ücret 750 TL (KDV dahil). Ödeme altyapısı henüz aktif değil.");
+   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Yıllık ücret 750 TL (KDV dahil). Ödeme durumu güvenli ödeme sayfasında kontrol edilir.");
   }catch(_){
    alert("Devam etmek için önce Ayarlar bölümünden giriş yapın.");
   }
@@ -1590,7 +1590,7 @@ showScreen(location.hash.slice(1));
 
 </script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
-<p><strong>Lansmana özel tanıtım fiyatı: 750 TL (KDV dâhil) / 12 ay.</strong> Dijital yazılım kullanım hakkıdır; fiziksel teslimat yoktur. Otomatik yenileme yapılmaz. <strong>Ödeme altyapısı henüz aktif değildir.</strong></p>
+<p><strong>Lansmana özel tanıtım fiyatı: 750 TL (KDV dâhil) / 12 ay.</strong> Dijital yazılım kullanım hakkıdır; fiziksel teslimat yoktur. Otomatik yenileme yapılmaz. <strong>Ödeme durumu, güvenli ödeme ekranında anlık olarak kontrol edilir.</strong></p>
 <nav aria-label="Yasal belgeler" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0">
 <a href="mesafeli-satis-sozlesmesi.html">Mesafeli Satış Sözleşmesi</a>
 <a href="teslimat-iade.html">Teslimat ve İade</a>
