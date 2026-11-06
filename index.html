@@ -1429,7 +1429,7 @@ $("crmInlineForgot").onclick=async()=>{
  const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult");
  if(!$("crmInlineEmail").checkValidity()||!email){result.textContent="Şifre yenileme için geçerli e-posta adresinizi yazın.";return}
  const btn=$("crmInlineForgot");btn.disabled=true;
- try{await crmAuthPost("/recover",{email,redirect_to:"https://enginbaysal-oss.github.io/EmlakCRM-Web/"});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
+ try{await crmAuthPost("/recover?redirect_to="+encodeURIComponent("https://enginbaysal-oss.github.io/EmlakCRM-Web/"),{email});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
  catch(err){result.textContent=err.message}
  finally{btn.disabled=false}
 };
