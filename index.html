@@ -392,7 +392,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <div id="crmInlineRegisterFields" hidden><label for="crmInlineName">Ad soyad</label><input type="text" id="crmInlineName" maxlength="100" autocomplete="name">
 <label for="crmInlinePasswordConfirm">Şifre tekrar</label><input type="password" id="crmInlinePasswordConfirm" minlength="8" autocomplete="new-password"></div>
 <button type="submit" id="crmInlineSubmit">Giriş Yap</button>
-</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button>
+</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button><section id="crmRecoveryPanel" class="card" hidden><h3>Yeni Şifre Belirle</h3><form id="crmRecoveryForm"><label for="crmRecoveryPassword">Yeni şifre</label><input id="crmRecoveryPassword" type="password" minlength="8" autocomplete="new-password" required><label for="crmRecoveryConfirm">Yeni şifre tekrar</label><input id="crmRecoveryConfirm" type="password" minlength="8" autocomplete="new-password" required><button type="submit" id="crmRecoverySave">Şifreyi Kaydet</button></form><p id="crmRecoveryStatus" role="status"></p></section>
 <p id="crmInlineResult" class="mini" aria-live="polite" role="status"></p>
 </div>
 <button type="button" id="accountLogout" class="secondary" hidden>Çıkış Yap</button>
@@ -1429,10 +1429,62 @@ $("crmInlineForgot").onclick=async()=>{
  const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult");
  if(!$("crmInlineEmail").checkValidity()||!email){result.textContent="Şifre yenileme için geçerli e-posta adresinizi yazın.";return}
  const btn=$("crmInlineForgot");btn.disabled=true;
- try{await crmAuthPost("/recover",{email});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
+ try{await crmAuthPost("/recover",{email,redirect_to:"https://enginbaysal-oss.github.io/EmlakCRM-Web/"});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
  catch(err){result.textContent=err.message}
  finally{btn.disabled=false}
 };
+// Supabase recovery callback: token stays in memory, never stored in localStorage.
+let crmRecoveryToken=null;
+async function crmHandleRecoveryCallback(){
+ const fragment=new URLSearchParams(location.hash.slice(1));
+ const query=new URLSearchParams(location.search);
+ const type=fragment.get("type")||query.get("type");
+ const accessToken=fragment.get("access_token");
+ const tokenHash=query.get("token_hash");
+ const code=query.get("code");
+ if(type!=="recovery"&&!tokenHash&&!code)return;
+ try{
+  let token=accessToken;
+  if(!token&&tokenHash){
+   const data=await crmAuthPost("/verify",{token_hash:tokenHash,type:"recovery"});
+   token=data.access_token;
+  }else if(!token&&code){
+   const data=await crmAuthPost("/token?grant_type=pkce",{auth_code:code,code_verifier:sessionStorage.getItem("emlakcrm_recovery_verifier")||""});
+   token=data.access_token;
+  }
+  history.replaceState(null,"",location.pathname+"#account");
+  await showScreen("account");
+  $("crmRecoveryPanel").hidden=false;
+  $("crmInlineAuthForm").hidden=true;
+  $("crmInlineForgot").hidden=true;
+  if(!token)throw Error("Bağlantı geçersiz veya süresi dolmuş. Yeni bağlantı isteyin.");
+  crmRecoveryToken=token;
+  $("crmRecoveryStatus").textContent="Yeni şifrenizi belirleyebilirsiniz.";
+ }catch(e){
+  history.replaceState(null,"",location.pathname+"#account");
+  $("crmRecoveryPanel").hidden=false;
+  $("crmRecoveryStatus").textContent=String(e.message||e);
+ }
+}
+$("crmRecoveryForm").onsubmit=async event=>{
+ event.preventDefault();
+ const password=$("crmRecoveryPassword").value;
+ if(password!==$("crmRecoveryConfirm").value){$("crmRecoveryStatus").textContent="Şifreler eşleşmiyor.";return}
+ if(!crmRecoveryToken){$("crmRecoveryStatus").textContent="Bağlantı süresi dolmuş. Yeni bağlantı isteyin.";return}
+ const btn=$("crmRecoverySave");btn.disabled=true;
+ try{
+  const res=await fetch(crmApiBase+"/auth/v1/user",{method:"PUT",headers:{apikey:crmPublicKey,Authorization:"Bearer "+crmRecoveryToken,"Content-Type":"application/json"},body:JSON.stringify({password})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw Error(data.msg||data.message||"Şifre kaydedilemedi");
+  crmRecoveryToken=null;
+  $("crmRecoveryPassword").value="";$("crmRecoveryConfirm").value="";
+  $("crmRecoveryPanel").hidden=true;$("crmInlineAuthForm").hidden=false;$("crmInlineForgot").hidden=false;
+  crmClearAuthSession();
+  $("crmInlineResult").textContent="Şifreniz güncellendi. Yeni şifrenizle giriş yapın.";
+ }catch(e){$("crmRecoveryStatus").textContent=String(e.message||e)}
+ finally{btn.disabled=false}
+};
+void crmHandleRecoveryCallback();
 // Merkezi lisans kararı: ödeme altyapısı devreye girene kadar yalnızca durum okur.
 async function crmCheckEntitlement(){
  const {user,token}=await crmAuthenticatedSession();
