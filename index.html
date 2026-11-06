@@ -1484,7 +1484,7 @@ $("crmRecoveryForm").onsubmit=async event=>{
  }catch(e){$("crmRecoveryStatus").textContent=String(e.message||e)}
  finally{btn.disabled=false}
 };
-void crmHandleRecoveryCallback();
+// Recovery callback is initialized after all screen/navigation bindings.
 // Merkezi lisans kararı: ödeme altyapısı devreye girene kadar yalnızca durum okur.
 async function crmCheckEntitlement(){
  const {user,token}=await crmAuthenticatedSession();
@@ -1641,6 +1641,7 @@ $("quickAddReminder").addEventListener("click",()=>quickDo("agenda","addTask"));
 $("quickDownloadBackup").addEventListener("click",()=>quickDo("account","crmFullExport"));
 window.addEventListener("hashchange",()=>showScreen(location.hash.slice(1)));
 showScreen(location.hash.slice(1));
+void crmHandleRecoveryCallback();
 
 </script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
