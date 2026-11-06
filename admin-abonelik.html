@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>EmlakCRM · Abonelik Yönetimi</title>
+<style>
+:root{font:16px/1.5 system-ui,Segoe UI,sans-serif;color:#19354a;background:#f2f5fa}*{box-sizing:border-box}
+body{margin:0}header{background:#143653;color:white;padding:24px}main{max-width:1000px;margin:auto;padding:24px}
+h1{font-size:25px;margin:0}h2{font-size:19px}.muted{color:#64788a}.panel{background:white;padding:22px;border-radius:14px;border:1px solid #dce5ed;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{font-size:30px;font-weight:750;color:#115a76}
+label{display:block;font-weight:600;margin:12px 0 5px}input{width:100%;padding:11px;border:1px solid #b8cad7;border-radius:9px;font:inherit;max-width:430px}
+button{border:0;background:#ed8625;color:#151e25;border-radius:9px;font:inherit;font-weight:700;padding:10px 16px;cursor:pointer;margin-top:12px}
+button:disabled{opacity:.55;cursor:wait}.secondary{background:#e8eff4}.error{color:#ae2828}.success{color:#116e4a}
+[hidden]{display:none!important}footer{font-size:13px;color:#687c8c;margin-top:24px}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:420px){.grid{grid-template-columns:1fr}}
+.remember-row{display:flex;align-items:center;gap:8px}.remember-row input{width:18px;height:18px;flex:none}.remember-note{font-size:13px;margin:0 0 9px}</style></head><body>
+<header><h1>EmlakCRM · Abonelik Yönetimi</h1><div>Yalnızca yetkili Süper Yöneticiler</div></header>
+<main>
+<section class="panel" id="loginSection">
+<h2>Yönetici girişi</h2><p class="muted">Supabase'de yetkili hesabınızın e-posta ve parolasıyla giriş yapın. Giriş bilgileri yalnızca kimlik doğrulama servisine gönderilir; bu sayfada saklanmaz.</p>
+<form id="loginForm"><label for="email">E-posta</label><input type="email" id="email" required autocomplete="username">
+<label for="password">Parola</label><input type="password" id="password" required autocomplete="current-password">
+<label class="remember-row"><input type="checkbox" id="rememberMe"> Oturum açık kalsın</label><p class="muted remember-note">Bu cihazda tekrar giriş yapmadan devam eder. Ortak bilgisayarda işaretlemeyin.</p><div><button id="loginButton" type="submit">Giriş yap</button></div></form></section>
+<section id="dashboard" hidden>
+<div class="panel"><strong>Yönetici oturumu açık</strong> <button class="secondary" id="logoutButton">Çıkış yap</button> <button id="refreshButton">Yenile</button>
+<p class="muted">Bu ekran yalnızca doğrulanmış, toplulaştırılmış abonelik sayılarını gösterir. Ödeme veya abonelik değiştirme özelliği yoktur.</p></div>
+<div class="grid">
+<div class="panel"><div class="muted">Toplam abonelik</div><div class="metric" id="total">—</div></div>
+<div class="panel"><div class="muted">Aktif abonelik</div><div class="metric" id="active">—</div></div>
+<div class="panel"><div class="muted">30 günde bitecek</div><div class="metric" id="expiring">—</div></div>
+<div class="panel"><div class="muted">Ödeme olayı</div><div class="metric" id="events">—</div></div></div>
+<p class="muted" id="asof"></p></section>
+<p id="message" role="status" aria-live="polite"></p>
+<div class="panel"><strong>Abonelik koşulları:</strong> 750 TL (KDV dahil), 12 ay; otomatik yenileme yok.
+<p class="muted">iyzico doğrulaması ve otomatik aktivasyon henüz devrede değil. Bu sayfa ödeme kabul etmez.</p></div>
+<footer>Geliştirme dalı · Özel yönetici arayüzü · Canlı ödeme veya PDF İmzala işleyişini değiştirmez.</footer>
+</main>
+<script>
+"use strict";
+const base="https://tffvwxskvjuxoekwgdef.supabase.co";
+const publicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const storageKey="emlakcrm.admin.session.v2";
+const el=n=>document.getElementById(n);
+let auth=null,remember=false,epoch=0;
+function note(s,err=false){el("message").textContent=s;el("message").className=err?"error":"success";}
+function wipe(){sessionStorage.removeItem(storageKey);localStorage.removeItem(storageKey);}
+function store(){wipe();if(auth)(remember?localStorage:sessionStorage).setItem(storageKey,JSON.stringify(auth));}
+function view(open){el("loginSection").hidden=open;el("dashboard").hidden=!open;if(!open){for(const k of ["total","active","expiring","events"])el(k).textContent="—";el("asof").textContent="";}}
+function reset(s="Oturum kapatıldı.",err=false){epoch++;auth=null;wipe();el("password").value="";view(false);note(s,err);}
+async function authPost(path,data){const r=await fetch(base+"/auth/v1/"+path,{method:"POST",headers:{"apikey":publicKey,"content-type":"application/json"},body:JSON.stringify(data),cache:"no-store"});if(!r.ok)throw Error("bad_auth");return r.json();}
+function assign(d){if(!d.access_token||!d.refresh_token)throw Error("bad_auth");auth={access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Math.floor(Date.now()/1000)+Number(d.expires_in||3600)};}
+async function rotate(){if(!auth?.refresh_token)throw Error("bad_auth");const d=await authPost("token?grant_type=refresh_token",{refresh_token:auth.refresh_token});assign(d);store();}
+async function query(retry=false){
+ if(!auth)throw Error("bad_auth");
+ if(auth.expires_at<=Date.now()/1000+60)await rotate();
+ const r=await fetch(base+"/functions/v1/emlakcrm-admin-overview",{headers:{"apikey":publicKey,"authorization":"Bearer "+auth.access_token},cache:"no-store"});
+ if(r.status===401&&!retry){await rotate();return query(true);}
+ if(r.status===401)throw Error("bad_auth");
+ if(r.status===403)throw Error("forbidden");
+ if(!r.ok)throw Error("unavailable");
+ const data=await r.json(),fields={total:"subscriptions_total",active:"subscriptions_active",expiring:"subscriptions_expiring_30_days",events:"payment_events_total"};
+ for(const [field,key] of Object.entries(fields)){if(!Number.isInteger(data[key])||data[key]<0)throw Error("unavailable");el(field).textContent=String(data[key]);}
+ el("asof").textContent="Güncelleme: "+new Date(data.as_of).toLocaleString("tr-TR");
+}
+async function refresh(){if(!auth)return;const ownEpoch=epoch;el("refreshButton").disabled=true;note("Veriler getiriliyor...");
+ try{await query();if(ownEpoch!==epoch)return;store();view(true);note("Veriler güncellendi.");}
+ catch(e){if(ownEpoch!==epoch)return;if(e.message==="forbidden")reset("Bu hesapta Süper Yönetici yetkisi yok.",true);else if(e.message==="bad_auth")reset("Oturum süresi doldu. Yeniden giriş yapın.",true);else note("Veriler alınamadı; tekrar deneyin.",true);}
+ finally{el("refreshButton").disabled=false;}}
+el("loginForm").addEventListener("submit",async e=>{e.preventDefault();el("loginButton").disabled=true;note("Giriş doğrulanıyor...");
+ try{const d=await authPost("token?grant_type=password",{email:el("email").value.trim(),password:el("password").value});assign(d);remember=el("rememberMe").checked;el("password").value="";await refresh();}
+ catch{reset("Giriş yapılamadı. E-posta veya parola hatalı olabilir.",true);}
+ finally{el("loginButton").disabled=false;}});
+el("logoutButton").addEventListener("click",async()=>{const token=auth?.access_token;reset();if(token){try{await fetch(base+"/auth/v1/logout",{method:"POST",headers:{"apikey":publicKey,"authorization":"Bearer "+token}});}catch{}}});
+el("refreshButton").addEventListener("click",refresh);
+(async()=>{try{let raw=sessionStorage.getItem(storageKey);remember=false;if(!raw){raw=localStorage.getItem(storageKey);remember=!!raw;}if(!raw)return;
+ const saved=JSON.parse(raw);if(!saved.access_token||!saved.refresh_token){wipe();return;}auth=saved;el("rememberMe").checked=remember;await refresh();}
+ catch{reset("Oturum geri yüklenemedi. Yeniden giriş yapın.",true);}})();
+</script></body></html>

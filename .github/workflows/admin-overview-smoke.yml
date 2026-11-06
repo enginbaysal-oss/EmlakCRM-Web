@@ -1,0 +1,13 @@
+name: Admin API smoke
+on:
+  push:
+    branches: [feature/abonelik-yonetim-paneli-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tests/admin-overview-smoke.mjs
