@@ -148,6 +148,8 @@ body.recording-clean .captionEditor{display:none!important}
 <button id="reset" type="button" disabled>↺ Kamerayı sıfırla</button>
 <button id="record" type="button">● Video kaydet</button>
 <button id="editCaptions" type="button">✎ Video yazılarını düzenle</button>
+<button id="playLastRecording" type="button" disabled>▶ Son kaydı izle</button>
+<button id="shareLastRecording" type="button" disabled>📤 WhatsApp’tan gönder</button>
 <button id="stopRecord" class="danger wide" type="button" hidden>■ Kaydı bitir ve videoyu indir</button>
 </div>
 <div class="rangeLabel"><label for="pitch">Kamera açısı</label><output id="pitchOutput">75°</output></div>
@@ -826,6 +828,45 @@ window.addEventListener("drop",e=>{
  if(!e.dataTransfer?.files?.length)return;
  e.preventDefault();void importParcelFile(e.dataTransfer.files[0]);
 });
+// Son video yalnızca bu sayfa açıkken bellekte tutulur; paylaşım kullanıcı etkileşimi gerektirir.
+let lastDroneVideo=null;
+let lastDroneVideoUrl=null;
+function setLastDroneVideo(blob,filename){
+ if(lastDroneVideoUrl)URL.revokeObjectURL(lastDroneVideoUrl);
+ lastDroneVideo={blob,filename};
+ lastDroneVideoUrl=URL.createObjectURL(blob);
+ $("playLastRecording").disabled=false;
+ $("shareLastRecording").disabled=false;
+}
+$("playLastRecording").addEventListener("click",()=>{
+ if(!lastDroneVideoUrl)return;
+ const viewer=window.open(lastDroneVideoUrl,"_blank");
+ if(!viewer){
+  const video=document.createElement("video");
+  video.controls=true;video.autoplay=true;video.playsInline=true;
+  video.src=lastDroneVideoUrl;
+  video.style.cssText="position:fixed;inset:5%;width:90%;height:90%;z-index:99999;background:#000";
+  const close=document.createElement("button");
+  close.textContent="✕ Kapat";
+  close.style.cssText="position:fixed;right:7%;top:6%;z-index:100000;padding:12px";
+  close.onclick=()=>{video.pause();video.remove();close.remove()};
+  document.body.append(video,close);
+ }
+});
+$("shareLastRecording").addEventListener("click",async()=>{
+ if(!lastDroneVideo)return;
+ const file=new File([lastDroneVideo.blob],lastDroneVideo.filename,{type:lastDroneVideo.blob.type||"video/webm"});
+ try{
+  if(navigator.canShare?.({files:[file]})&&navigator.share){
+   await navigator.share({files:[file],title:"EmlakCRM Drone Çekim"});
+   return;
+  }
+ }catch(e){
+  if(e?.name==="AbortError")return;
+ }
+ status("Bu tarayıcı video dosyasını doğrudan paylaşamıyor. Video indiriliyor; WhatsApp'ta dosya olarak ekleyebilirsiniz.");
+ const a=document.createElement("a");a.href=lastDroneVideoUrl;a.download=lastDroneVideo.filename;document.body.appendChild(a);a.click();a.remove();
+});
 // Kayit yalnizca 'Bu sekme'de, temiz harita modunda yapilir.
 // Kontroller video icin gizlenir; tur sonunda otomatik kayit durur.
 async function startRecording(){
@@ -861,11 +902,12 @@ async function startRecording(){
    if(!flying)document.body.classList.remove("recording-clean");
    if(chunks.length){
     const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
-    const url=URL.createObjectURL(blob),link=document.createElement("a");
-    link.href=url;link.download="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+(recorder.mimeType?.startsWith("video/mp4")?".mp4":".webm");
+    const filename="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+(recorder.mimeType?.startsWith("video/mp4")?".mp4":".webm");
+    setLastDroneVideo(blob,filename);
+    const link=document.createElement("a");
+    link.href=lastDroneVideoUrl;link.download=filename;
     document.body.appendChild(link);link.click();link.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-    status(recorder.mimeType?.startsWith("video/mp4")?"MP4 video indirildi; menuler videoya girmedi.":"Tarayiciniz dogrudan MP4 kaydini desteklemiyor. WebM video indirildi; MP4 icin donusturme gerekiyor.");
+    status("Video hazır: Son kaydı izle veya WhatsApp’tan gönder. İndirme de başlatıldı; dosya görünmüyorsa tarayıcı indirmelerini kontrol edin.");
    }else status("Kayit bos olustu. Tekrar 'Bu sekme' secimini deneyin.");
   };
   recorder.onerror=()=>{status("Video kaydinda bir hata olustu.");stopRecording()};
