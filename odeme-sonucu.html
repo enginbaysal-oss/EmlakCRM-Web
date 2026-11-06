@@ -37,6 +37,16 @@ async function status(){
   if(data.status==="paid"&&data.subscription_active){title.textContent="Ödeme onaylandı";detail.textContent="12 aylık EmlakCRM aboneliğiniz etkinleştirildi. Uygulamayı kullanabilirsiniz.";return}
   if(data.status==="paid"&&data.payment_confirmed===true&&!data.subscription_active){title.textContent="Ödeme doğrulandı, abonelik aktif değil";detail.textContent="Ödeme kaydınız var ancak abonelik şu anda aktif görünmüyor. Yeniden ödeme yapmayın; EmlakCRM destek ekibiyle iletişime geçin.";return}
   if(data.status==="failed"){title.textContent="Ödeme tamamlanamadı";detail.textContent="Abonelik etkinleştirilmedi. Kartınızdan ödeme alındığını düşünüyorsanız yeniden ödeme denemeden önce destekle iletişime geçin.";return}
+  if(response.status===202 || data.message==="verification_pending"){
+   title.textContent="Ödeme sonucu doğrulanamıyor";
+   detail.textContent="Ödeme sağlayıcısından kesin sonuç alınamadı. Bu, ödemenin başarılı veya başarısız olduğunu kanıtlamaz. Yeniden ödeme yapmayın; EmlakCRM destek ekibiyle iletişime geçin.";
+   return;
+  }
+  if(data.status==="review"){
+   title.textContent="Ödeme incelemede";
+   detail.textContent="Ödeme sağlayıcısı ek inceleme gerektiriyor. Abonelik henüz açılmadı. Yeniden ödeme yapmayın; destekle iletişime geçin.";
+   return;
+  }
   title.textContent="Ödeme doğrulaması bekleniyor";
   detail.textContent="Ödeme sonucu henüz kesinleşmedi. Aynı ödemeyi tekrar yapmayın; kısa süre sonra durumu yeniden kontrol edin.";
  }catch{title.textContent="Durum şu an öğrenilemedi";detail.textContent="Bu sonuç ödeme başarısız demek değildir. Yeniden ödeme yapmadan önce tekrar kontrol edin."}
