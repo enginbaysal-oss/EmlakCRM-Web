@@ -46,14 +46,15 @@ const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
 const result=byId("result"),pay=byId("pay");
-let approvedDiscount=false,discountStatus="none",paymentReady=false;
+let approvedDiscount=false,discountStatus="none",paymentReady=false,discountReady=false;
 function updatePaymentUi(){
- const holding=discountStatus==="pending"||discountStatus==="approved";
- pay.disabled=!paymentReady||holding;
+ const holding=discountStatus==="pending";
+ pay.disabled=!paymentReady||!discountReady||holding;
  byId("checkoutNotice").textContent=discountStatus==="pending"
   ?"Ofis indirim talebiniz onay bekliyor. Yanlış tutarda ödeme yapılmasını önlemek için ödeme geçici olarak kapalı."
   :discountStatus==="approved"
-  ?"500 TL indirimli ödemeniz hazırlık aşamasında. Bu tutar etkinleşene kadar ödeme yapılmayacaktır."
+  ?(paymentReady&&discountReady?"İndiriminiz onaylı. iyzico güvenli ekranında 500 TL tutarında gerçek ödeme başlatabilirsiniz.":"İndirimli ödeme uygunluğu kontrol ediliyor.")
+  :!discountReady?"Hesabınızın ödeme uygunluğu kontrol ediliyor."
   :paymentReady
   ?"Devam ettiğinizde iyzico üzerinden 750 TL tutarında gerçek bir ödeme başlatabilirsiniz."
   :"Canlı ödeme şu anda kullanılamıyor.";
@@ -70,15 +71,18 @@ function discountPrice(approved){
  updatePaymentUi();
 }
 async function checkDiscount(){
+ discountReady=false;updatePaymentUi();
  try{const status=await discountRpc("emlakcrm_my_office_discount",{});
+ if(!["none","pending","approved","rejected"].includes(status))throw Error("İndirim durumu doğrulanamadı.");
  discountStatus=status;
+ discountReady=true;
  discountPrice(status==="approved");
- byId("discountStatus").textContent=status==="approved"?"Ofis indiriminiz onaylandı. Yıllık fiyatınız 500 TL. İndirimli ödeme bağlantısı etkinleşene kadar ödeme yapmayın.":status==="pending"?"Talebiniz Süper Yönetici onayını bekliyor. Henüz indirimli ödeme yapmayın.":status==="rejected"?"İndirim talebiniz reddedildi.": "Ofis üyeliğiniz için kutuyu işaretleyip onay talebi gönderebilirsiniz.";
+ byId("discountStatus").textContent=status==="approved"?"Ofis indiriminiz onaylandı! Yıllık abonelik 500 TL. Ödeme ekranından devam edebilirsiniz.":status==="pending"?"Talebiniz Süper Yönetici onayını bekliyor. Onaylandığında ödeme açılacaktır.":status==="rejected"?"İndirim talebiniz reddedildi. Standart abonelik fiyatı geçerlidir.":"Ofise özel indirim istiyorsanız kutuyu işaretleyip talep gönderin.";
  const finalStatus=status==="pending"||status==="approved";
  byId("isIlyadaMember").disabled=finalStatus;
  byId("discountApply").disabled=finalStatus||!byId("isIlyadaMember").checked;
  updatePaymentUi();
- }catch{byId("discountStatus").textContent="İndirim durumunu görmek için önce giriş yapın."}
+ }catch{discountReady=false;updatePaymentUi();byId("discountStatus").textContent="Ödeme uygunluğu doğrulanamadı. EmlakCRM hesabınıza giriş yapıp bu sayfayı yenileyin."}
 }
 byId("isIlyadaMember").addEventListener("change",()=>{
  byId("discountApply").disabled=!byId("isIlyadaMember").checked;
@@ -112,9 +116,20 @@ async function availability(){
 }
 byId("checkout").addEventListener("submit",async e=>{
  e.preventDefault();if(pay.disabled)return;
- if(discountStatus==="pending"||approvedDiscount){result.textContent="Ofis indirim talebiniz için ödeme henüz aktif değil. Lütfen ödeme yapmayın.";result.className="error";return;}
+ if(discountStatus==="pending"||!discountReady){result.textContent="Ödeme için ofis indirim talebinizin sonucunu bekleyin.";result.className="error";return;}
  const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
- pay.disabled=true;result.textContent="İyzico güvenli ödeme sayfası hazırlanıyor…";result.className="muted";
+ pay.disabled=true;result.textContent="İndirim ve ödeme tutarı sunucudan doğrulanıyor…";result.className="muted";
+ try{
+  const latest=await discountRpc("emlakcrm_my_office_discount",{});
+  if(!["none","pending","approved","rejected"].includes(latest))throw Error("discount_state_invalid");
+  if(latest!==discountStatus){
+   discountStatus=latest;discountPrice(latest==="approved");
+   result.textContent="Abonelik fiyatınız güncellendi. Lütfen tutarı kontrol edip tekrar devam edin.";
+   result.className="muted";updatePaymentUi();return;
+  }
+  if(latest==="pending"){result.textContent="Ofis indirim talebiniz onay bekliyor.";result.className="muted";return;}
+  result.textContent="iyzico güvenli ödeme sayfası hazırlanıyor…";
+ }catch{result.textContent="Ödeme uygunluğu kontrol edilemedi. Lütfen tekrar giriş yapın.";result.className="error";updatePaymentUi();return;}
  const fields=["name","surname","identityNumber","gsmNumber","city","zipCode","address"];
  const body=Object.fromEntries(fields.map(x=>[x,byId(x).value.trim()]));body.discount_code=approvedDiscount?"ILYADA3":"";
  try{
@@ -140,13 +155,19 @@ byId("checkout").addEventListener("submit",async e=>{
     result.textContent="Ödeme işleminiz başka bir istekte hazırlanıyor. Biraz sonra durumu kontrol edin.";
     result.className="muted";return;
    }
+   if(data.error==="discount_approval_pending"){
+    discountStatus="pending";updatePaymentUi();
+    result.textContent="Ofis indirim talebiniz yönetici onayını bekliyor.";result.className="muted";return;
+   }
    throw Error("payment_not_ready");
   }
+  const expectedAmount=approvedDiscount?50000:75000;
+  if(data.amount_kurus!==undefined&&data.amount_kurus!==expectedAmount)throw Error("unexpected_payment_amount");
   const url=new URL(data.payment_page_url);
   if(url.protocol!=="https:"||!(url.hostname==="iyzipay.com"||url.hostname.endsWith(".iyzipay.com")||
    url.hostname==="iyzico.com"||url.hostname.endsWith(".iyzico.com")))throw Error("invalid_redirect");
   window.location.assign(url.href);
- }catch{result.textContent="Ödeme başlatılamadı. Lütfen tekrar denemeden önce destekle iletişime geçin.";result.className="error";pay.disabled=false}
+  }catch{result.textContent="Ödeme başlatılamadı. Lütfen tekrar denemeden önce destekle iletişime geçin.";result.className="error";updatePaymentUi()}
 });
 void availability();void checkDiscount();
 </script></body></html>
