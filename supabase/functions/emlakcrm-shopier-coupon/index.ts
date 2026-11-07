@@ -65,12 +65,15 @@ function formatCode(){
  return "E3"+Array.from(bytes,v=>v.toString(16).padStart(2,"0")).join("").toUpperCase();
 }
 async function checkProviderExisting(code:string){
- // Can recover a coupon if Shopier accepted create but our DB update was interrupted.
- for(let page=1;page<=5;page++){
-  const pageItems=listCoupons(await shopier("GET","discounts/codes?limit=100&page="+page));
+ // Shopier API max page size is 50 (100 leads to HTTP 400).
+ // Read up to 10 pages and fail closed if there are more,
+ // so an interrupted creation cannot silently produce duplicate codes.
+ const PAGE_SIZE=50;
+ for(let page=1;page<=10;page++){
+  const pageItems=listCoupons(await shopier("GET","discounts/codes?limit="+PAGE_SIZE+"&page="+page));
   const match=pageItems.find(x=>x&&x.code===code);
   if(match)return match;
-  if(pageItems.length<100)return null;
+  if(pageItems.length<PAGE_SIZE)return null;
  }
  throw Error("provider_coupon_lookup_incomplete");
 }
