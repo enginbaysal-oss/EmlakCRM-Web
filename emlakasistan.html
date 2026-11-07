@@ -62,7 +62,7 @@
 <p class="warn note">Şablonlar tarayıcınızda saklanır; JSON yedeğini koruyun. Dosyalar sunucuya gönderilmez. Gerçek müşteri verileri için henüz güvenli oturum ve saklama altyapısı yoktur. İmza çizimi nitelikli elektronik imza değildir.</p></div></details></div>
 <p class="note" id="status" role="status">Kaydedilmiş şablonlar kontrol ediliyor…</p>
 </section>
-<section id="officeTemplateGift" hidden aria-live="polite"><strong>🎁 İlyada 3 Hediyesi: 7 RE/MAX Belge Şablonu</strong><p>İlyada 3 danışmanlığın onaylandı. Yöneticinizden aldığınız RE/MAX JSON dosyasını bir kez içe aktarın; yedi yeni şablon mevcut belgelerinize eklensin.</p><button id="officeJsonImport" type="button">Hediye JSON Paketini Yükle</button></section>
+<section id="officeTemplateGift" hidden aria-live="polite"><strong>🎁 İlyada 3'e Özel RE/MAX Şablonları</strong><p>Ofis paketin hazır. Dosya indirmen veya seçmen gerekmiyor. Tek tuşla belgelerine ekleyebilir, güncellemeleri alabilirsin.</p><button id="officeJsonImport" type="button">RE/MAX Şablonlarını Ekle / Güncelle</button><p id="officeGiftResult" role="status" aria-live="polite"></p></section>
 <section id="workspace" class="hide"><section class="card controls"><div class="actionBar"><span class="badge" id="count"></span><div class="tools"><button id="saveDraft" type="button">Taslağı kaydet</button><button id="loadDraft" type="button">Taslağı aç</button><button id="removeDraft" type="button" class="danger">Taslağı sil</button><button id="print" type="button" class="primaryAction">PDF Oluştur</button><button id="archiveOpen" type="button">Belge Arşivi</button></div></div></section><div class="card controls templatePicker"><label for="templates">BELGE ŞABLONU SEÇİNİZ</label><select id="templates" aria-label="Belge şablonu seçin"></select></div>
 <section class="card" id="fieldsCard"><h2 id="title">Belge alanları</h2><div class="fields" id="fields"></div></section><section id="viewer"><p class="note" style="text-align:center">✥ İmzayı tutup belge üzerinde istediğiniz yere taşıyabilirsiniz.</p><div id="pages"></div></section><div id="printAll" aria-hidden="true"></div><section class="card controls" id="pdfActions" hidden><h2>PDF arşive kaydedildi</h2><div class="tools"><button id="pdfSave">Kaydet</button><button id="pdfShare">WhatsApp ile Gönder</button></div></section><section class="card controls" id="pdfArchive" hidden><h2>Belge Arşivi</h2><p class="note">Belgeler bu cihazda saklanır. Uygulamayı kaldırmak arşivi silebilir.</p><div id="pdfArchiveItems"></div></section></section>
 </main><dialog id="signatureDialog" class="sigDialog"><h2 id="signatureTitle">İmza ekle</h2><p class="note">Fare veya parmağınızla imza çizin. Bu çizim, nitelikli elektronik imza değildir.</p><canvas id="signatureCanvas" class="sigCanvas" width="800" height="320"></canvas><p class="tools"><button id="signatureClear" type="button">Temizle</button><button id="signatureSave" type="button">İmzayı yerleştir</button><button id="signatureCancel" type="button">İptal</button></p></dialog><script>
@@ -71,27 +71,73 @@ const $=id=>document.getElementById(id);let templates=[],selected=-1,page=0,valu
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 const DB="emlakcrm_templates_v1",KEY="templates";
-$("officeJsonImport").addEventListener("click",()=>{$("manage").open=true;$("upload").click()});
+const OFFICE_STORAGE_BASE="https://tffvwxskvjuxoekwgdef.supabase.co";
+const OFFICE_STORAGE_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const OFFICE_REMAX_PATH="/storage/v1/object/emlakcrm-office-templates/ilyada3/remax-templates.json";
+function officeAccessToken(){
+  for(const [storage,key] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
+    try{const state=JSON.parse(storage.getItem(key)||"null");if(state?.access_token)return state.access_token}catch{}
+  }
+  return null;
+}
+async function officeCanLoadTemplates(token){
+  const r=await fetch(OFFICE_STORAGE_BASE+"/rest/v1/rpc/emlakcrm_can_access_remax_templates",{
+    method:"POST",headers:{"apikey":OFFICE_STORAGE_KEY,Authorization:"Bearer "+token,"content-type":"application/json"},
+    body:"{}",cache:"no-store"
+  });
+  if(!r.ok)return false;
+  return await r.json()===true;
+}
 (async function checkOfficeGift(){
   try{
-    const base="https://tffvwxskvjuxoekwgdef.supabase.co";
-    const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-    let saved=null;
-    for(const storage of [sessionStorage,localStorage]){
-      if(saved?.access_token)break;
-      try{saved=JSON.parse(storage.getItem(storage===sessionStorage?"emlakcrm_auth_session_v1":"emlakcrm_auth_remember_v1")||"null")}catch{}
-    }
-    if(!saved?.access_token)return;
-    const response=await fetch(base+"/rest/v1/rpc/emlakcrm_my_office_discount",{
-      method:"POST",
-      headers:{apikey:key,Authorization:"Bearer "+saved.access_token,"Content-Type":"application/json"},
-      body:"{}",cache:"no-store"
-    });
-    if(!response.ok)return;
-    const status=await response.json();
-    $("officeTemplateGift").hidden=status!=="approved";
+    const token=officeAccessToken();
+    if(token && await officeCanLoadTemplates(token))$("officeTemplateGift").hidden=false;
   }catch{}
 })();
+$("officeJsonImport").addEventListener("click",async()=>{
+  const button=$("officeJsonImport"),message=$("officeGiftResult");
+  button.disabled=true;message.textContent="Ofis yetkin kontrol ediliyor...";
+  try{
+    const token=officeAccessToken();
+    if(!token||!await officeCanLoadTemplates(token))throw Error("Bu paket yalnızca onaylı, aktif aboneliği olan İlyada 3 danışmanlarına açıktır.");
+    message.textContent="Şablonlar güvenli sunucudan alınıyor...";
+    const response=await fetch(OFFICE_STORAGE_BASE+OFFICE_REMAX_PATH,{
+      headers:{"apikey":OFFICE_STORAGE_KEY,Authorization:"Bearer "+token},
+      cache:"no-store"
+    });
+    if(!response.ok){
+      if(response.status===404)throw Error("Ofis yöneticisi henüz RE/MAX şablon paketini yüklememiş.");
+      if([401,403].includes(response.status))throw Error("Paket erişim yetkisi doğrulanamadı. Tekrar giriş yapın.");
+      throw Error("Paket şu an alınamadı (HTTP "+response.status+").");
+    }
+    const raw=await response.text();
+    if(raw.length>20*1024*1024)throw Error("Paket boyutu sınırı aşıldı.");
+    const incoming=JSON.parse(raw);
+    validate(incoming);
+    const current=await readSaved();
+    if(current.length)validate(current);
+    // Sadece aynı ID'deki resmî ofis şablonları güncellenir;
+    // diğer kullanıcı ve genel şablonlar asla topluca silinmez.
+    const mapped=new Map(current.map((t,i)=>[String(t.id||t.name),i]));
+    let added=0,updated=0;
+    const next=[...current];
+    for(const t of incoming){
+      const id=String(t.id||t.name);
+      if(mapped.has(id)){next[mapped.get(id)]=t;updated++}
+      else{mapped.set(id,next.length);next.push(t);added++}
+    }
+    if(next.length>50)throw Error("Toplam 50 şablon sınırı aşılıyor. Önce kullanılmayan özel şablonlarınızı arşivleyin.");
+    // Sadece yerel şablon veri deposunu güncelle; ödeme ve aboneliğe dokunma.
+    templates=next;
+    await save();
+    const bundled=await fetch(new URL("assets/emlakcrm-genel-sablonlar-8.json",window.location.href),{cache:"no-store"}).then(r=>r.ok?r.json():[]).catch(()=>[]);
+    const ids=new Set(templates.map(t=>String(t.id||t.name)));
+    templates=[...templates,...(Array.isArray(bundled)?bundled:[]).filter(t=>!ids.has(String(t.id||t.name)))].slice(0,50);
+    show();
+    message.textContent="Paket hazır: "+added+" yeni şablon eklendi, "+updated+" şablon güncellendi. Şablon listesinden belgeyi seçebilirsin.";
+  }catch(e){message.textContent="Paket açılamadı: "+e.message}
+  finally{button.disabled=false}
+});
 function storage(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>request.result.createObjectStore("items");request.onerror=()=>reject(request.error);request.onsuccess=()=>resolve(request.result)})}
 async function readSaved(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readonly");const req=tx.objectStore("items").get(KEY);req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()})}
 async function save(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readwrite");tx.objectStore("items").put(templates,KEY);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)})}
