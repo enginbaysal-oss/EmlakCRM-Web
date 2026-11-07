@@ -366,22 +366,22 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <div class="view-screen" id="accountView" hidden>
 <div class="bar"><h2>⚙️ Ayarlar</h2></div>
 <section class="card accountPanel">
-<div class="accountHead"><div class="accountAvatar">👤</div><div><h3>Hesap / Giriş / Kayıt</h3><p class="muted">Tek yerden hesap oluştur, giriş yap ve ofisine katıl.</p></div></div>
+<div class="accountHead"><div class="accountAvatar">👤</div><div><h3>Hesap / Giriş / Kayıt</h3><p class="muted">Hesabına giriş yap, aboneliğini kontrol et ve EmlakCRM'yi kullan.</p></div></div>
 <div class="accountInfo">
 <div><span>Oturum durumu</span><strong id="accountSessionStatus">Kontrol ediliyor</strong></div>
 <div><span>Abonelik durumu</span><strong id="accountSubscriptionStatus">Giriş bekleniyor</strong></div>
 <div><span>Veri saklama</span><strong>Bu tarayıcıda</strong></div>
 </div>
 <section class="card" aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
-<h3 style="margin:0 0 8px">EmlakCRM Yıllık Abonelik</h3>
+<h3 style="margin:0 0 8px">Tek Paket · EmlakCRM Yıllık Abonelik</h3>
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(KDV dahil / 12 ay)</span></p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
 <p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a></p>
-<p style="margin:10px 0"><a href="abonelik-satin-al.html" style="color:#116f96;font-weight:700">750 TL abonelik ödeme ekranı</a></p>
-<p class="muted" style="font-size:13px">Otomatik yenileme yoktur. Güvenli ödeme sayfası canlı durumu sunucudan kontrol eder. Yalnızca doğrulanmış başarılı ödeme sonrasında 12 aylık lisans başlatılır.</p>
+<p style="margin:12px 0"><a href="abonelik-satin-al.html" style="display:inline-block;background:#ef8926;color:#1b3346;padding:12px 16px;border-radius:11px;text-decoration:none;font-weight:800">Abonelik İşlemlerine Geç →</a></p>
+<p class="muted" style="font-size:13px">12 ay kullanım, tek ödeme, otomatik yenileme yok. Onaylı İlyada 3 danışmanlarına özel 500 TL fiyat ve 7 RE/MAX JSON şablonu hediyesi vardır. İndirimi Süper Yönetici tanımlar. Ödeme ancak iyzico doğrulamasından sonra aboneliği açar.</p>
 </section>
-<p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme, abonelik ve ödeme henüz hazır değil.</p>
+<p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme henüz mevcut değildir; canlı ödeme durumunu abonelik sayfası gösterir.</p>
 <div class="accountCloud" id="crmInlineAuth">
 <h3>EmlakCRM Giriş / Kayıt</h3><p class="muted">Giriş işlemleri bu ekranda tamamlanır. Ayrı bir dosyaya geçilmez.</p>
 <div class="row" style="gap:8px"><button type="button" id="crmLoginTab" aria-pressed="true">Giriş Yap</button><button type="button" class="secondary" id="crmRegisterTab" aria-pressed="false">Hesap Oluştur</button></div>
@@ -1422,6 +1422,10 @@ $("crmInlineAuthForm").onsubmit=async event=>{
   $("crmInlinePassword").value="";$("crmInlinePasswordConfirm").value="";
   result.textContent="";
   await updateAccountStatus();
+  if(new URLSearchParams(location.search).get("checkout")==="1"){
+    location.assign("./abonelik-satin-al.html");
+    return;
+  }
  }catch(err){result.textContent="Giriş/kayıt yapılamadı: "+err.message}
  finally{btn.disabled=false}
 };
@@ -1514,7 +1518,7 @@ async function updateAccountStatus(){
   $("crmAdminPanelLink").hidden=entitlement.role!=="super_admin";
   if(entitlement.role==="super_admin"){sub.textContent="Süper Yönetici · Süresiz abonelik";licenseStart.textContent="Süresiz";licenseEnd.textContent="Süresiz";licenseMessage.textContent="Kurucu yönetici hesabı: ödeme zorunluluğu yok.";}
   else if(entitlement.allowed){sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";licenseEnd.textContent=new Date(entitlement.expiresAt).toLocaleDateString("tr-TR");licenseMessage.textContent="Aboneliğiniz aktif.";}
-  else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Ödeme sistemi henüz açık değil.";}
+  else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Abonelik işlemleri için yukarıdaki düğmeye basın.";}
  }catch(err){$("crmAdminPanelLink").hidden=true;licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
   if(status.textContent==="Oturum doğrulanıyor..."){crmClearAuthSession();status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
   else{sub.textContent="Abonelik kontrol edilemedi"}

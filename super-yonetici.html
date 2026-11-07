@@ -11,10 +11,22 @@
 <div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
 <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Liste yalnızca yetkili süper yöneticilere gösterilir. Ödeme ve lisans kayıtları burada değiştirilemez.</p>
 <div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
-<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th><th>İlyada 3</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
-<section class="card" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2>İlyada 3 · İndirim Onayları</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">RE/MAX İlyada 3 ofisinde çalıştığını belirten danışmanların 500 TL / 12 ay indirim talepleri. Her talep süper yönetici tarafından değerlendirilir.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
-<div class="notice">Bu ekranda yalnızca ofis indirim talepleri onaylanır veya reddedilir. Ücretli abonelik yalnızca doğrulanmış ödeme sonrasında aktifleştirilir.</div>
+<section class="card" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2>Önceki İlyada 3 İndirim Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">Önceki indirim talepleri. Yeni danışmanları yukarıdaki kullanıcı listesinden yalnızca siz onaylayabilirsiniz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
+<section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
+<h2>🎁 RE/MAX Şablon Paketini Yönet</h2>
+<p class="muted">Bu JSON dosyasını yalnızca Süper Yönetici yükleyebilir. Onaylı ve aktif abonelikli İlyada 3 danışmanları EmlakAsistan içerisinden tek tuşla kullanır. Paketi GitHub'a veya danışmanlara göndermene gerek yok.</p>
+<label for="remaxPackageFile" style="font-weight:700;display:block;margin:8px 0">RE/MAX JSON dosyan</label>
+<input id="remaxPackageFile" type="file" accept=".json,application/json" style="width:100%;margin:4px 0 12px" aria-label="RE/MAX şablon paketini seç">
+<div class="toolbar">
+<button id="remaxPackageUpload" type="button" disabled>Paketi Yükle / Güncelle</button>
+<button id="remaxPackageCheck" type="button">Paketi Kontrol Et</button>
+<button id="remaxPackageDelete" type="button" style="background:#a93b42">Paketi Kaldır</button>
+</div>
+<p id="remaxPackageStatus" class="muted" role="status" aria-live="polite">Paket kontrol edilecek.</p>
+</section>
+<div class="notice">İlyada 3 onayı yalnızca 500 TL fiyat ve RE/MAX şablon paketine hak kazandırır. Ücretli abonelik ancak doğrulanmış başarılı ödeme sonrasında aktifleştirilir.</div>
 </div></main>
 <script>
 "use strict";
@@ -23,7 +35,72 @@ const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const sessionKey="emlakcrm_auth_session_v1";
 const rememberedKey="emlakcrm_auth_remember_v1";
 const $=id=>document.getElementById(id);
-let userRows=[];let discountToken=null;
+let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();
+const RE_MAX_BUCKET="emlakcrm-office-templates";
+const RE_MAX_PATH="ilyada3/remax-templates.json";
+const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
+const remaxStatus=$("remaxPackageStatus");
+const remaxUpload=$("remaxPackageUpload");
+function remaxValidate(data){
+  if(!Array.isArray(data)||!data.length||data.length>50)throw Error("JSON, en fazla 50 belgelik şablon listesi olmalı.");
+  if(data.some(t=>!t||typeof t.name!=="string"||!t.name.trim()||!Array.isArray(t.pages)||!t.pages.length||
+    !Array.isArray(t.fields)||t.pages.some(page=>typeof page!=="string"||!page.startsWith("data:image/"))))
+    throw Error("Şablon biçimi EmlakAsistan ile uyumlu değil.");
+}
+function remaxHeaders(token){return {apikey:apiKey,Authorization:"Bearer "+token}}
+async function remaxCheck(){
+  remaxStatus.textContent="Paket durumu kontrol ediliyor...";
+  try{
+    const token=await verifiedToken();
+    const response=await fetch(endpoint+"/storage/v1/object/list/"+RE_MAX_BUCKET,{
+      method:"POST",headers:{...remaxHeaders(token),"Content-Type":"application/json"},
+      body:JSON.stringify({prefix:"ilyada3",limit:20,offset:0}),cache:"no-store"
+    });
+    if(!response.ok)throw Error("Dosya listesi alınamadı (HTTP "+response.status+").");
+    const found=(await response.json()).find(o=>o.name==="remax-templates.json");
+    remaxStatus.textContent=found
+      ?"Hediye paketi yüklü ve erişime açık. Son güncelleme: "+fmt(found.updated_at)
+      :"Henüz hediye paketi yüklenmemiş. JSON dosyanı seçip yükle.";
+  }catch(e){remaxStatus.textContent="Paket durumu kontrol edilemedi: "+e.message}
+}
+$("remaxPackageFile").addEventListener("change",()=>{
+  const file=$("remaxPackageFile").files?.[0];
+  remaxUpload.disabled=!file;
+  if(file)remaxStatus.textContent="Seçilen dosya: "+file.name+" ("+Math.round(file.size/1024)+" KB). Yükle düğmesine bas.";
+});
+remaxUpload.addEventListener("click",async()=>{
+  const file=$("remaxPackageFile").files?.[0];if(!file)return;
+  remaxUpload.disabled=true;remaxStatus.textContent="Dosya doğrulanıyor...";
+  try{
+    if(file.size>20*1024*1024)throw Error("JSON paketi 20 MB'dan büyük olamaz.");
+    const body=await file.text(),data=JSON.parse(body);remaxValidate(data);
+    const token=await verifiedToken();
+    if(!confirm(data.length+" RE/MAX şablonu İlyada 3 danışmanlarının erişimine açılsın mı? Önceki paket varsa güncellenecek."))return;
+    remaxStatus.textContent="Paket güvenli alana yükleniyor...";
+    const response=await fetch(RE_MAX_OBJECT,{
+      method:"POST",headers:{...remaxHeaders(token),"Content-Type":"application/json","x-upsert":"true"},
+      body,cache:"no-store"
+    });
+    if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||"Yükleme başarısız (HTTP "+response.status+").")}
+    $("remaxPackageFile").value="";
+    remaxStatus.textContent=data.length+" şablon yüklendi. İlyada 3 üyeleri artık EmlakAsistan'dan paketi açabilir.";
+  }catch(e){remaxStatus.textContent="JSON yüklenemedi: "+e.message}
+  finally{remaxUpload.disabled=!$("remaxPackageFile").files?.length}
+});
+$("remaxPackageCheck").addEventListener("click",remaxCheck);
+$("remaxPackageDelete").addEventListener("click",async()=>{
+  if(!confirm("RE/MAX hediye paketini erişimden kaldırmak istediğine emin misin? Kullanıcıların önceden indirdiği yerel kopyalar geri alınamaz."))return;
+  remaxStatus.textContent="Paket kaldırılıyor...";
+  try{
+    const token=await verifiedToken();
+    const response=await fetch(endpoint+"/storage/v1/object/"+RE_MAX_BUCKET,{
+      method:"DELETE",headers:{...remaxHeaders(token),"Content-Type":"application/json"},
+      body:JSON.stringify({prefixes:[RE_MAX_PATH]}),cache:"no-store"
+    });
+    if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||"Silme başarısız (HTTP "+response.status+").")}
+    remaxStatus.textContent="Paket sunucudan kaldırıldı. Yeni indirme yapılamaz.";
+  }catch(e){remaxStatus.textContent="Paket kaldırılamadı: "+e.message}
+});
 async function discountRpc(name,body,token){
  const response=await fetch(endpoint+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
  if(!response.ok)throw Error("İndirim işlemi gerçekleştirilemedi ("+response.status+").");
@@ -47,7 +124,9 @@ async function loadDiscounts(){
     }
    }tr.append(td);tbody.append(tr);
   }
-  $("discountMessage").textContent=items.length?items.length+" talep görüntüleniyor.":"Henüz indirim talebi yok.";
+  $("discountMessage").textContent=items.length?items.length+" ofis yetki kaydı.":"Henüz ofis onayı bulunmuyor.";
+   officeStatusByEmail=new Map(items.map(item=>[String(item.email||"").trim().toLowerCase(),item.status]));
+   render();
  }catch(e){$("discountMessage").textContent=e.message}
 }
 function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
@@ -65,7 +144,24 @@ function render(){
   addCell(tr,fmt(u.created_at));addCell(tr,fmt(u.last_sign_in_at));
   addCell(tr,status==="unlimited"?"Süresiz":fmt(u.starts_at));
   addCell(tr,status==="unlimited"?"Süresiz":fmt(u.expires_at));
-  addCell(tr,u.payment_provider||"—");$("rows").append(tr);
+  addCell(tr,u.payment_provider||"—");
+   const td=document.createElement("td"),email=String(u.email||"").trim().toLowerCase();
+   const officeState=officeStatusByEmail.get(email)||"none";
+   if(u.is_super_admin){td.textContent="Yönetici";}
+   else{
+     const approved=officeState==="approved";
+     const hint=document.createElement("div");hint.textContent=approved?"500 TL + RE/MAX JSON":officeState==="pending"?"Talep bekliyor":"750 TL standart";hint.className="muted";td.append(hint);
+     const btn=document.createElement("button");btn.type="button";btn.textContent=approved?"Ofis Yetkisini Kaldır":"İlyada 3 Olarak Onayla";btn.style.marginTop="6px";
+     btn.onclick=async()=>{
+       const message=approved?"İlyada 3 indirimi ve RE/MAX şablon hakkı kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
+       if(!confirm(u.email+"\n"+message))return;
+       btn.disabled=true;
+       try{const t=await verifiedToken();const status=await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:!approved},t);officeStatusByEmail.set(email,status);render()}
+       catch(e){alert("Ofis yetkisi güncellenemedi: "+e.message);btn.disabled=false}
+     };
+     td.append(btn);
+   }
+   tr.append(td);$("rows").append(tr);
  }
  $("empty").classList.toggle("hidden",filtered.length>0);
  $("total").textContent=userRows.length;$("admins").textContent=userRows.filter(u=>u.is_super_admin).length;
@@ -92,7 +188,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
