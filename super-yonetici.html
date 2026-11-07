@@ -14,6 +14,15 @@
 <div class="toolbar"><button type="button" id="shopierConnect" disabled>Shopier Bağlantısını Kur</button><button type="button" id="shopierCheck">Bağlantıyı Kontrol Et</button></div>
 <p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
 </section>
+<section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 özel Shopier ürünü">
+<h2>İlyada 3 · 500 TL Shopier Ürünü</h2>
+<p class="muted">Shopier'de 750 TL'lik ürünü <strong>Kopyala ve Çoğalt</strong> ile çoğalt. Yeni fiyatı <strong>500 TL (KDV dahil)</strong> yap. <strong>Özel Listeleme → Dükkandaki Görünürlük</strong> ayarını kapat. Ürün bağlantısını aşağıya kaydet.</p>
+<label for="shopierOfficeProductUrl" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün bağlantısı</label>
+<input id="shopierOfficeProductUrl" type="url" autocomplete="off" placeholder="https://www.shopier.com/enginbaysal/..." style="width:100%;max-width:650px">
+<div class="toolbar" style="margin-top:12px"><button type="button" id="shopierOfficeProductSave">Özel Ürün Bağlantısını Kaydet</button><button type="button" id="shopierOfficeProductCheck">Kontrol Et</button></div>
+<p class="muted" id="shopierOfficeProductMessage" role="status" aria-live="polite">Özel ürün bağlantısı kontrol ediliyor…</p>
+<p class="muted" style="font-size:13px">Ürünü vitrinden gizlemek gizli erişim garantisi değildir. Bu bağlantı ödeme ve abonelik eşleştirmesi tamamlanana kadar yalnızca yönetici ekranında tutulur.</p>
+</section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
 <p class="muted">Paketi bir kez sen yüklersin. İlyada 3 ofis onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
@@ -47,25 +56,41 @@ let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();
 const RE_MAX_BUCKET="emlakcrm-office-templates";
 const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
-async function shopierIssueCode(userId,token){
- const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-coupon",{
-  method:"POST",headers:{"apikey":apiKey,Authorization:"Bearer "+token,"content-type":"application/json"},
-  body:JSON.stringify({user_id:userId}),cache:"no-store"
- });
- const payload=await r.json().catch(()=>({}));
- if(!r.ok)throw Error("Shopier kodu hazırlanamadı ("+String(payload.reason||payload.error||r.status)+").");
- if(payload.status!=="issued"||!/^[A-Z0-9]{14}$/.test(payload.code||""))throw Error("Shopier kodu henüz doğrulanamadı.");
- return payload;
+async function officeShopierProductRequest(method,payload){
+ const token=await verifiedToken();
+ return discountRpc(method==="save"?"emlakcrm_admin_set_shopier_office_product":"emlakcrm_admin_shopier_office_product",payload||{},token);
 }
-async function shopierCodeForUser(userId,email,button){
- button.disabled=true;
+async function loadOfficeShopierProduct(){
+ const status=$("shopierOfficeProductMessage"),field=$("shopierOfficeProductUrl");
+ status.textContent="Özel ürün kontrol ediliyor…";
  try{
-  const token=await verifiedToken(),coupon=await shopierIssueCode(userId,token);
-  alert(email+" için Shopier kodu hazır. Kod danışmanın kendi abonelik ekranında görünecek.");
-  return coupon;
- }catch(e){alert("Ofis onayı korunuyor. Shopier kodu oluşturulamadı: "+e.message);return null}
- finally{button.disabled=false}
+  const j=await officeShopierProductRequest("get");
+  if(j?.status==="ready"&&typeof j.product_url==="string"){
+   field.value=j.product_url;
+   status.textContent="500 TL özel ürün bağlantısı kayıtlı. Ödeme aktivasyonu henüz devrede değil.";
+  }else{
+   field.value="";
+   status.textContent="500 TL özel ürün henüz kaydedilmedi.";
+  }
+ }catch(e){status.textContent="Bağlantı durumu kontrol edilemedi: "+e.message}
 }
+$("shopierOfficeProductCheck").addEventListener("click",loadOfficeShopierProduct);
+$("shopierOfficeProductSave").addEventListener("click",async()=>{
+ const field=$("shopierOfficeProductUrl"),status=$("shopierOfficeProductMessage"),button=$("shopierOfficeProductSave");
+ const v=field.value.trim();
+ if(!/^https:\/\/(?:www\.)?shopier\.com\/enginbaysal\/[0-9]{5,20}\/?$/.test(v)){
+  status.textContent="Lütfen kendi Shopier hesabınızdaki yeni ürünün tam bağlantısını girin.";return;
+ }
+ if(!confirm("Bu bağlantının 500 TL (KDV dahil) ürününe ait olduğunu ve Shopier mağazasında görünürlüğünün kapalı olduğunu doğruladınız mı?"))return;
+ button.disabled=true;status.textContent="Bağlantı kaydediliyor…";
+ try{
+  const j=await officeShopierProductRequest("save",{p_url:v});
+  if(j?.status!=="ready")throw Error("Kayıt doğrulanamadı");
+  field.value=j.product_url;
+  status.textContent="500 TL özel ürün bağlantısı kaydedildi. Abonelik aktivasyonu hâlâ test bekliyor.";
+ }catch(e){status.textContent="Bağlantı kaydedilemedi: "+e.message}
+ finally{button.disabled=false}
+});
 const shopierConnectBtn=$("shopierConnect");
 const shopierInfo=$("shopierConnectionInfo");
 async function shopierStatusRequest(method="GET"){
@@ -201,7 +226,7 @@ async function loadDiscounts(){
       btn.disabled=true;try{
         await discountRpc("emlakcrm_admin_review_discount",{p_request_id:item.id,p_approve:approved},discountToken);
         await loadDiscounts();
-        if(approved)await shopierCodeForUser(item.user_id,item.email,btn);
+
       }catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
      td.append(btn);
     }
@@ -243,16 +268,12 @@ function render(){
        try{
           const t=await verifiedToken(),nextState=await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:!approved},t);
           officeStatusByEmail.set(email,nextState);render();
-          if(!approved)await shopierCodeForUser(u.id,u.email,btn);
+
         }
        catch(e){alert("Ofis yetkisi güncellenemedi: "+e.message);btn.disabled=false}
      };
      td.append(btn);
-     if(approved){
-       const codeBtn=document.createElement("button");codeBtn.type="button";codeBtn.textContent="Shopier Kodunu Hazırla";codeBtn.style.marginTop="6px";codeBtn.style.marginLeft="6px";
-       codeBtn.onclick=()=>shopierCodeForUser(u.id,u.email,codeBtn);
-       td.append(codeBtn);
-     }
+
    }
    tr.append(td);$("rows").append(tr);
  }
@@ -281,7 +302,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
