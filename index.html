@@ -1422,6 +1422,10 @@ $("crmInlineAuthForm").onsubmit=async event=>{
   $("crmInlinePassword").value="";$("crmInlinePasswordConfirm").value="";
   result.textContent="";
   await updateAccountStatus();
+  if(new URLSearchParams(location.search).get("checkout")==="1"){
+    location.assign("./abonelik-satin-al.html");
+    return;
+  }
  }catch(err){result.textContent="Giriş/kayıt yapılamadı: "+err.message}
  finally{btn.disabled=false}
 };
