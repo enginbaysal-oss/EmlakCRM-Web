@@ -1,0 +1,12 @@
+project_id = "emlakcrm-web"
+
+# Only the intended payment function is deployed separately.
+# Existing callback/status verification settings must be preserved.
+[functions.emlakcrm-checkout-start]
+verify_jwt = true
+
+[functions.emlakcrm-checkout-callback]
+verify_jwt = false
+
+[functions.emlakcrm-checkout-status]
+verify_jwt = true
