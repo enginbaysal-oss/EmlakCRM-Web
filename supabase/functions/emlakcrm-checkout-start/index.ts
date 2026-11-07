@@ -6,13 +6,12 @@ const safeText=(v:unknown,max:number)=>typeof v==="string"&&v.trim().length>0&&v
 const checkoutCallback="https://tffvwxskvjuxoekwgdef.supabase.co/functions/v1/emlakcrm-checkout-callback";
 function buyerDetails(data:Record<string,unknown>,verifiedEmail:string){
  const name=safeText(data.name,100),surname=safeText(data.surname,100),
- identityNumber=safeText(data.identityNumber,25),gsmNumber=safeText(data.gsmNumber,20),
- address=safeText(data.address,350),city=safeText(data.city,80),
- zipCode=safeText(data.zipCode,15);
- if(!name||!surname||!identityNumber||!address||!city||
-  !/^\+?[0-9]{10,15}$/.test(gsmNumber)||!zipCode)
+ identityNumber=safeText(data.identityNumber,25),
+ address=safeText(data.address,350),city=safeText(data.city,80);
+ // Phone and postal code are optional under iyzico Checkout Form API.
+ if(!name||!surname||!identityNumber||!address||!city)
   throw Error("missing_billing_details");
- return {name,surname,identityNumber,gsmNumber,address,city,zipCode,email:verifiedEmail};
+ return {name,surname,identityNumber,address,city,email:verifiedEmail};
 }
 function clientIp(req:Request):string{
  // This value is forwarded by Supabase's gateway; never use it for authorization.
@@ -76,10 +75,10 @@ Deno.serve(async(req:Request)=>{
     currency:"TRY",paymentGroup:"PRODUCT",paymentChannel:"WEB",enabledInstallments:[1],
     callbackUrl:checkoutCallback,
     buyer:{id:user.id,name:buyer.name,surname:buyer.surname,identityNumber:buyer.identityNumber,
-      email:buyer.email,gsmNumber:buyer.gsmNumber,registrationAddress:buyer.address,
-      city:buyer.city,country:"Turkey",zipCode:buyer.zipCode,ip:clientIp(req)},
+      email:buyer.email,registrationAddress:buyer.address,
+      city:buyer.city,country:"Turkey",ip:clientIp(req)},
     billingAddress:{address:buyer.address,contactName:buyer.name+" "+buyer.surname,
-      city:buyer.city,country:"Turkey",zipCode:buyer.zipCode},
+      city:buyer.city,country:"Turkey"},
     basketItems:[{id:"EMLAKCRM-12AY",price,name:"EmlakCRM 12 Aylik Tek Seferlik Erisim",
       category1:"Yazilim",itemType:"VIRTUAL"}]
    };
