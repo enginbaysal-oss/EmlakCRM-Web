@@ -18,8 +18,8 @@ export async function classifyVerifiedResult(order:Order,result:Record<string,un
  if(!await verifyIyzicoResponse("retrieve",result,environment))throw Error("invalid_provider_signature");
  if(result.token!==order.provider_token ||result.conversationId!==order.id ||
     result.basketId!==order.id ||result.currency!=="TRY" ||
-    amountKurus(result.price)!==75000||amountKurus(result.paidPrice)!==75000||
-    order.amount_kurus!==75000||order.currency!=="TRY")
+    amountKurus(result.price)!==order.amount_kurus||amountKurus(result.paidPrice)!==order.amount_kurus||
+    ![50000,75000].includes(order.amount_kurus)||order.currency!=="TRY")
    throw Error("provider_order_amount_mismatch");
  if(result.paymentStatus==="FAILURE")return "failed";
  if(result.paymentStatus!=="SUCCESS")return "pending";
@@ -45,7 +45,7 @@ export async function reconcile(order:Order){
  // Only this server-side verified path calls the service-role-only RPC.
  const id=await db("POST","rpc/emlakcrm_activate_verified_checkout",{
   p_checkout_id:order.id,p_token:order.provider_token,p_payment_id:paymentId,
-  p_amount_kurus:75000,p_currency:"TRY"
+  p_amount_kurus:order.amount_kurus,p_currency:"TRY"
  });
  if(!validUuid(id))throw Error("activation_unconfirmed");
  return {status:"paid",subscription_id:id};
