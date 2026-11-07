@@ -3,29 +3,30 @@
 <title>Süper Yönetici | EmlakCRM</title><link rel="icon" href="./assets/emlakcrm-logo.svg" type="image/svg+xml">
 <style>
 :root{font:15px system-ui,Segoe UI,sans-serif;color:#17324d;background:#f2f6fb}*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(120deg,#102e50,#164768);color:#fff;padding:21px 16px}main{max-width:1120px;margin:0 auto;padding:18px 16px 42px}h1{font-size:24px;margin:10px 0 4px}h2{font-size:18px;margin:4px 0 14px}.muted{color:#64748b}header .muted{color:#d9eaf1}.back{display:inline-block;padding:11px 15px;background:#f76b12;color:#fff;border-radius:10px;text-decoration:none;font-weight:750}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px}.stat,.card{background:#fff;border:1px solid #dfe8f1;border-radius:14px;padding:17px;box-shadow:0 3px 14px #14385d08}.stat strong{font-size:30px;display:block;margin-top:7px}.stat span{font-size:12px;color:#66788c}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.toolbar input,.toolbar select{border:1px solid #cad7e3;border-radius:9px;padding:10px;font:inherit;background:#fff}.toolbar input{flex:2;min-width:170px}.toolbar select{min-width:160px}button{border:0;border-radius:9px;padding:10px 14px;background:#087e96;color:#fff;font-weight:700;cursor:pointer}button:disabled{opacity:.5}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:13px 10px;border-bottom:1px solid #e8edf3;font-size:13px;vertical-align:top}th{background:#f4f8fb;color:#486277}td{overflow-wrap:anywhere}.scroll{overflow-x:auto}.pill{display:inline-block;border-radius:50px;background:#e6eff5;color:#234761;font-size:12px;font-weight:700;padding:5px 9px}.pill.ok{background:#e5f7ef;color:#126842}.pill.warn{background:#fff0db;color:#945b10}.notice{border:1px solid #ead59b;background:#fff8e8;padding:12px;border-radius:10px;font-size:13px;margin:15px 0}#error{color:#a92c34;white-space:pre-wrap}#gate{margin:18px auto;max-width:650px}.hidden{display:none!important}@media(max-width:680px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{padding:9px 7px}}
-</style></head><body>
+.remax-package-summary{padding:12px 14px;border:1px solid #f0d3a5;background:#fff5e8;border-radius:10px;font-weight:750;color:#81540a}.remax-package-summary.ready{background:#ecf7f0;border-color:#b5ddc6;color:#186044}[hidden]{display:none!important}</style></head><body>
 <header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
 <div id="dashboard" class="hidden">
-<div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
-<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Liste yalnızca yetkili süper yöneticilere gösterilir. Ödeme ve lisans kayıtları burada değiştirilemez.</p>
-<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
-<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th><th>İlyada 3</th></tr></thead><tbody id="rows"></tbody></table></div>
-<p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
-<section class="card" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2>Önceki İlyada 3 İndirim Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">Önceki indirim talepleri. Yeni danışmanları yukarıdaki kullanıcı listesinden yalnızca siz onaylayabilirsiniz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
-<h2>🎁 RE/MAX Şablon Paketini Yönet</h2>
-<p class="muted">Bu JSON dosyasını yalnızca Süper Yönetici yükleyebilir. Onaylı ve aktif abonelikli İlyada 3 danışmanları EmlakAsistan içerisinden tek tuşla kullanır. Paketi GitHub'a veya danışmanlara göndermene gerek yok.</p>
+<h2>🎁 RE/MAX Şablon Paketi</h2>
+<p class="muted">Paketi bir kez sen yüklersin. İlyada 3 ofis onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
 <label for="remaxPackageFile" style="font-weight:700;display:block;margin:8px 0">RE/MAX JSON dosyan</label>
 <input id="remaxPackageFile" type="file" accept=".json,application/json" style="width:100%;margin:4px 0 12px" aria-label="RE/MAX şablon paketini seç">
 <div class="toolbar">
-<button id="remaxPackageUpload" type="button" disabled>Paketi Yükle / Güncelle</button>
+<button id="remaxPackageUpload" type="button" disabled>JSON Paketini Yükle</button>
 <button id="remaxPackageCheck" type="button">Paketi Kontrol Et</button>
-<button id="remaxPackageDelete" type="button" style="background:#a93b42">Paketi Kaldır</button>
+<button id="remaxPackageDelete" type="button" style="background:#a93b42" hidden disabled>Paketi Kaldır</button>
 </div>
-<p id="remaxPackageStatus" class="muted" role="status" aria-live="polite">Paket kontrol edilecek.</p>
+<p id="remaxPackageStatus" class="muted" role="status" aria-live="polite">Şablon dosyası seçmek için yukarıdaki alanı kullan.</p>
 </section>
+<div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
+<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Özel fiyat ve ofis onayı abonelik değildir. RE/MAX paketi yalnızca aktif aboneliği olan onaylı danışmanlara açılır.</p>
+<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th><th>İlyada 3</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
+<details class="card" style="margin-top:16px"><summary style="cursor:pointer;font-weight:750">Geçmiş İlyada 3 indirim talepleri (isteğe bağlı)</summary><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px"><h2>Önceki İlyada 3 İndirim Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">Önceki indirim talepleri. Yeni danışmanları yukarıdaki kullanıcı listesinden yalnızca siz onaylayabilirsiniz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></details>
+
 <div class="notice">İlyada 3 onayı yalnızca 500 TL fiyat ve RE/MAX şablon paketine hak kazandırır. Ücretli abonelik ancak doğrulanmış başarılı ödeme sonrasında aktifleştirilir.</div>
 </div></main>
 <script>
@@ -41,6 +42,17 @@ const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
 const remaxStatus=$("remaxPackageStatus");
 const remaxUpload=$("remaxPackageUpload");
+const remaxDelete=$("remaxPackageDelete");
+const remaxSummary=$("remaxPackageSummary");
+let remaxPackageExists=false;
+function showRemaxState(exists,modified){
+ remaxPackageExists=exists;
+ remaxDelete.hidden=!exists;
+ remaxDelete.disabled=!exists;
+ remaxUpload.textContent=exists?"JSON Paketini Güncelle":"JSON Paketini Yükle";
+ remaxSummary.textContent=exists?"Paket yüklü · İlyada 3 danışmanları için hazır"+(modified?" · Son güncelleme: "+fmt(modified):""):"Paket yüklenmedi · Önce JSON dosyanı seçip yükle";
+ remaxSummary.className="remax-package-summary"+(exists?" ready":"");
+}
 function remaxValidate(data){
   if(!Array.isArray(data)||!data.length||data.length>50)throw Error("JSON, en fazla 50 belgelik şablon listesi olmalı.");
   if(data.some(t=>!t||typeof t.name!=="string"||!t.name.trim()||!Array.isArray(t.pages)||!t.pages.length||
@@ -58,10 +70,13 @@ async function remaxCheck(){
     });
     if(!response.ok)throw Error("Dosya listesi alınamadı (HTTP "+response.status+").");
     const found=(await response.json()).find(o=>o.name==="remax-templates.json");
-    remaxStatus.textContent=found
-      ?"Hediye paketi yüklü ve erişime açık. Son güncelleme: "+fmt(found.updated_at)
-      :"Henüz hediye paketi yüklenmemiş. JSON dosyanı seçip yükle.";
-  }catch(e){remaxStatus.textContent="Paket durumu kontrol edilemedi: "+e.message}
+    showRemaxState(Boolean(found),found?.updated_at);
+    remaxStatus.textContent=found?"Paket durumu doğrulandı.":"Henüz sunucuya RE/MAX JSON paketi yüklenmemiş.";
+  }catch(e){
+    remaxDelete.hidden=true;remaxDelete.disabled=true;
+    remaxSummary.textContent="Paket durumu doğrulanamadı. Silme işlemi kapalı.";
+    remaxStatus.textContent="Kontrol hatası: "+e.message;
+  }
 }
 $("remaxPackageFile").addEventListener("change",()=>{
   const file=$("remaxPackageFile").files?.[0];
@@ -83,7 +98,8 @@ remaxUpload.addEventListener("click",async()=>{
     });
     if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||"Yükleme başarısız (HTTP "+response.status+").")}
     $("remaxPackageFile").value="";
-    remaxStatus.textContent=data.length+" şablon yüklendi. İlyada 3 üyeleri artık EmlakAsistan'dan paketi açabilir.";
+    showRemaxState(true,new Date().toISOString());
+    remaxStatus.textContent=data.length+" şablon yüklendi. Aktif abonelikli ve onaylı İlyada 3 danışmanları EmlakAsistan'da görebilir.";
   }catch(e){remaxStatus.textContent="JSON yüklenemedi: "+e.message}
   finally{remaxUpload.disabled=!$("remaxPackageFile").files?.length}
 });
@@ -98,7 +114,8 @@ $("remaxPackageDelete").addEventListener("click",async()=>{
       body:JSON.stringify({prefixes:[RE_MAX_PATH]}),cache:"no-store"
     });
     if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||"Silme başarısız (HTTP "+response.status+").")}
-    remaxStatus.textContent="Paket sunucudan kaldırıldı. Yeni indirme yapılamaz.";
+    showRemaxState(false);
+    remaxStatus.textContent="Paket kaldırıldı. Yeni indirme yapılamaz.";
   }catch(e){remaxStatus.textContent="Paket kaldırılamadı: "+e.message}
 });
 async function discountRpc(name,body,token){
@@ -150,7 +167,7 @@ function render(){
    if(u.is_super_admin){td.textContent="Yönetici";}
    else{
      const approved=officeState==="approved";
-     const hint=document.createElement("div");hint.textContent=approved?"500 TL + RE/MAX JSON":officeState==="pending"?"Talep bekliyor":"750 TL standart";hint.className="muted";td.append(hint);
+     const hint=document.createElement("div");hint.textContent=approved?(status==="active"?"Ofis onaylı · 500 TL · Şablon erişimi açık":status==="unlimited"?"Ofis onaylı · yönetici":"Ofis onaylı · 500 TL özel fiyat · Abonelik bekleniyor"):officeState==="pending"?"Eski ofis talebi bekliyor":"750 TL standart";hint.className="muted";td.append(hint);
      const btn=document.createElement("button");btn.type="button";btn.textContent=approved?"Ofis Yetkisini Kaldır":"İlyada 3 Olarak Onayla";btn.style.marginTop="6px";
      btn.onclick=async()=>{
        const message=approved?"İlyada 3 indirimi ve RE/MAX şablon hakkı kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
