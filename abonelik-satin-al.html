@@ -123,6 +123,7 @@ function discountPrice(approved){
  approvedDiscount=approved;
  byId("displayPrice").textContent=approved?"500 TL":"750 TL";
  byId("consentPrice").textContent=approved?"500 TL":"750 TL";
+ byId("officeGift").hidden=!approved;
  updatePaymentUi();
 }
 async function checkDiscount(){
