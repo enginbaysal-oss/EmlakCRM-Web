@@ -53,7 +53,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 
 /* 3 basamakli sade abonelik akisi; ofis indirimi otomatik taninir */
 .eyebrow{font-size:11px;font-weight:800;letter-spacing:.09em;color:#117894;margin:0 0 4px}.price-wrap{text-align:right}.gift{background:#e8f6ee;border:1px solid #b4ddc5;color:#196344;font-size:13px;font-weight:750;border-radius:11px;padding:12px;margin:15px 0 0}.roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.roadmap span{background:#fff;border:1px solid #d5e5ee;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:13px}.roadmap b{display:grid;place-items:center;border-radius:50%;width:23px;height:23px;background:#deedf5;color:#175b78}.action-link{display:inline-block;background:#ef8926;color:#142d3a;text-decoration:none;font-weight:850;padding:12px 16px;border-radius:10px}.checkout-action{margin-top:16px;border-top:1px solid #e0eaf1;padding-top:18px}.checkout-action #checkoutNotice{background:#f0f6fa;border-radius:10px;padding:11px 12px;margin:11px 0 0}[hidden]{display:none!important}@media(max-width:540px){.price-wrap{text-align:left}.roadmap span{font-size:12px;padding:8px 4px}.roadmap b{width:20px;height:20px}}
-.office-check{margin-top:19px;padding:15px;border:1px solid #dce8f0;border-radius:12px;background:#f6fafc}.office-label{font-weight:800;margin:0 0 9px;color:#173e5c}.office-help{font-size:13px;line-height:1.5;color:#526a7b;margin:0 0 12px}.office-actions{display:flex;gap:10px;flex-wrap:wrap}.office-choice{width:auto;min-width:100px;padding:10px 20px;font-weight:800;border-radius:9px}.secondary-choice{background:#eff4f7!important;color:#274c63!important;border:1px solid #b9cedd!important}.office-check .muted{margin:10px 0 0;font-size:13px;line-height:1.5}[hidden]{display:none!important}</style></head>
+.office-check{margin-top:19px;padding:15px;border:1px solid #dce8f0;border-radius:12px;background:#f6fafc}.office-label{font-weight:800;margin:0 0 9px;color:#173e5c}.office-help{font-size:13px;line-height:1.5;color:#526a7b;margin:0 0 12px}.office-actions{display:flex;gap:10px;flex-wrap:wrap}.office-choice{width:auto;min-width:100px;padding:10px 20px;font-weight:800;border-radius:9px}.secondary-choice{background:#eff4f7!important;color:#274c63!important;border:1px solid #b9cedd!important}.office-check .muted{margin:10px 0 0;font-size:13px;line-height:1.5}.office-coupon{margin-top:14px;border:1px solid #dce8f0;border-radius:12px;padding:14px;background:#f7fbff}.office-coupon input{max-width:260px;font-weight:800;letter-spacing:1px}.office-coupon .muted{font-size:13px;line-height:1.5}[hidden]{display:none!important}</style></head>
 <body><header><div class="header-inner"><h1>EmlakCRM · Abonelik</h1><span class="lock">🔒 Güvenli ödeme</span></div></header>
 <main>
 <section class="panel product">
@@ -76,6 +76,15 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
       <button type="button" id="officeNo" class="office-choice secondary-choice">Hayır</button>
     </div>
     <p class="muted" id="officeAnswer" role="status" aria-live="polite"></p>
+  </div>
+  <div id="shopierCouponPanel" class="office-coupon" hidden>
+    <p class="office-label">Shopier Ödeme Kodunuz</p>
+    <p class="muted" id="shopierCouponStatus" role="status" aria-live="polite">Kodunuz kontrol ediliyor…</p>
+    <div class="office-actions">
+      <input id="shopierCouponValue" type="text" readonly aria-label="Shopier kodu" hidden>
+      <button type="button" id="shopierCouponCopy" hidden>Kodu Kopyala</button>
+    </div>
+    <p class="muted">Shopier abonelik aktivasyonu test edilene kadar ödeme yapmayınız.</p>
   </div>
 </section>
 <section class="panel">
@@ -106,6 +115,36 @@ const byId=id=>document.getElementById(id);
 const result=byId("result"),pay=byId("pay");
 let approvedDiscount=false,discountStatus="none",paymentReady=false,discountReady=false;
 let officeDeclined=false,officeRequestWorking=false;
+let shopierCouponCode="";
+async function refreshShopierCoupon(){
+ const panel=byId("shopierCouponPanel"),status=byId("shopierCouponStatus"),value=byId("shopierCouponValue"),copy=byId("shopierCouponCopy");
+ panel.hidden=discountStatus!=="approved"||!token();
+ shopierCouponCode="";value.hidden=true;copy.hidden=true;
+ if(panel.hidden)return;
+ status.textContent="Shopier kodunuz kontrol ediliyor…";
+ try{
+  const r=await fetch(base+"/functions/v1/emlakcrm-shopier-coupon",{
+   method:"GET",headers:{"apikey":key,authorization:"Bearer "+token()},cache:"no-store"
+  });
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error("Kod bilgisi şu anda alınamadı.");
+  if(j.status==="issued"&&/^[A-Z0-9]{14}$/.test(j.code||"")){
+   shopierCouponCode=j.code;value.value=j.code;value.hidden=false;copy.hidden=false;
+   status.textContent="Ofis onayınız tamamlandı. Kişisel, tek kullanımlık kodunuz hazır.";
+  }else if(j.status==="preparing"||j.status==="not_issued"){
+   status.textContent="Ofis onayınız tamamlandı. Kodunuz yönetici tarafından hazırlanıyor.";
+  }else if(j.status==="not_approved"){
+   status.textContent="Ofis onayınız doğrulanamadı; yöneticiyle iletişime geçiniz.";
+  }else{
+   status.textContent="Kodunuzu kontrol etmek için yöneticiyle iletişime geçiniz.";
+  }
+ }catch(e){status.textContent=e.message}
+}
+byId("shopierCouponCopy").addEventListener("click",async()=>{
+ if(!shopierCouponCode)return;
+ try{await navigator.clipboard.writeText(shopierCouponCode);byId("shopierCouponStatus").textContent="Kod kopyalandı."}
+ catch{byId("shopierCouponValue").select();byId("shopierCouponStatus").textContent="Kodu seçip kopyalayabilirsiniz."}
+});
 function renderOfficeQuestion(){
   const yes=byId("officeYes"),no=byId("officeNo"),message=byId("officeAnswer");
   const decided=["pending","approved","rejected"].includes(discountStatus);
@@ -136,7 +175,7 @@ byId("officeYes").addEventListener("click",async()=>{
     const next=await discountRpc("emlakcrm_request_office_discount",{p_code:"ILYADA3"});
     if(!["pending","approved","rejected"].includes(next))throw Error("unexpected_office_response");
     discountStatus=next;discountReady=true;officeDeclined=false;
-    discountPrice(next==="approved");updatePaymentUi();
+    discountPrice(next==="approved");updatePaymentUi();if(next==="approved")void refreshShopierCoupon();
   }catch{
     byId("officeAnswer").textContent="Ofis bilginiz gönderilemedi. Oturumunuzu kontrol edip yeniden deneyin.";
   }finally{officeRequestWorking=false;byId("officeYes").disabled=false;
@@ -182,7 +221,7 @@ async function checkDiscount(){
   try{
     const status=await discountRpc("emlakcrm_my_office_discount",{});
     if(!["none","pending","approved","rejected"].includes(status))throw Error("unexpected_discount_state");
-    discountStatus=status;discountReady=true;discountPrice(status==="approved");
+    discountStatus=status;discountReady=true;discountPrice(status==="approved");if(status==="approved")void refreshShopierCoupon();
   }catch{
     discountReady=false;updatePaymentUi();
   }
