@@ -24,6 +24,7 @@ a{color:#0b678b}@media(max-width:540px){.grid{grid-template-columns:1fr}}
 <span>RE/MAX İlyada 3 ofisinde çalışıyorum ve ofise özel indirim için onay istiyorum.</span>
 </label>
 <button type="button" id="discountApply" disabled>İndirim Talebi Gönder</button>
+<button type="button" id="discountCheck" style="background:#e8f1f6;color:#16455e;box-shadow:none;margin-left:5px">Onay Durumunu Kontrol Et</button>
 <p id="discountStatus" class="muted" role="status" aria-live="polite">Yukarıdaki kutuyu işaretleyerek onay talebi gönderebilirsiniz.</p>
 </section>
 <section class="panel"><h2>Fatura ve alıcı bilgileri</h2>
@@ -84,6 +85,7 @@ async function checkDiscount(){
  updatePaymentUi();
  }catch{discountReady=false;updatePaymentUi();byId("discountStatus").textContent="Ödeme uygunluğu doğrulanamadı. EmlakCRM hesabınıza giriş yapıp bu sayfayı yenileyin."}
 }
+byId("discountCheck").addEventListener("click",checkDiscount);
 byId("isIlyadaMember").addEventListener("change",()=>{
  byId("discountApply").disabled=!byId("isIlyadaMember").checked;
 });
