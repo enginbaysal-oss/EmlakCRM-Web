@@ -13,6 +13,7 @@
 <div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
 <div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
+<section class="card" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2>İlyada 3 · İndirim Onayları</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">500 TL / 12 ay için gelen ILYADA3 kodu talepleri. Yalnızca süper yönetici onaylayabilir.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
 <div class="notice">Bu ekran salt okunurdur. Ücretli abonelik yalnızca doğrulanmış ödeme veya ayrıca yetkilendirilmiş sunucu işlemiyle aktifleştirilmelidir.</div>
 </div></main>
 <script>
@@ -22,7 +23,33 @@ const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const sessionKey="emlakcrm_auth_session_v1";
 const rememberedKey="emlakcrm_auth_remember_v1";
 const $=id=>document.getElementById(id);
-let userRows=[];
+let userRows=[];let discountToken=null;
+async function discountRpc(name,body,token){
+ const response=await fetch(endpoint+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
+ if(!response.ok)throw Error("İndirim işlemi gerçekleştirilemedi ("+response.status+").");
+ return response.json();
+}
+async function loadDiscounts(){
+ const tbody=$("discountRows");tbody.replaceChildren();$("discountMessage").textContent="Talepler yükleniyor...";
+ try{
+  discountToken=await verifiedToken();
+  const items=await discountRpc("emlakcrm_admin_discount_requests",{},discountToken);
+  for(const item of items){
+   const tr=document.createElement("tr");
+   addCell(tr,item.email||"—");addCell(tr,fmt(item.requested_at));addCell(tr,item.status==="pending"?"Onay bekliyor":item.status==="approved"?"Onaylandı":"Reddedildi");
+   const td=document.createElement("td");
+   if(item.status==="pending"){
+    for(const [label,approved] of [["Onayla",true],["Reddet",false]]){
+     const btn=document.createElement("button");btn.type="button";btn.textContent=label;btn.style.margin="3px";if(!approved)btn.style.background="#a63838";
+     btn.onclick=async()=>{if(!confirm(item.email+" için "+(approved?"500 TL indirimi onaylansın mı?":"indirim talebi reddedilsin mi?")))return;
+      btn.disabled=true;try{await discountRpc("emlakcrm_admin_review_discount",{p_request_id:item.id,p_approve:approved},discountToken);await loadDiscounts()}catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
+     td.append(btn);
+    }
+   }tr.append(td);tbody.append(tr);
+  }
+  $("discountMessage").textContent=items.length?items.length+" talep görüntüleniyor.":"Henüz indirim talebi yok.";
+ }catch(e){$("discountMessage").textContent=e.message}
+}
 function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
 function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
@@ -65,9 +92,9 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
-$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);load();
+$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);$("discountRefresh").addEventListener("click",loadDiscounts);load();
 </script></body></html>
