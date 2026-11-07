@@ -41,7 +41,20 @@ async function shopier(method:string,path:string,body?:unknown):Promise<any>{
  const pat=conf().pat;if(!pat)throw Error("provider_not_configured");
  const res=await fetch("https://api.shopier.com/v1/"+path,{method,headers:{"authorization":"Bearer "+pat,"accept":"application/json","content-type":"application/json"},
  ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(14000),cache:"no-store"});
- if(!res.ok)throw Error("shopier_http_"+res.status);
+ if(!res.ok){
+  // Diagnostic fields only: never log PAT, discount code, emails or response body.
+  const operation=method==="GET"?"list_codes":method==="POST"?"create_code":"other";
+  const rawError=await res.text();
+  let parsed:any={};try{parsed=JSON.parse(rawError)}catch{}
+  const safe=parsed&&typeof parsed==="object"?parsed:{};
+  const errorFields=Array.isArray(safe.errors)?safe.errors.flatMap((v:any)=>v&&typeof v==="object"?Object.keys(v):[]):[];
+  console.error("Shopier discount rejection",JSON.stringify({
+   operation,status:res.status,keys:Object.keys(safe).slice(0,15),
+   error_fields:errorFields.slice(0,15),
+   error_code:typeof safe.errorCode==="string"?safe.errorCode.slice(0,35):typeof safe.errorCode==="number"?safe.errorCode:null
+  }));
+  throw Error("shopier_"+operation+"_http_"+res.status);
+ }
  if(res.status===204)return null;
  const raw=await res.text();if(raw.length>300000)throw Error("shopier_response_too_large");
  try{return JSON.parse(raw)}catch{throw Error("shopier_invalid_response")}
@@ -70,7 +83,18 @@ async function checkProviderExisting(code:string){
  // so an interrupted creation cannot silently produce duplicate codes.
  const PAGE_SIZE=50;
  for(let page=1;page<=10;page++){
-  const pageItems=listCoupons(await shopier("GET","discounts/codes?limit="+PAGE_SIZE+"&page="+page));
+  let response:any;
+  try{response=await shopier("GET","discounts/codes?limit="+PAGE_SIZE+"&page="+page)}
+  catch(e){
+   // Read-only fallback. Never assume a nonempty page proves code absence.
+   if(page!==1||!String(e).includes("shopier_list_codes_http_400"))throw e;
+   const defaultPage=listCoupons(await shopier("GET","discounts/codes"));
+   const match=defaultPage.find(x=>x&&x.code===code);
+   if(match)return match;
+   if(defaultPage.length===0)return null;
+   throw Error("provider_coupon_lookup_needs_pagination");
+  }
+  const pageItems=listCoupons(response);
   const match=pageItems.find(x=>x&&x.code===code);
   if(match)return match;
   if(pageItems.length<PAGE_SIZE)return null;
@@ -139,6 +163,6 @@ Deno.serve(async req=>{
  }catch(e){
   const msg=e instanceof Error?e.message:"unknown_error";
   console.error("Shopier coupon:",msg);
-  return reply(503,{error:"coupon_issue_failed",reason:msg.startsWith("shopier_http_")?msg:"temporarily_unavailable"});
+  return reply(503,{error:"coupon_issue_failed",reason:/^shopier_(?:list_codes|create_code)_http_\d+$/.test(msg)?msg:"temporarily_unavailable"});
  }
 });
