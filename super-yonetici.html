@@ -20,7 +20,7 @@
 </div>
 <p id="remaxPackageStatus" class="muted" role="status" aria-live="polite">Şablon dosyası seçmek için yukarıdaki alanı kullan.</p>
 </section>
-<section class="card" id="officeApprovalPanel" style="margin:0 0 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px"><h2>İlyada 3 Onay Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">“Evet” diyerek ofis doğrulaması isteyen danışmanları buradan onayla veya reddet. Onay yalnızca özel fiyat hakkı verir; abonelik başlatmaz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
+<section class="card" id="officeApprovalPanel" style="margin:0 0 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px"><h2>İlyada 3 Onay Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">“Evet” yanıtı veren danışmanların ofis kayıtlarını buradan doğrula. Ofis onayı ücretli abonelik başlatmaz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
 <div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
 <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Özel fiyat ve ofis onayı abonelik değildir. RE/MAX paketi yalnızca aktif aboneliği olan onaylı danışmanlara açılır.</p>
 <div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
@@ -121,7 +121,7 @@ $("remaxPackageDelete").addEventListener("click",async()=>{
 });
 async function discountRpc(name,body,token){
  const response=await fetch(endpoint+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
- if(!response.ok)throw Error("İndirim işlemi gerçekleştirilemedi ("+response.status+").");
+ if(!response.ok)throw Error("Ofis doğrulama işlemi tamamlanamadı ("+response.status+").");
  return response.json();
 }
 async function loadDiscounts(){
@@ -138,7 +138,7 @@ async function loadDiscounts(){
    if(item.status==="pending"){
     for(const [label,approved] of [["Onayla",true],["Reddet",false]]){
      const btn=document.createElement("button");btn.type="button";btn.textContent=label;btn.style.margin="3px";if(!approved)btn.style.background="#a63838";
-     btn.onclick=async()=>{if(!confirm(item.email+" için "+(approved?"500 TL indirimi onaylansın mı?":"indirim talebi reddedilsin mi?")))return;
+     btn.onclick=async()=>{if(!confirm(item.email+" için "+(approved?"İlyada 3 ofis kaydı onaylansın mı?":"ofis kaydı reddedilsin mi?")))return;
       btn.disabled=true;try{await discountRpc("emlakcrm_admin_review_discount",{p_request_id:item.id,p_approve:approved},discountToken);await loadDiscounts()}catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
      td.append(btn);
     }
@@ -174,7 +174,7 @@ function render(){
      const hint=document.createElement("div");hint.textContent=approved?(status==="active"?"Ofis onaylı · 500 TL · Şablon erişimi açık":status==="unlimited"?"Ofis onaylı · yönetici":"Ofis onaylı · 500 TL özel fiyat · Abonelik bekleniyor"):officeState==="pending"?"Onayınız bekleniyor":"750 TL standart";hint.className="muted";td.append(hint);
      const btn=document.createElement("button");btn.type="button";btn.textContent=approved?"Ofis Yetkisini Kaldır":"İlyada 3 Olarak Onayla";btn.style.marginTop="6px";
      btn.onclick=async()=>{
-       const message=approved?"İlyada 3 indirimi ve RE/MAX şablon hakkı kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
+       const message=approved?"İlyada 3 ofis yetkisi ve RE/MAX şablon erişimi kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
        if(!confirm(u.email+"\n"+message))return;
        btn.disabled=true;
        try{const t=await verifiedToken();const status=await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:!approved},t);officeStatusByEmail.set(email,status);render()}

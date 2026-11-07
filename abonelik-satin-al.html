@@ -74,7 +74,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
       <button type="button" id="officeYes" class="office-choice">Evet</button>
       <button type="button" id="officeNo" class="office-choice secondary-choice">Hayır</button>
     </div>
-    <p class="muted" id="officeAnswer" role="status" aria-live="polite">Evet yanıtı otomatik indirim sağlamaz; ofis üyeliği Süper Yönetici tarafından doğrulanır.</p>
+    <p class="muted" id="officeAnswer" role="status" aria-live="polite">Bu bilgi ofis kaydınızı doğrulamak için istenir.</p>
   </div>
 </section>
 <section class="panel">
@@ -112,15 +112,15 @@ function renderOfficeQuestion(){
   yes.disabled=officeRequestWorking;
   no.disabled=officeRequestWorking;
   if(discountStatus==="pending"){
-    message.textContent="İlyada 3 doğrulama isteğiniz Süper Yönetici onayını bekliyor. Onaylanmadan 500 TL uygulanmaz ve ödeme başlatılamaz.";
+    message.textContent="Ofis kaydınızın doğrulanması bekleniyor. İşlem tamamlanınca aboneliğinize devam edebilirsiniz.";
   }else if(discountStatus==="approved"){
-    message.textContent="İlyada 3 üyeliğiniz onaylı. 12 aylık özel abonelik ücretiniz 500 TL (KDV dahil).";
+    message.textContent="Ofis kaydınız doğrulandı. Abonelik işlemlerine devam edebilirsiniz.";
   }else if(discountStatus==="rejected"){
-    message.textContent="Ofis doğrulaması onaylanmadı. Standart 750 TL abonelikle devam edebilirsiniz.";
+    message.textContent="Ofis kaydınız doğrulanamadı. Standart abonelikle devam edebilirsiniz.";
   }else if(officeDeclined){
-    message.textContent="Standart 750 TL / 12 ay abonelikle devam edebilirsiniz.";
+    message.textContent="Standart abonelikle devam edebilirsiniz.";
   }else{
-    message.textContent="Evet yanıtı otomatik indirim sağlamaz. İlyada 3 danışmanlığınız Süper Yönetici tarafından doğrulanır.";
+    message.textContent="Bu bilgi yalnızca ofis kaydınızı doğrulamak için istenir.";
   }
 }
 byId("officeYes").addEventListener("click",async()=>{
@@ -137,8 +137,10 @@ byId("officeYes").addEventListener("click",async()=>{
     discountStatus=next;discountReady=true;officeDeclined=false;
     discountPrice(next==="approved");updatePaymentUi();
   }catch{
-    byId("officeAnswer").textContent="İstek gönderilemedi. Hesabınızı kontrol edip yeniden deneyin; hiçbir indirim uygulanmadı.";
-  }finally{officeRequestWorking=false;byId("officeYes").disabled=false;renderOfficeQuestion()}
+    byId("officeAnswer").textContent="Ofis bilginiz gönderilemedi. Oturumunuzu kontrol edip yeniden deneyin.";
+  }finally{officeRequestWorking=false;byId("officeYes").disabled=false;
+    if(["pending","approved","rejected"].includes(discountStatus))renderOfficeQuestion();
+  }
 });
 byId("officeNo").addEventListener("click",()=>{
   officeDeclined=true;renderOfficeQuestion();
@@ -152,7 +154,7 @@ function updatePaymentUi(){
     :holding
     ?"Ofis onayın bekleniyor. Yanlış tutarda ödeme yapılmasını önlemek için ödeme kapalı."
     :!discountReady
-    ?"Hesabının ödeme ve indirim bilgileri kontrol ediliyor."
+    ?"Hesap ve ödeme bilgileriniz kontrol ediliyor."
     :!paymentReady
     ?"Canlı ödeme henüz açık değil. Bu sayfayı daha sonra kontrol edebilirsin."
     :approvedDiscount
@@ -165,7 +167,7 @@ function updatePaymentUi(){
 async function discountRpc(name,body){
  const access=token();if(!access)throw Error("Önce EmlakCRM hesabınıza giriş yapın.");
  const r=await fetch(base+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:key,authorization:"Bearer "+access,"content-type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
- if(!r.ok)throw Error("İndirim talebi işlenemedi. Oturumunuzu kontrol edin.");return r.json();
+ if(!r.ok)throw Error("Ofis bilgisi kontrol edilemedi. Oturumunuzu kontrol edin.");return r.json();
 }
 function discountPrice(approved){
  approvedDiscount=approved;
@@ -201,9 +203,9 @@ async function availability(){
 }
 byId("checkout").addEventListener("submit",async e=>{
  e.preventDefault();if(pay.disabled)return;
- if(discountStatus==="pending"||!discountReady){result.textContent="Ödeme için ofis indirim talebinizin sonucunu bekleyin.";result.className="error";return;}
+ if(discountStatus==="pending"||!discountReady){result.textContent="Ofis doğrulamasının tamamlanmasını bekleyin.";result.className="error";return;}
  const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
- pay.disabled=true;result.textContent="İndirim ve ödeme tutarı sunucudan doğrulanıyor…";result.className="muted";
+ pay.disabled=true;result.textContent="Ödeme tutarı sunucudan doğrulanıyor…";result.className="muted";
  try{
   const latest=await discountRpc("emlakcrm_my_office_discount",{});
   if(!["none","pending","approved","rejected"].includes(latest))throw Error("discount_state_invalid");
@@ -212,7 +214,7 @@ byId("checkout").addEventListener("submit",async e=>{
    result.textContent="Abonelik fiyatınız güncellendi. Lütfen tutarı kontrol edip tekrar devam edin.";
    result.className="muted";updatePaymentUi();return;
   }
-  if(latest==="pending"){result.textContent="Ofis indirim talebiniz onay bekliyor.";result.className="muted";return;}
+  if(latest==="pending"){result.textContent="Ofis bilginiz doğrulanmayı bekliyor.";result.className="muted";return;}
   result.textContent="iyzico güvenli ödeme sayfası hazırlanıyor…";
  }catch{result.textContent="Ödeme uygunluğu kontrol edilemedi. Lütfen tekrar giriş yapın.";result.className="error";updatePaymentUi();return;}
  const fields=["name","surname","identityNumber","city","address"];
@@ -242,7 +244,7 @@ byId("checkout").addEventListener("submit",async e=>{
    }
    if(data.error==="discount_approval_pending"){
     discountStatus="pending";updatePaymentUi();
-    result.textContent="Ofis indirim talebiniz yönetici onayını bekliyor.";result.className="muted";return;
+    result.textContent="Ofis kaydınız yönetici onayını bekliyor.";result.className="muted";return;
    }
    throw Error("payment_not_ready");
   }
