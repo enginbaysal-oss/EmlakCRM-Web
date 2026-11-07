@@ -78,7 +78,7 @@ async function availability(){
  }catch{pay.disabled=true;result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
 }
 byId("checkout").addEventListener("submit",async e=>{
- e.preventDefault();if(pay.disabled)return;
+ e.preventDefault();if(pay.disabled)return;\n if(approvedDiscount){result.textContent="500 TL indirimli ödeme henüz aktif değil. Lütfen ödeme yapmayın.";result.className="error";return;}
  const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
  pay.disabled=true;result.textContent="İyzico güvenli ödeme sayfası hazırlanıyor…";result.className="muted";
  const fields=["name","surname","identityNumber","gsmNumber","city","zipCode","address"];
