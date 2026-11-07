@@ -53,7 +53,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 
 /* 3 basamakli sade abonelik akisi; ofis indirimi otomatik taninir */
 .eyebrow{font-size:11px;font-weight:800;letter-spacing:.09em;color:#117894;margin:0 0 4px}.price-wrap{text-align:right}.gift{background:#e8f6ee;border:1px solid #b4ddc5;color:#196344;font-size:13px;font-weight:750;border-radius:11px;padding:12px;margin:15px 0 0}.roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.roadmap span{background:#fff;border:1px solid #d5e5ee;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:13px}.roadmap b{display:grid;place-items:center;border-radius:50%;width:23px;height:23px;background:#deedf5;color:#175b78}.action-link{display:inline-block;background:#ef8926;color:#142d3a;text-decoration:none;font-weight:850;padding:12px 16px;border-radius:10px}.checkout-action{margin-top:16px;border-top:1px solid #e0eaf1;padding-top:18px}.checkout-action #checkoutNotice{background:#f0f6fa;border-radius:10px;padding:11px 12px;margin:11px 0 0}[hidden]{display:none!important}@media(max-width:540px){.price-wrap{text-align:left}.roadmap span{font-size:12px;padding:8px 4px}.roadmap b{width:20px;height:20px}}
-</style></head>
+.office-check{margin-top:19px;padding:15px;border:1px solid #dce8f0;border-radius:12px;background:#f6fafc}.office-label{font-weight:800;margin:0 0 9px;color:#173e5c}.office-actions{display:flex;gap:10px;flex-wrap:wrap}.office-choice{width:auto;min-width:100px;padding:10px 20px;font-weight:800;border-radius:9px}.secondary-choice{background:#eff4f7!important;color:#274c63!important;border:1px solid #b9cedd!important}.office-check .muted{margin:10px 0 0;font-size:13px;line-height:1.5}[hidden]{display:none!important}</style></head>
 <body><header><div class="header-inner"><h1>EmlakCRM · Abonelik</h1><span class="lock">🔒 Güvenli ödeme</span></div></header>
 <main>
 <section class="panel product">
@@ -68,6 +68,14 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   <div class="section-heading"><span class="step-count">1</span><div><h2 style="margin:0">Hesabın</h2><span class="muted" style="font-size:13px">Bir kez kayıt olman yeterli</span></div></div>
   <p id="accountMessage" class="muted" role="status">EmlakCRM hesabın kontrol ediliyor.</p>
   <a id="accountLink" class="action-link" href="./index.html?checkout=1#account">Giriş Yap / Hesap Oluştur</a>
+  <div class="office-check">
+    <p class="office-label">RE/MAX İlyada 3 ofisi danışmanı mısınız?</p>
+    <div class="office-actions" id="officeActions">
+      <button type="button" id="officeYes" class="office-choice">Evet</button>
+      <button type="button" id="officeNo" class="office-choice secondary-choice">Hayır</button>
+    </div>
+    <p class="muted" id="officeAnswer" role="status" aria-live="polite">Evet yanıtı otomatik indirim sağlamaz; ofis üyeliği Süper Yönetici tarafından doğrulanır.</p>
+  </div>
 </section>
 <section class="panel">
   <div class="section-heading"><span class="step-count">2</span><div><h2 style="margin:0">Bilgilerini tamamla</h2><span class="muted" style="font-size:13px">Güvenli ödeme için gerekli bilgiler</span></div></div>
@@ -96,6 +104,45 @@ const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
 const result=byId("result"),pay=byId("pay");
 let approvedDiscount=false,discountStatus="none",paymentReady=false,discountReady=false;
+let officeDeclined=false,officeRequestWorking=false;
+function renderOfficeQuestion(){
+  const yes=byId("officeYes"),no=byId("officeNo"),message=byId("officeAnswer");
+  const decided=["pending","approved","rejected"].includes(discountStatus);
+  byId("officeActions").hidden=decided;
+  yes.disabled=officeRequestWorking;
+  no.disabled=officeRequestWorking;
+  if(discountStatus==="pending"){
+    message.textContent="İlyada 3 doğrulama isteğiniz Süper Yönetici onayını bekliyor. Onaylanmadan 500 TL uygulanmaz ve ödeme başlatılamaz.";
+  }else if(discountStatus==="approved"){
+    message.textContent="İlyada 3 üyeliğiniz onaylı. 12 aylık özel abonelik ücretiniz 500 TL (KDV dahil).";
+  }else if(discountStatus==="rejected"){
+    message.textContent="Ofis doğrulaması onaylanmadı. Standart 750 TL abonelikle devam edebilirsiniz.";
+  }else if(officeDeclined){
+    message.textContent="Standart 750 TL / 12 ay abonelikle devam edebilirsiniz.";
+  }else{
+    message.textContent="Evet yanıtı otomatik indirim sağlamaz. İlyada 3 danışmanlığınız Süper Yönetici tarafından doğrulanır.";
+  }
+}
+byId("officeYes").addEventListener("click",async()=>{
+  if(!token()){
+    byId("officeAnswer").textContent="Ofisinizi doğrulatmak için önce hesabınıza giriş yapın. Üstteki 'Giriş Yap / Hesap Oluştur' bağlantısını kullanın.";
+    return;
+  }
+  if(officeRequestWorking)return;
+  officeRequestWorking=true;byId("officeYes").disabled=true;
+  byId("officeAnswer").textContent="İlyada 3 doğrulama talebiniz gönderiliyor...";
+  try{
+    const next=await discountRpc("emlakcrm_request_office_discount",{p_code:"ILYADA3"});
+    if(!["pending","approved","rejected"].includes(next))throw Error("unexpected_office_response");
+    discountStatus=next;discountReady=true;officeDeclined=false;
+    discountPrice(next==="approved");updatePaymentUi();
+  }catch{
+    byId("officeAnswer").textContent="İstek gönderilemedi. Hesabınızı kontrol edip yeniden deneyin; hiçbir indirim uygulanmadı.";
+  }finally{officeRequestWorking=false;byId("officeYes").disabled=false;renderOfficeQuestion()}
+});
+byId("officeNo").addEventListener("click",()=>{
+  officeDeclined=true;renderOfficeQuestion();
+});
 function updatePaymentUi(){
   const logged=Boolean(token()),holding=discountStatus==="pending";
   pay.disabled=!logged||!paymentReady||!discountReady||holding;
@@ -113,6 +160,7 @@ function updatePaymentUi(){
     :"Ödeme tutarın: 750 TL (KDV dahil). Sonraki adım iyzico güvenli ödeme ekranı.";
   byId("accountMessage").textContent=logged?"Hesap oturumu bulundu. Aşağıdaki bilgileri tamamlayabilirsin.":"Önce EmlakCRM hesabına giriş yap veya hesap oluştur.";
   byId("accountLink").hidden=logged;
+  renderOfficeQuestion();
 }
 async function discountRpc(name,body){
  const access=token();if(!access)throw Error("Önce EmlakCRM hesabınıza giriş yapın.");
