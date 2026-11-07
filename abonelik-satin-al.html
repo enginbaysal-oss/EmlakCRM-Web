@@ -53,7 +53,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 
 /* 3 basamakli sade abonelik akisi; ofis indirimi otomatik taninir */
 .eyebrow{font-size:11px;font-weight:800;letter-spacing:.09em;color:#117894;margin:0 0 4px}.price-wrap{text-align:right}.gift{background:#e8f6ee;border:1px solid #b4ddc5;color:#196344;font-size:13px;font-weight:750;border-radius:11px;padding:12px;margin:15px 0 0}.roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.roadmap span{background:#fff;border:1px solid #d5e5ee;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:13px}.roadmap b{display:grid;place-items:center;border-radius:50%;width:23px;height:23px;background:#deedf5;color:#175b78}.action-link{display:inline-block;background:#ef8926;color:#142d3a;text-decoration:none;font-weight:850;padding:12px 16px;border-radius:10px}.checkout-action{margin-top:16px;border-top:1px solid #e0eaf1;padding-top:18px}.checkout-action #checkoutNotice{background:#f0f6fa;border-radius:10px;padding:11px 12px;margin:11px 0 0}[hidden]{display:none!important}@media(max-width:540px){.price-wrap{text-align:left}.roadmap span{font-size:12px;padding:8px 4px}.roadmap b{width:20px;height:20px}}
-.office-check{margin-top:19px;padding:15px;border:1px solid #dce8f0;border-radius:12px;background:#f6fafc}.office-label{font-weight:800;margin:0 0 9px;color:#173e5c}.office-actions{display:flex;gap:10px;flex-wrap:wrap}.office-choice{width:auto;min-width:100px;padding:10px 20px;font-weight:800;border-radius:9px}.secondary-choice{background:#eff4f7!important;color:#274c63!important;border:1px solid #b9cedd!important}.office-check .muted{margin:10px 0 0;font-size:13px;line-height:1.5}[hidden]{display:none!important}</style></head>
+.office-check{margin-top:19px;padding:15px;border:1px solid #dce8f0;border-radius:12px;background:#f6fafc}.office-label{font-weight:800;margin:0 0 9px;color:#173e5c}.office-help{font-size:13px;line-height:1.5;color:#526a7b;margin:0 0 12px}.office-actions{display:flex;gap:10px;flex-wrap:wrap}.office-choice{width:auto;min-width:100px;padding:10px 20px;font-weight:800;border-radius:9px}.secondary-choice{background:#eff4f7!important;color:#274c63!important;border:1px solid #b9cedd!important}.office-check .muted{margin:10px 0 0;font-size:13px;line-height:1.5}[hidden]{display:none!important}</style></head>
 <body><header><div class="header-inner"><h1>EmlakCRM · Abonelik</h1><span class="lock">🔒 Güvenli ödeme</span></div></header>
 <main>
 <section class="panel product">
@@ -70,11 +70,12 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   <a id="accountLink" class="action-link" href="./index.html?checkout=1#account">Giriş Yap / Hesap Oluştur</a>
   <div class="office-check">
     <p class="office-label">RE/MAX İlyada 3 ofisi danışmanı mısınız?</p>
+    <p class="office-help">Cevabınız <strong>“Evet”</strong> ise lütfen ofis onayınızın tamamlanmasını bekleyiniz. Onaylandıktan sonra ödeme işlemine geçebilirsiniz.</p>
     <div class="office-actions" id="officeActions">
       <button type="button" id="officeYes" class="office-choice">Evet</button>
       <button type="button" id="officeNo" class="office-choice secondary-choice">Hayır</button>
     </div>
-    <p class="muted" id="officeAnswer" role="status" aria-live="polite">Bu bilgi ofis kaydınızı doğrulamak için istenir.</p>
+    <p class="muted" id="officeAnswer" role="status" aria-live="polite"></p>
   </div>
 </section>
 <section class="panel">
@@ -120,7 +121,7 @@ function renderOfficeQuestion(){
   }else if(officeDeclined){
     message.textContent="Standart abonelikle devam edebilirsiniz.";
   }else{
-    message.textContent="Bu bilgi yalnızca ofis kaydınızı doğrulamak için istenir.";
+    message.textContent="";
   }
 }
 byId("officeYes").addEventListener("click",async()=>{
