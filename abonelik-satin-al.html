@@ -45,7 +45,19 @@ a{color:#0b678b}@media(max-width:540px){.grid{grid-template-columns:1fr}}
 const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
-const result=byId("result"),pay=byId("pay");let approvedDiscount=false;
+const result=byId("result"),pay=byId("pay");
+let approvedDiscount=false,discountStatus="none",paymentReady=false;
+function updatePaymentUi(){
+ const holding=discountStatus==="pending"||discountStatus==="approved";
+ pay.disabled=!paymentReady||holding;
+ byId("checkoutNotice").textContent=discountStatus==="pending"
+  ?"Ofis indirim talebiniz onay bekliyor. Yanlış tutarda ödeme yapılmasını önlemek için ödeme geçici olarak kapalı."
+  :discountStatus==="approved"
+  ?"500 TL indirimli ödemeniz hazırlık aşamasında. Bu tutar etkinleşene kadar ödeme yapılmayacaktır."
+  :paymentReady
+  ?"Devam ettiğinizde iyzico üzerinden 750 TL tutarında gerçek bir ödeme başlatabilirsiniz."
+  :"Canlı ödeme şu anda kullanılamıyor.";
+}
 async function discountRpc(name,body){
  const access=token();if(!access)throw Error("Önce EmlakCRM hesabınıza giriş yapın.");
  const r=await fetch(base+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:key,authorization:"Bearer "+access,"content-type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
@@ -55,16 +67,17 @@ function discountPrice(approved){
  approvedDiscount=approved;
  byId("displayPrice").textContent=approved?"500 TL":"750 TL";
  byId("consentPrice").textContent=approved?"500 TL":"750 TL";
- if(approved){byId("checkoutNotice").textContent="500 TL indirimli ödeme henüz açılmadı. Yanlış tutarda tahsilat yapılmasını önlemek için ödeme butonu kapalı.";pay.disabled=true;}
+ updatePaymentUi();
 }
 async function checkDiscount(){
  try{const status=await discountRpc("emlakcrm_my_office_discount",{});
+ discountStatus=status;
  discountPrice(status==="approved");
  byId("discountStatus").textContent=status==="approved"?"Ofis indiriminiz onaylandı. Yıllık fiyatınız 500 TL. İndirimli ödeme bağlantısı etkinleşene kadar ödeme yapmayın.":status==="pending"?"Talebiniz Süper Yönetici onayını bekliyor. Henüz indirimli ödeme yapmayın.":status==="rejected"?"İndirim talebiniz reddedildi.": "Ofis üyeliğiniz için kutuyu işaretleyip onay talebi gönderebilirsiniz.";
  const finalStatus=status==="pending"||status==="approved";
  byId("isIlyadaMember").disabled=finalStatus;
  byId("discountApply").disabled=finalStatus||!byId("isIlyadaMember").checked;
- pay.disabled=approvedDiscount||pay.disabled;
+ updatePaymentUi();
  }catch{byId("discountStatus").textContent="İndirim durumunu görmek için önce giriş yapın."}
 }
 byId("isIlyadaMember").addEventListener("change",()=>{
@@ -92,14 +105,14 @@ async function availability(){
   const r=await fetch(base+"/functions/v1/emlakcrm-checkout-config",{cache:"no-store"});
   const d=await r.json();
   const ready=d.payment_enabled===true&&d.activation_enabled===true;
-  pay.disabled=!ready||approvedDiscount;
-  byId("checkoutNotice").textContent=approvedDiscount?"500 TL indirimli ödeme henüz açılmadı. Onaylı başvurular için ödeme butonu şimdilik kapalı.":ready?"Devam ettiğinizde iyzico'nun güvenli sayfasında gerçek bir 750 TL tahsilatı başlatabilirsiniz.":"Canlı ödeme bu oturumda henüz kullanılabilir değil. Lütfen daha sonra tekrar kontrol edin.";
+  paymentReady=ready;
+  updatePaymentUi();
   if(!ready){result.textContent="Ödeme şu anda sunucu tarafından kullanıma açık bildirilmedi.";result.className="muted"}
- }catch{pay.disabled=true;result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
+ }catch{paymentReady=false;updatePaymentUi();result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
 }
 byId("checkout").addEventListener("submit",async e=>{
  e.preventDefault();if(pay.disabled)return;
- if(approvedDiscount){result.textContent="500 TL indirimli ödeme henüz aktif değil. Lütfen ödeme yapmayın.";result.className="error";return;}
+ if(discountStatus==="pending"||approvedDiscount){result.textContent="Ofis indirim talebiniz için ödeme henüz aktif değil. Lütfen ödeme yapmayın.";result.className="error";return;}
  const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
  pay.disabled=true;result.textContent="İyzico güvenli ödeme sayfası hazırlanıyor…";result.className="muted";
  const fields=["name","surname","identityNumber","gsmNumber","city","zipCode","address"];
