@@ -52,7 +52,7 @@
 .homeBack{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#ed6a18!important;color:#fff!important;border:2px solid #fff3!important;border-radius:10px;padding:10px 14px;font-weight:850;text-decoration:none;box-shadow:0 3px 10px #3b241b25;white-space:nowrap}.homeBack:hover{background:#c9480c!important}.homeBack:focus-visible{outline:3px solid #ffd166;outline-offset:2px}@media print{.homeBack{display:none!important}}@media(max-width:420px){.homeBack{padding:9px 10px;font-size:12px}}
 /* Belge çalışma alanı ilk ekranda, yönetim isteğe bağlı */
 #uploadCard{padding:10px 15px;margin-bottom:8px}#uploadCard .topline{gap:12px}#uploadCard .topline h2{font-size:16px}#uploadCard .topline p{display:none}#status{font-size:12px;margin:5px 0}#workspace>.card:first-child{padding:9px 12px;margin-bottom:8px}.templatePicker{margin-top:0!important;margin-bottom:12px!important}#fieldsCard{scroll-margin-top:12px}#viewer{max-width:100%;overflow-x:auto}details.manage:not([open]) .manageBody{display:none}details.manage .manageBody{max-height:52vh;overflow:auto} @media(max-width:700px){#uploadCard .topline{flex-wrap:wrap}.templatePicker{padding:12px!important}#workspace>.card:first-child .tools{flex-wrap:wrap}}
-</style><script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script></head><body><header><div class="wrap"><h1>▣ EmlakCRM · EmlakAsistan</h1></div></header><main class="wrap">
+#officeTemplateGift{background:#ecf8f0;border:1px solid #bcdcc8;color:#1b5b3a;padding:14px 18px;border-radius:12px;margin:10px 0}#officeTemplateGift strong{font-size:15px}#officeTemplateGift p{font-size:13px;margin:6px 0 10px}#officeTemplateGift button{background:#14765c;color:#fff}[hidden]{display:none!important}</style><script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script></head><body><header><div class="wrap"><h1>▣ EmlakCRM · EmlakAsistan</h1></div></header><main class="wrap">
 <section class="card controls" id="uploadCard">
 <div class="topline"><div><h2 style="margin:0">Belgelerim</h2><p class="note" style="margin:5px 0">Şablonunuzu seçin, alanları doldurun ve PDF kaydedin.</p></div><details class="manage" id="manage"><summary>⚙ Şablon yönetimi</summary>
 <div class="manageBody"><p class="note">Kendi JSON şablonlarınızı ekleyebilir veya mevcut şablonları kaldırabilirsiniz.</p>
@@ -62,6 +62,7 @@
 <p class="warn note">Şablonlar tarayıcınızda saklanır; JSON yedeğini koruyun. Dosyalar sunucuya gönderilmez. Gerçek müşteri verileri için henüz güvenli oturum ve saklama altyapısı yoktur. İmza çizimi nitelikli elektronik imza değildir.</p></div></details></div>
 <p class="note" id="status" role="status">Kaydedilmiş şablonlar kontrol ediliyor…</p>
 </section>
+<section id="officeTemplateGift" hidden aria-live="polite"><strong>🎁 İlyada 3 Hediyesi: 7 RE/MAX Belge Şablonu</strong><p>İlyada 3 danışmanlığın onaylandı. Yöneticinizden aldığınız RE/MAX JSON dosyasını bir kez içe aktarın; yedi yeni şablon mevcut belgelerinize eklensin.</p><button id="officeJsonImport" type="button">Hediye JSON Paketini Yükle</button></section>
 <section id="workspace" class="hide"><section class="card controls"><div class="actionBar"><span class="badge" id="count"></span><div class="tools"><button id="saveDraft" type="button">Taslağı kaydet</button><button id="loadDraft" type="button">Taslağı aç</button><button id="removeDraft" type="button" class="danger">Taslağı sil</button><button id="print" type="button" class="primaryAction">PDF Oluştur</button><button id="archiveOpen" type="button">Belge Arşivi</button></div></div></section><div class="card controls templatePicker"><label for="templates">BELGE ŞABLONU SEÇİNİZ</label><select id="templates" aria-label="Belge şablonu seçin"></select></div>
 <section class="card" id="fieldsCard"><h2 id="title">Belge alanları</h2><div class="fields" id="fields"></div></section><section id="viewer"><p class="note" style="text-align:center">✥ İmzayı tutup belge üzerinde istediğiniz yere taşıyabilirsiniz.</p><div id="pages"></div></section><div id="printAll" aria-hidden="true"></div><section class="card controls" id="pdfActions" hidden><h2>PDF arşive kaydedildi</h2><div class="tools"><button id="pdfSave">Kaydet</button><button id="pdfShare">WhatsApp ile Gönder</button></div></section><section class="card controls" id="pdfArchive" hidden><h2>Belge Arşivi</h2><p class="note">Belgeler bu cihazda saklanır. Uygulamayı kaldırmak arşivi silebilir.</p><div id="pdfArchiveItems"></div></section></section>
 </main><dialog id="signatureDialog" class="sigDialog"><h2 id="signatureTitle">İmza ekle</h2><p class="note">Fare veya parmağınızla imza çizin. Bu çizim, nitelikli elektronik imza değildir.</p><canvas id="signatureCanvas" class="sigCanvas" width="800" height="320"></canvas><p class="tools"><button id="signatureClear" type="button">Temizle</button><button id="signatureSave" type="button">İmzayı yerleştir</button><button id="signatureCancel" type="button">İptal</button></p></dialog><script>
@@ -70,6 +71,27 @@ const $=id=>document.getElementById(id);let templates=[],selected=-1,page=0,valu
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 const DB="emlakcrm_templates_v1",KEY="templates";
+$("officeJsonImport").addEventListener("click",()=>{$("manage").open=true;$("upload").click()});
+(async function checkOfficeGift(){
+  try{
+    const base="https://tffvwxskvjuxoekwgdef.supabase.co";
+    const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+    let saved=null;
+    for(const storage of [sessionStorage,localStorage]){
+      if(saved?.access_token)break;
+      try{saved=JSON.parse(storage.getItem(storage===sessionStorage?"emlakcrm_auth_session_v1":"emlakcrm_auth_remember_v1")||"null")}catch{}
+    }
+    if(!saved?.access_token)return;
+    const response=await fetch(base+"/rest/v1/rpc/emlakcrm_my_office_discount",{
+      method:"POST",
+      headers:{apikey:key,Authorization:"Bearer "+saved.access_token,"Content-Type":"application/json"},
+      body:"{}",cache:"no-store"
+    });
+    if(!response.ok)return;
+    const status=await response.json();
+    $("officeTemplateGift").hidden=status!=="approved";
+  }catch{}
+})();
 function storage(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>request.result.createObjectStore("items");request.onerror=()=>reject(request.error);request.onsuccess=()=>resolve(request.result)})}
 async function readSaved(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readonly");const req=tx.objectStore("items").get(KEY);req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()})}
 async function save(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readwrite");tx.objectStore("items").put(templates,KEY);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)})}
