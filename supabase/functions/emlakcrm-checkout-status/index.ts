@@ -29,7 +29,7 @@ Deno.serve(async(req:Request)=>{
     return reply(503,{error:"subscription_status_unavailable"});
    subscriptionActive=subscriptionIsActive(rows[0]);
   }
-  return reply(200,{status,amount_kurus:75000,currency:"TRY",
+  return reply(200,{status,amount_kurus:order.amount_kurus,currency:"TRY",
    payment_confirmed:status==="paid",subscription_active:subscriptionActive});
  }catch(e){
   if(e instanceof Error&&e.message==="invalid_user_session")return reply(401,{error:"login_required"});
