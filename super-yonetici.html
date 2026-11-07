@@ -16,12 +16,18 @@
 </section>
 <section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 özel Shopier ürünü">
 <h2>İlyada 3 · 500 TL Shopier Ürünü</h2>
-<p class="muted">Shopier'de 750 TL'lik ürünü <strong>Kopyala ve Çoğalt</strong> ile çoğalt. Yeni fiyatı <strong>500 TL (KDV dahil)</strong> yap. <strong>Özel Listeleme → Dükkandaki Görünürlük</strong> ayarını kapat. Ürün bağlantısını aşağıya kaydet.</p>
+<p class="muted">İlyada 3 için seçtiğimiz kare görseli yükle. Sistem <strong>500 TL (KDV dahil)</strong> fiyatlı, <strong>12 aylık dijital</strong> ürünü mağaza vitrininde gizli olacak şekilde yalnızca senin onayınla oluştursun. Mevcut 750 TL ürün korunur.</p>
+<label for="shopierOfficeArtwork" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün görseli (PNG)</label>
+<input type="file" id="shopierOfficeArtwork" accept="image/png,.png" style="display:block;width:100%;margin:0 0 12px">
+<div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button></div>
+<p class="muted" id="shopierOfficeCreateStatus" role="status" aria-live="polite">Ürün durumu kontrol ediliyor…</p>
+<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:650">Shopier'de önceden oluşturulan ürünün bağlantısını elle kaydet</summary>
 <label for="shopierOfficeProductUrl" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün bağlantısı</label>
 <input id="shopierOfficeProductUrl" type="url" autocomplete="off" placeholder="https://www.shopier.com/enginbaysal/..." style="width:100%;max-width:650px">
 <div class="toolbar" style="margin-top:12px"><button type="button" id="shopierOfficeProductSave">Özel Ürün Bağlantısını Kaydet</button><button type="button" id="shopierOfficeProductCheck">Kontrol Et</button></div>
 <p class="muted" id="shopierOfficeProductMessage" role="status" aria-live="polite">Özel ürün bağlantısı kontrol ediliyor…</p>
 <p class="muted" style="font-size:13px">Ürünü vitrinden gizlemek gizli erişim garantisi değildir. Bu bağlantı ödeme ve abonelik eşleştirmesi tamamlanana kadar yalnızca yönetici ekranında tutulur.</p>
+</details>
 </section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
@@ -56,6 +62,79 @@ let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();
 const RE_MAX_BUCKET="emlakcrm-office-templates";
 const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
+const shopierProductCreateBtn=$("shopierOfficeProductCreate");
+const shopierProductImage=$("shopierOfficeArtwork");
+const shopierProductCreateState=$("shopierOfficeCreateStatus");
+let shopierProductCreationBlocked=false;
+let shopierProductCreationReady=false;
+async function productCreationRequest(method="GET"){
+ const t=await verifiedToken();
+ const response=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-product",{
+  method,headers:{"apikey":apiKey,"authorization":"Bearer "+t,"content-type":"application/json"},cache:"no-store"
+ });
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(payload.reason||payload.error||"Shopier ürün işlemi doğrulanamadı.");
+ return payload;
+}
+async function shopierProductCreationCheck(){
+ try{
+  const state=await productCreationRequest("GET");
+  shopierProductCreationReady=state.ready===true;
+  shopierProductCreationBlocked=shopierProductCreationReady||state.create_attempted===true;
+  shopierProductCreateBtn.disabled=shopierProductCreationBlocked||!shopierProductImage.files?.length;
+  shopierProductCreateState.textContent=shopierProductCreationReady
+   ?"500 TL ürün Shopier'de oluşturuldu. Ürün bağlantısı aşağıdaki alanda kayıtlı."
+   :state.create_attempted
+   ?"Ürün oluşturma denemesi yapıldı. Aynı işlemi tekrarlamak yerine Shopier ürün listesini kontrol edin; ikinci ürün oluşturulmayacak."
+   :state.image_ready
+   ?"Görsel daha önce yüklendi. 500 TL ürününü oluşturmak için görseli seçip onay verebilirsiniz."
+   :"Ürün henüz oluşturulmadı. Hazırladığımız 500 TL kare görselini seçiniz.";
+  if(shopierProductCreationReady&&state.product_url){
+   $("shopierOfficeProductUrl").value=state.product_url;
+  }
+ }catch(e){
+  shopierProductCreateBtn.disabled=true;
+  shopierProductCreateState.textContent="Ürün durumu kontrol edilemedi: "+e.message;
+ }
+}
+shopierProductImage.addEventListener("change",()=>{
+ const file=shopierProductImage.files?.[0];
+ shopierProductCreateBtn.disabled=shopierProductCreationBlocked||!file;
+ shopierProductCreateState.textContent=file
+  ?"Seçilen görsel: "+file.name+". Oluştur düğmesine basmadan önce dosyanın 500 TL yazdığını kontrol ediniz."
+  :"Görsel seçilmedi.";
+});
+$("shopierOfficeCreateCheck").addEventListener("click",shopierProductCreationCheck);
+shopierProductCreateBtn.addEventListener("click",async()=>{
+ if(shopierProductCreationBlocked)return;
+ const file=shopierProductImage.files?.[0];
+ if(!file||file.type!=="image/png"||file.size>5*1024*1024||file.size<10000){
+  shopierProductCreateState.textContent="Lütfen 5 MB'dan küçük, geçerli PNG görselini seçin.";return;
+ }
+ if(!confirm("İlyada 3 için yalnızca bir adet 500 TL dijital abonelik ürünü, Shopier vitrininde gizli olacak şekilde oluşturulsun mu? 750 TL ürün değişmeyecek."))return;
+ shopierProductCreateBtn.disabled=true;
+ shopierProductCreateState.textContent="500 TL görseli güvenli alana yükleniyor…";
+ try{
+  const token=await verifiedToken();
+  const upload=await fetch(endpoint+"/storage/v1/object/emlakcrm-shopier-images/ilyada3/emlakcrm-500.png",{
+   method:"POST",headers:{"apikey":apiKey,"Authorization":"Bearer "+token,"content-type":"image/png","x-upsert":"true","cache-control":"no-cache"},body:file,cache:"no-store"
+  });
+  if(!upload.ok)throw Error("Görsel yüklenemedi (HTTP "+upload.status+").");
+  shopierProductCreateState.textContent="Görsel yüklendi. Shopier ürünü oluşturuluyor ve fiyat/görünürlük doğrulanıyor…";
+  const result=await productCreationRequest("POST");
+  if(result?.status!=="ready"||typeof result.product_url!=="string")throw Error("Shopier ürün kaydı doğrulanamadı.");
+  $("shopierOfficeProductUrl").value=result.product_url;
+  shopierProductCreateState.textContent="500 TL özel ürün kaydedildi. Ücretli üyelik aktivasyonu henüz açık değil.";
+  shopierProductCreationBlocked=true;shopierProductCreationReady=true;
+  await loadOfficeShopierProduct();
+ }catch(e){
+  shopierProductCreateState.textContent="Ürün oluşturma tamamlanamadı: "+e.message+
+   " Hata varsa yeniden oluşturmadan önce 'Ürün Oluşturma Durumunu Kontrol Et' düğmesine basın.";
+  await shopierProductCreationCheck();
+ }finally{
+  shopierProductCreateBtn.disabled=true;
+ }
+});
 async function officeShopierProductRequest(method,payload){
  const token=await verifiedToken();
  return discountRpc(method==="save"?"emlakcrm_admin_set_shopier_office_product":"emlakcrm_admin_shopier_office_product",payload||{},token);
@@ -302,7 +381,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();void shopierProductCreationCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
