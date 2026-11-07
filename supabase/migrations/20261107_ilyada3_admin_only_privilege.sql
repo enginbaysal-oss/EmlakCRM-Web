@@ -56,3 +56,104 @@ GRANT EXECUTE ON FUNCTION public.emlakcrm_admin_set_office_privilege(uuid, boole
 -- danışman indirimden yararlanır.
 REVOKE EXECUTE ON FUNCTION public.emlakcrm_request_office_discount(text)
   FROM PUBLIC, anon, authenticated;
+
+-- Özel RE/MAX JSON paketi GitHub Pages içinde dağıtılmaz.
+-- İlyada 3 danışmanlığı ve aktif, doğrulanmış abonelik kontrol edilir.
+CREATE OR REPLACE FUNCTION public.emlakcrm_can_access_remax_templates()
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO ''
+AS $fn$
+  SELECT auth.uid() IS NOT NULL AND (
+    EXISTS (
+      SELECT 1 FROM public.emlakcrm_super_admins
+      WHERE user_id = auth.uid()
+    )
+    OR (
+      EXISTS (
+        SELECT 1 FROM public.emlakcrm_office_discount_requests
+        WHERE user_id = auth.uid() AND status = 'approved'
+      )
+      AND EXISTS (
+        SELECT 1 FROM public.emlakcrm_subscriptions
+        WHERE user_id = auth.uid()
+          AND status = 'active'
+          AND starts_at <= now()
+          AND expires_at > now()
+      )
+    )
+  )
+$fn$;
+
+REVOKE ALL ON FUNCTION public.emlakcrm_can_access_remax_templates()
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.emlakcrm_can_access_remax_templates()
+  TO authenticated;
+
+-- Özel kapalı bucket: belgenin kendisi herkesçe indirilebilir olmamalı.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'emlakcrm-office-templates',
+  'emlakcrm-office-templates',
+  false, 20971520,
+  ARRAY['application/json']::text[]
+)
+ON CONFLICT (id) DO UPDATE
+SET public = false,
+    file_size_limit = 20971520,
+    allowed_mime_types = ARRAY['application/json']::text[];
+
+DROP POLICY IF EXISTS emlakcrm_remax_private_read ON storage.objects;
+CREATE POLICY emlakcrm_remax_private_read ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'emlakcrm-office-templates'
+  AND name = 'ilyada3/remax-templates.json'
+  AND public.emlakcrm_can_access_remax_templates()
+);
+
+-- Yalnız Süper Yönetici JSON dosyasını ekleyebilir/güncelleyebilir/kaldırabilir.
+DROP POLICY IF EXISTS emlakcrm_remax_admin_insert ON storage.objects;
+CREATE POLICY emlakcrm_remax_admin_insert ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'emlakcrm-office-templates'
+  AND name = 'ilyada3/remax-templates.json'
+  AND EXISTS (
+    SELECT 1 FROM public.emlakcrm_super_admins
+    WHERE user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS emlakcrm_remax_admin_update ON storage.objects;
+CREATE POLICY emlakcrm_remax_admin_update ON storage.objects
+FOR UPDATE TO authenticated
+USING (
+  bucket_id = 'emlakcrm-office-templates'
+  AND name = 'ilyada3/remax-templates.json'
+  AND EXISTS (
+    SELECT 1 FROM public.emlakcrm_super_admins
+    WHERE user_id = auth.uid()
+  )
+)
+WITH CHECK (
+  bucket_id = 'emlakcrm-office-templates'
+  AND name = 'ilyada3/remax-templates.json'
+  AND EXISTS (
+    SELECT 1 FROM public.emlakcrm_super_admins
+    WHERE user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS emlakcrm_remax_admin_delete ON storage.objects;
+CREATE POLICY emlakcrm_remax_admin_delete ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'emlakcrm-office-templates'
+  AND name = 'ilyada3/remax-templates.json'
+  AND EXISTS (
+    SELECT 1 FROM public.emlakcrm_super_admins
+    WHERE user_id = auth.uid()
+  )
+);
