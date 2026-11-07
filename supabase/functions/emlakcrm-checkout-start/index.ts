@@ -38,11 +38,21 @@ Deno.serve(async(req:Request)=>{
     "&select=id&limit=1");
   if(Array.isArray(subscriptions)&&subscriptions.length)
     return reply(409,{error:"subscription_already_active"});
+  // Price is decided exclusively by the server from a super-admin-approved request.
+  const discounts=await db("GET","emlakcrm_office_discount_requests?user_id=eq."+user.id+
+    "&select=status&limit=1");
+  const discountStatus=Array.isArray(discounts)&&discounts.length?discounts[0].status:"none";
+  if(discountStatus==="pending")return reply(409,{error:"discount_approval_pending"});
+  const amountKurus=discountStatus==="approved"?50000:75000;
+  const price=(amountKurus/100).toFixed(2);
   const open=await db("GET","emlakcrm_checkout_sessions?user_id=eq."+user.id+
-    "&status=in.(created,pending,review)&select=id,status,checkout_url,provider_token,created_at"+
+    "&status=in.(created,pending,review)&select=id,status,checkout_url,provider_token,created_at,amount_kurus"+
     "&order=created_at.desc&limit=1");
   if(Array.isArray(open)&&open.length){
    const existing=open[0],action=openCheckoutAction(existing);
+   // Never resume a payment page created at a different price.
+   if(existing.amount_kurus!==amountKurus)
+     return reply(409,{error:"checkout_requires_review",order_id:existing.id});
    if(action==="resume")
      return reply(200,{order_id:existing.id,payment_page_url:existing.checkout_url,existing:true});
    if(action==="release_unissued"){
@@ -59,10 +69,10 @@ Deno.serve(async(req:Request)=>{
   }
   const id=crypto.randomUUID();
   await db("POST","emlakcrm_checkout_sessions",{id,user_id:user.id,
-    status:"created",amount_kurus:75000,currency:"TRY"},"return=minimal");
+    status:"created",amount_kurus:amountKurus,currency:"TRY"},"return=minimal");
   try{
    const body={
-    locale:"tr",conversationId:id,basketId:id,price:"750.00",paidPrice:"750.00",
+    locale:"tr",conversationId:id,basketId:id,price,paidPrice:price,
     currency:"TRY",paymentGroup:"PRODUCT",paymentChannel:"WEB",enabledInstallments:[1],
     callbackUrl:checkoutCallback,
     buyer:{id:user.id,name:buyer.name,surname:buyer.surname,identityNumber:buyer.identityNumber,
@@ -70,7 +80,7 @@ Deno.serve(async(req:Request)=>{
       city:buyer.city,country:"Turkey",zipCode:buyer.zipCode,ip:clientIp(req)},
     billingAddress:{address:buyer.address,contactName:buyer.name+" "+buyer.surname,
       city:buyer.city,country:"Turkey",zipCode:buyer.zipCode},
-    basketItems:[{id:"EMLAKCRM-12AY",price:"750.00",name:"EmlakCRM 12 Aylik Tek Seferlik Erisim",
+    basketItems:[{id:"EMLAKCRM-12AY",price,name:"EmlakCRM 12 Aylik Tek Seferlik Erisim",
       category1:"Yazilim",itemType:"VIRTUAL"}]
    };
    const response=await callIyzico(CF_START,body);
@@ -83,7 +93,7 @@ Deno.serve(async(req:Request)=>{
      provider_token:token,checkout_url:url,status:"pending",updated_at:new Date().toISOString()
    },"return=representation");
    if(!Array.isArray(updated)||updated.length!==1)throw Error("checkout_persist_failed");
-   return reply(200,{order_id:id,payment_page_url:url,amount_kurus:75000,currency:"TRY"});
+   return reply(200,{order_id:id,payment_page_url:url,amount_kurus:amountKurus,currency:"TRY"});
   }catch{
    await db("PATCH","emlakcrm_checkout_sessions?id=eq."+id+"&status=eq.created",{status:"failed",updated_at:new Date().toISOString()},"return=minimal").catch(()=>{});
    return reply(502,{error:"checkout_initialization_failed",payment_collected:false});
