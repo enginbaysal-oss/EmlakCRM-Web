@@ -47,6 +47,25 @@ let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();
 const RE_MAX_BUCKET="emlakcrm-office-templates";
 const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
+async function shopierIssueCode(userId,token){
+ const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-coupon",{
+  method:"POST",headers:{"apikey":apiKey,Authorization:"Bearer "+token,"content-type":"application/json"},
+  body:JSON.stringify({user_id:userId}),cache:"no-store"
+ });
+ const payload=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error("Shopier kodu hazırlanamadı ("+String(payload.reason||payload.error||r.status)+").");
+ if(payload.status!=="issued"||!/^[A-Z0-9]{14}$/.test(payload.code||""))throw Error("Shopier kodu henüz doğrulanamadı.");
+ return payload;
+}
+async function shopierCodeForUser(userId,email,button){
+ button.disabled=true;
+ try{
+  const token=await verifiedToken(),coupon=await shopierIssueCode(userId,token);
+  alert(email+" için Shopier kodu hazır. Kod danışmanın kendi abonelik ekranında görünecek.");
+  return coupon;
+ }catch(e){alert("Ofis onayı korunuyor. Shopier kodu oluşturulamadı: "+e.message);return null}
+ finally{button.disabled=false}
+}
 const shopierConnectBtn=$("shopierConnect");
 const shopierInfo=$("shopierConnectionInfo");
 async function shopierStatusRequest(method="GET"){
@@ -179,7 +198,11 @@ async function loadDiscounts(){
     for(const [label,approved] of [["Onayla",true],["Reddet",false]]){
      const btn=document.createElement("button");btn.type="button";btn.textContent=label;btn.style.margin="3px";if(!approved)btn.style.background="#a63838";
      btn.onclick=async()=>{if(!confirm(item.email+" için "+(approved?"İlyada 3 ofis kaydı onaylansın mı?":"ofis kaydı reddedilsin mi?")))return;
-      btn.disabled=true;try{await discountRpc("emlakcrm_admin_review_discount",{p_request_id:item.id,p_approve:approved},discountToken);await loadDiscounts()}catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
+      btn.disabled=true;try{
+        await discountRpc("emlakcrm_admin_review_discount",{p_request_id:item.id,p_approve:approved},discountToken);
+        await loadDiscounts();
+        if(approved)await shopierCodeForUser(item.user_id,item.email,btn);
+      }catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
      td.append(btn);
     }
    }tr.append(td);tbody.append(tr);
@@ -217,10 +240,19 @@ function render(){
        const message=approved?"İlyada 3 ofis yetkisi ve RE/MAX şablon erişimi kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
        if(!confirm(u.email+"\n"+message))return;
        btn.disabled=true;
-       try{const t=await verifiedToken();const status=await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:!approved},t);officeStatusByEmail.set(email,status);render()}
+       try{
+          const t=await verifiedToken(),nextState=await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:!approved},t);
+          officeStatusByEmail.set(email,nextState);render();
+          if(!approved)await shopierCodeForUser(u.id,u.email,btn);
+        }
        catch(e){alert("Ofis yetkisi güncellenemedi: "+e.message);btn.disabled=false}
      };
      td.append(btn);
+     if(approved){
+       const codeBtn=document.createElement("button");codeBtn.type="button";codeBtn.textContent="Shopier Kodunu Hazırla";codeBtn.style.marginTop="6px";codeBtn.style.marginLeft="6px";
+       codeBtn.onclick=()=>shopierCodeForUser(u.id,u.email,codeBtn);
+       td.append(codeBtn);
+     }
    }
    tr.append(td);$("rows").append(tr);
  }
