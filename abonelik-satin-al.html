@@ -12,35 +12,80 @@ input{width:100%;padding:11px;border-radius:9px;border:1px solid #b2c7d6;font:in
 button{background:#ef8926;color:#142d3a;font:inherit;font-weight:800;border:0;border-radius:10px;padding:13px 18px;cursor:pointer;box-shadow:0 4px 0 #994d0a45}
 button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}.error{color:#ae2626}.success{color:#147655}
 .checkbox{display:flex;gap:10px;align-items:flex-start;font-weight:550;margin:15px 0}.checkbox input{width:18px;flex:none;margin-top:4px}
-a{color:#0b678b}@media(max-width:540px){.grid{grid-template-columns:1fr}}
+a{color:#0b678b}
+body{background:linear-gradient(160deg,#e6f4fb 0%,#f5f8fc 52%,#ecf2fb 100%);color:#183b54}
+header{padding:18px 22px;background:linear-gradient(115deg,#103757,#176583);box-shadow:0 6px 24px #133c6018}
+header .header-inner{max-width:740px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{font-size:21px;letter-spacing:-.5px}
+header .lock{font-size:12px;color:#d5f3f9;border:1px solid #77c5d455;padding:7px 10px;border-radius:20px}
+main{max-width:740px;margin:19px auto;padding:0 16px 30px}
+.panel{padding:23px;border:1px solid #e0ebf3;box-shadow:0 6px 22px #0e416217;margin:12px 0}
+.panel h2{font-size:19px;color:#17384e}
+.product{border-left:4px solid #ef8926}
+.product-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.product small,.tiny{font-size:12px;color:#637c90}
+.price{font-size:32px;white-space:nowrap}
+.offer{background:#f6fbfe;border:1px solid #ccdfeb}
+.offer h2{margin-bottom:5px}
+.office-actions{display:flex;flex-wrap:wrap;gap:8px}
+.office-actions button{font-size:13px;padding:10px 12px}
+.section-heading{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+.step-count{display:grid;place-items:center;background:#fceacb;color:#8e530e;font-weight:800;width:35px;height:35px;border-radius:11px}
+.field-hint{color:#607b8a;font-size:12px;font-weight:400}
+.grid{gap:13px}
+input{background:#fbfdff;border-radius:11px;border:1px solid #c5d7e3;padding:13px}
+input:focus{outline:2px solid #6bbcc7;outline-offset:1px}
+label{margin:9px 0 5px}
+button{transition:transform .15s,box-shadow .15s;box-shadow:0 3px 0 #9c560f38}
+button:not(:disabled):hover{transform:translateY(-1px)}
+button#nextStep,button#pay{width:100%;font-size:16px;padding:14px 16px;margin-top:12px}
+button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
+#previousStep{margin-top:10px}
+#checkoutNotice{font-size:13px;margin:12px 0 0}
+#result{font-size:14px}
+.security-caption{display:flex;align-items:center;gap:8px;font-size:12px;color:#517184;margin:14px 0 0}
+.checkbox{background:#f6f9fb;padding:12px;border:1px solid #e4edf3;border-radius:10px;font-size:13px;font-weight:500}
+.checkbox input{accent-color:#ec8b24}
+.invoice-tip{font-size:12px;color:#577084;margin:10px 0}
+.footer-link{display:inline-block;margin:9px 0;color:#e2700e;font-weight:700}
+@media(max-width:540px){.grid{grid-template-columns:1fr}.panel{padding:18px}.product-head{align-items:flex-start}.price{font-size:30px}header .lock{font-size:11px}}
+
 </style></head>
-<body><header><h1>EmlakCRM · Yıllık Abonelik</h1></header>
-<main><section class="panel"><h2>12 aylık erişim</h2><div class="price"><span id="displayPrice">750 TL</span> <small style="font-size:15px;font-weight:500">KDV dahil</small></div>
-<p>Tek seferlik ödeme. Otomatik yenileme veya otomatik ücret tahsilatı yapılmaz. Ödeme sunucu tarafından doğrulanırsa hesabınıza 12 aylık erişim tanımlanır.</p></section>
-<section class="panel"><h2>Ofise Özel İndirim</h2>
-<p class="muted">RE/MAX İlyada 3 danışmanlarına özel yıllık abonelik: <strong>500 TL (KDV dahil)</strong>. İndirim için yalnızca ofis üyeliğinizin onaylanması gerekir.</p>
+<body><header><div class="header-inner"><h1>EmlakCRM · Abonelik</h1><span class="lock">🔒 Güvenli ödeme</span></div></header>
+<main><section class="panel product"><div class="product-head"><div><h2 style="margin-bottom:4px">12 aylık EmlakCRM</h2><span class="muted">Tek ödeme · Otomatik yenileme yok</span></div><div class="price"><span id="displayPrice">750 TL</span><div class="tiny" style="text-align:right">KDV dahil</div></div></div></section>
+<section class="panel offer"><h2>İlyada 3'te çalışıyor musun?</h2>
+<p class="muted" style="margin:0">RE/MAX İlyada 3 danışmanları, yönetici onayıyla <strong>500 TL / yıl</strong> öder.</p>
 <label class="checkbox" style="padding:12px;background:#f0f7fb;border:1px solid #d4e5f0;border-radius:10px">
 <input type="checkbox" id="isIlyadaMember">
-<span>RE/MAX İlyada 3 ofisinde çalışıyorum ve ofise özel indirim için onay istiyorum.</span>
+<span>Evet, RE/MAX İlyada 3 danışmanıyım.</span>
 </label>
-<button type="button" id="discountApply" disabled>İndirim Talebi Gönder</button>
-<button type="button" id="discountCheck" style="background:#e8f1f6;color:#16455e;box-shadow:none;margin-left:5px">Onay Durumunu Kontrol Et</button>
+<div class="office-actions"><button type="button" id="discountApply" disabled>İndirim İste</button>
+<button type="button" id="discountCheck" class="btn-secondary">Onayımı Kontrol Et</button></div>
 <p id="discountStatus" class="muted" role="status" aria-live="polite">Yukarıdaki kutuyu işaretleyerek onay talebi gönderebilirsiniz.</p>
 </section>
-<section class="panel"><h2>Fatura ve alıcı bilgileri</h2>
-<p class="muted">Bu alanlar iyzico üzerinden güvenli ödeme başlatabilmek içindir. Kart bilgilerini yalnızca iyzico'nun kendi ödeme ekranında gireceksiniz.</p>
+<section class="panel"><div class="section-heading"><span class="step-count" id="stepNumber">1</span><div><h2 style="margin:0" id="stepTitle">Adım 1 · Adın ve soyadın</h2><span class="muted" style="font-size:13px" id="stepDescription">Hesabına ait temel bilgiler</span></div></div>
 <form id="checkout">
-<div class="grid"><div><label for="name">Ad</label><input id="name" maxlength="100" autocomplete="given-name" required></div>
-<div><label for="surname">Soyad</label><input id="surname" maxlength="100" autocomplete="family-name" required></div>
-<div><label for="gsmNumber">Cep telefonu</label><input id="gsmNumber" type="tel" placeholder="+905XXXXXXXXX" maxlength="20" autocomplete="tel" required></div>
-<div><label for="identityNumber">Kimlik / vergi numarası</label><input id="identityNumber" maxlength="25" autocomplete="off" required></div>
-<div><label for="city">İl</label><input id="city" maxlength="80" autocomplete="address-level1" required></div>
-<div><label for="zipCode">Posta kodu</label><input id="zipCode" maxlength="15" autocomplete="postal-code" required></div></div>
-<label for="address">Fatura adresi</label><input id="address" maxlength="350" autocomplete="street-address" required>
-<label class="checkbox"><input type="checkbox" id="approve" required><span><strong id="consentPrice">750 TL</strong> (KDV dahil) tutarında, 12 aylık ve otomatik yenilemesiz abonelik satın alacağımı anladım. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Mesafeli Satış Sözleşmesi</a>, <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">Teslimat ve İade</a> ve <a href="./gizlilik-politikasi.html" target="_blank" rel="noopener noreferrer">Gizlilik Politikası</a> metinlerini inceleme imkânı buldum.</span></label>
-<button type="submit" id="pay" disabled>Güvenli ödeme sayfasına geç</button>
-<p id="checkoutNotice" class="muted">Canlı ödeme durumu güvenli sunucudan kontrol ediliyor.</p><p id="result" role="status" aria-live="polite"></p>
-</form></section><section class="panel"><h2>Ödeme veya abonelik desteği</h2><p>Ödemeniz tamamlandığı hâlde üyeliğiniz açılmadıysa <strong>ikinci kez ödeme yapmayın.</strong> İşlemi kontrol edebilmemiz için destek ekibine ulaşın. Kart numaranızı, CVC kodunuzu ve şifrenizi paylaşmayın.</p><p><a href="mailto:enginbysl45@gmail.com?subject=EmlakCRM%20Abonelik%20Destek">E-posta ile destek</a> · <a href="https://wa.me/905531354681?text=Merhaba%2C%20EmlakCRM%20aboneli%C4%9Fim%20i%C3%A7in%20destek%20istiyorum.">WhatsApp ile destek</a></p></section><p><a href="./index.html">EmlakCRM ana sayfaya dön</a></p></main>
+<div id="stepOne"><div class="grid">
+ <div><label for="name">Ad</label><input id="name" maxlength="100" autocomplete="given-name" placeholder="Adın" required></div>
+ <div><label for="surname">Soyad</label><input id="surname" maxlength="100" autocomplete="family-name" placeholder="Soyadın" required></div>
+</div>
+<button type="button" id="nextStep">Devam Et</button>
+<p class="security-caption">🔒 Kart bilgilerini burada değil, iyzico'nun güvenli ekranında gireceksin.</p>
+</div>
+<div id="stepTwo" hidden>
+ <p class="muted" style="margin:0 0 11px">iyzico'nun ödeme için istediği son 3 bilgi:</p>
+ <div class="grid">
+  <div><label for="identityNumber">T.C. kimlik / vergi numarası</label><input id="identityNumber" maxlength="25" autocomplete="off" inputmode="numeric" placeholder="Kimlik veya vergi no" required></div>
+  <div><label for="city">İl</label><input id="city" maxlength="80" autocomplete="address-level1" placeholder="Örn. Manisa" required></div>
+ </div>
+ <label for="address">Fatura adresi</label><input id="address" maxlength="350" autocomplete="street-address" placeholder="Mahalle, sokak, bina ve daire no" required>
+ <p class="invoice-tip">Bu bilgiler yalnızca güvenli ödeme başlatmak için iletilir; kart bilgilerin EmlakCRM tarafından alınmaz.</p>
+ <label class="checkbox"><input type="checkbox" id="approve" required><span><strong id="consentPrice">750 TL</strong> (KDV dahil) tutarında, 12 aylık ve otomatik yenilemesiz aboneliği satın alacağımı kabul ediyorum. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Satış sözleşmesi</a>, <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">iade koşulları</a> ve <a href="./gizlilik-politikasi.html" target="_blank" rel="noopener noreferrer">gizlilik politikası</a> metinlerini inceleme imkânı buldum.</span></label>
+ <button type="submit" id="pay" disabled>Güvenli Ödemeye Geç</button>
+ <button type="button" id="previousStep" class="btn-secondary">← Geri</button>
+ <p id="checkoutNotice" class="muted" role="status">Ödeme uygunluğu kontrol ediliyor.</p><p id="result" role="status" aria-live="polite"></p>
+</div>
+</form></section><section class="panel"><h2>Yardıma mı ihtiyacın var?</h2><p class="muted">Ödeme yapmana rağmen aboneliğin açılmadıysa <strong>ikinci kez ödeme yapma.</strong> Bize ulaş, kontrol edelim.</p><p><a href="mailto:enginbysl45@gmail.com?subject=EmlakCRM%20Abonelik%20Destek">E-posta ile destek</a> · <a href="https://wa.me/905531354681?text=Merhaba%2C%20EmlakCRM%20aboneli%C4%9Fim%20i%C3%A7in%20destek%20istiyorum.">WhatsApp ile destek</a></p></section><p><a class="footer-link" href="./index.html">← EmlakCRM ana sayfaya dön</a></p></main>
 <script>
 "use strict";
 const base="https://tffvwxskvjuxoekwgdef.supabase.co";
@@ -132,7 +177,7 @@ byId("checkout").addEventListener("submit",async e=>{
   if(latest==="pending"){result.textContent="Ofis indirim talebiniz onay bekliyor.";result.className="muted";return;}
   result.textContent="iyzico güvenli ödeme sayfası hazırlanıyor…";
  }catch{result.textContent="Ödeme uygunluğu kontrol edilemedi. Lütfen tekrar giriş yapın.";result.className="error";updatePaymentUi();return;}
- const fields=["name","surname","identityNumber","gsmNumber","city","zipCode","address"];
+ const fields=["name","surname","identityNumber","city","address"];
  const body=Object.fromEntries(fields.map(x=>[x,byId(x).value.trim()]));body.discount_code=approvedDiscount?"ILYADA3":"";
  try{
   const r=await fetch(base+"/functions/v1/emlakcrm-checkout-start",{
@@ -171,5 +216,38 @@ byId("checkout").addEventListener("submit",async e=>{
   window.location.assign(url.href);
   }catch{result.textContent="Ödeme başlatılamadı. Lütfen tekrar denemeden önce destekle iletişime geçin.";result.className="error";updatePaymentUi()}
 });
-void availability();void checkDiscount();
+
+byId("nextStep").addEventListener("click",()=>{
+ const fields=[byId("name"),byId("surname")];
+ for(const field of fields){if(!field.reportValidity())return;}
+ byId("stepOne").hidden=true;byId("stepTwo").hidden=false;
+ byId("stepNumber").textContent="2";
+ byId("stepTitle").textContent="Adım 2 · Fatura bilgileri";
+ byId("stepDescription").textContent="Son üç bilgi ve güvenli ödeme";
+ byId("identityNumber").focus();
+});
+byId("previousStep").addEventListener("click",()=>{
+ byId("stepTwo").hidden=true;byId("stepOne").hidden=false;
+ byId("stepNumber").textContent="1";
+ byId("stepTitle").textContent="Adım 1 · Adın ve soyadın";
+ byId("stepDescription").textContent="Hesabına ait temel bilgiler";
+ byId("name").focus();
+});
+async function prefillNameFromAccount(){
+ try{
+  const access=token();if(!access)return;
+  const r=await fetch(base+"/auth/v1/user",{headers:{apikey:key,authorization:"Bearer "+access},cache:"no-store"});
+  if(!r.ok)return;
+  const u=await r.json(),m=u.user_metadata||{};
+  let first=typeof m.first_name==="string"?m.first_name.trim():"";
+  let last=typeof m.last_name==="string"?m.last_name.trim():typeof m.surname==="string"?m.surname.trim():"";
+  if((!first||!last)&&typeof m.full_name==="string"){
+   const parts=m.full_name.trim().split(/\\s+/);
+   if(parts.length>=2){first ||=parts.slice(0,-1).join(" ");last ||=parts.at(-1);}
+  }
+  if(!byId("name").value&&first)byId("name").value=first.slice(0,100);
+  if(!byId("surname").value&&last)byId("surname").value=last.slice(0,100);
+ }catch{}
+}
+void availability();void checkDiscount();void prefillNameFromAccount();
 </script></body></html>
