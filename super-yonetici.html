@@ -8,6 +8,12 @@
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
 <div id="dashboard" class="hidden">
+<section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
+<h2>Shopier Ödeme Bağlantısı</h2>
+<p class="muted">Shopier siparişlerinin güvenli bildirim bağlantısını kurar. Ödemeleri önce doğrulama listesine alır; kullanıcı aboneliği bu aşamada otomatik açılmaz.</p>
+<div class="toolbar"><button type="button" id="shopierConnect" disabled>Shopier Bağlantısını Kur</button><button type="button" id="shopierCheck">Bağlantıyı Kontrol Et</button></div>
+<p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
+</section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
 <p class="muted">Paketi bir kez sen yüklersin. İlyada 3 ofis onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
@@ -41,6 +47,40 @@ let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();
 const RE_MAX_BUCKET="emlakcrm-office-templates";
 const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
+const shopierConnectBtn=$("shopierConnect");
+const shopierInfo=$("shopierConnectionInfo");
+async function shopierStatusRequest(method="GET"){
+ const t=await verifiedToken();
+ const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-setup",{
+  method,headers:{"apikey":apiKey,"authorization":"Bearer "+t,"content-type":"application/json"},cache:"no-store"});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(j.reason==="shopier_pat_missing"?"Shopier anahtarı sunucuda bulunamadı.":j.error==="webhook_already_registered_without_token"?"Aynı webhook daha önce oluşturulmuş; Shopier bağlantısını kontrol et.":"Shopier kurulumu doğrulanamadı ("+r.status+").");
+ return j;
+}
+async function shopierCheck(){
+ shopierConnectBtn.disabled=true;
+ shopierInfo.textContent="Bağlantı kontrol ediliyor...";
+ try{
+  const state=await shopierStatusRequest();
+  shopierConnectBtn.hidden=state.webhook_ready===true;
+  shopierConnectBtn.disabled=state.webhook_ready===true||state.pat_ready!==true;
+  shopierInfo.textContent=state.webhook_ready
+   ?"Shopier bildirim bağlantısı kurulu. Sipariş doğrulama açık; otomatik üyelik aktivasyonu henüz kapalı."
+   :state.pat_ready?"Shopier anahtarı hazır. Bağlantıyı kurmak için düğmeye bas.":"Shopier anahtarı sunucuda bulunamadı.";
+ }catch(e){shopierConnectBtn.disabled=true;shopierInfo.textContent=e.message}
+}
+async function shopierConnect(){
+ if(!confirm("Shopier'in order.created bildirimi EmlakCRM sunucusuna bağlansın mı? Bu işlem ödeme yapmaz ve abonelik açmaz."))return;
+ shopierConnectBtn.disabled=true;shopierInfo.textContent="Shopier bağlantısı kuruluyor...";
+ try{
+  const state=await shopierStatusRequest("POST");
+  if(state.webhook_ready!==true)throw Error("Bağlantı doğrulanamadı.");
+  shopierInfo.textContent="Shopier bildirim bağlantısı kuruldu. Abonelik aktivasyonu henüz kapalı.";
+  shopierConnectBtn.hidden=true;
+ }catch(e){shopierInfo.textContent="Kurulum tamamlanamadı: "+e.message;shopierConnectBtn.disabled=false}
+}
+$("shopierCheck").addEventListener("click",shopierCheck);
+shopierConnectBtn.addEventListener("click",shopierConnect);
 const remaxStatus=$("remaxPackageStatus");
 const remaxUpload=$("remaxPackageUpload");
 const remaxDelete=$("remaxPackageDelete");
@@ -209,7 +249,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
