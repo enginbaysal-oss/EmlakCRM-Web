@@ -242,7 +242,7 @@ async function prefillNameFromAccount(){
   let first=typeof m.first_name==="string"?m.first_name.trim():"";
   let last=typeof m.last_name==="string"?m.last_name.trim():typeof m.surname==="string"?m.surname.trim():"";
   if((!first||!last)&&typeof m.full_name==="string"){
-   const parts=m.full_name.trim().split(/\\s+/);
+   const parts=m.full_name.trim().split(/\s+/);
    if(parts.length>=2){first ||=parts.slice(0,-1).join(" ");last ||=parts.at(-1);}
   }
   if(!byId("name").value&&first)byId("name").value=first.slice(0,100);
