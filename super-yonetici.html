@@ -76,6 +76,12 @@
 <p class="muted" style="font-size:13px">Ürünü vitrinden gizlemek gizli erişim garantisi değildir. Bu bağlantı ödeme ve abonelik eşleştirmesi tamamlanana kadar yalnızca yönetici ekranında tutulur.</p>
 </details>
 </section>
+<section class="card" id="legalDeliveryPanel" style="margin:0 0 16px" aria-label="Sözleşme e-posta teslimi">
+<h2>✉️ Sözleşme E-posta Teslimi</h2>
+<p class="muted">Yalnızca doğrulanmış Shopier ödemesine bağlı sözleşme kopyalarının teslimat durumunu gösterir. Bu ekran gönderimi başlatmaz.</p>
+<div class="toolbar"><button type="button" id="legalStatusRefresh">Gönderim Durumunu Yenile</button></div>
+<p id="legalStatusResult" role="status" aria-live="polite" class="notice">Sözleşme teslimatı kontrol ediliyor…</p>
+</section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
 <p class="muted">Paketi bir kez sen yüklersin. İlyada 3 ofis onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
@@ -461,6 +467,28 @@ function render(){
  $("active").textContent=userRows.filter(u=>u.subscription_status==="active").length;
  $("none").textContent=userRows.filter(u=>u.subscription_status==="none").length;
 }
+async function loadLegalDeliveryStatus(){
+ const status=$("legalStatusResult"),btn=$("legalStatusRefresh");
+ btn.disabled=true;status.textContent="Sözleşme gönderimi kontrol ediliyor…";
+ try{
+  const token=await verifiedToken();
+  const response=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_legal_delivery_status",{
+   method:"POST",
+   headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},
+   body:"{}",cache:"no-store"
+  });
+  if(!response.ok)throw Error("Teslimat bilgileri alınamadı ("+response.status+").");
+  const x=await response.json();
+  status.textContent=(x.enabled?"✓ Otomatik e-posta gönderimi açık.":"⚠️ Otomatik e-posta gönderimi kapalı.")+
+   " Hukuki metin: "+(x.legal_bundle_approved?"onaylı sürüm var.":"hukuk onayı bekleniyor.")+
+   " · Bekleyen: "+Number(x.queued||0)+
+   " · Gönderiliyor: "+Number(x.sending||0)+
+   " · Tekrar denenecek: "+Number(x.retry||0)+
+   " · Gönderildi: "+Number(x.sent||0)+
+   " · Hatalı: "+Number(x.failed||0)+".";
+ }catch(e){status.textContent="Durum alınamadı: "+String(e.message||e)}
+ finally{btn.disabled=false}
+}
 async function verifiedToken(){
  let saved;try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||localStorage.getItem(rememberedKey)||"null")}catch{}
  if(!saved?.access_token)throw Error("Oturum bulunamadı. Önce Ayarlar üzerinden giriş yapın.");
@@ -481,7 +509,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();void shopierProductCreationCheck();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();void shopierProductCreationCheck();void loadLegalDeliveryStatus();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
@@ -496,5 +524,5 @@ $("approvalNotifyEnable").addEventListener("click",async()=>{
  }catch(_){info.textContent="Bildirim izni alınamadı; paneldeki uyarı çalışır."}
 });
 setInterval(()=>{if(!$("dashboard").classList.contains("hidden"))void loadDiscounts({quiet:true})},60000);
-$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);$("discountRefresh").addEventListener("click",loadDiscounts);load();
+$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);$("discountRefresh").addEventListener("click",loadDiscounts);$("legalStatusRefresh").addEventListener("click",loadLegalDeliveryStatus);load();
 </script></body></html>
