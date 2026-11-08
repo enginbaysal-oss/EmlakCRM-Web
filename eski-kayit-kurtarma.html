@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eski Kayıt Kurtarma Kontrolü | EmlakCRM</title>
+<style>
+:root{font:16px/1.5 system-ui,Segoe UI,Arial,sans-serif;color:#193950;background:#eef4f8}
+*{box-sizing:border-box}body{margin:0;padding:14px}main{max-width:850px;margin:14px auto;background:#fff;border-radius:17px;padding:23px;box-shadow:0 5px 24px #102e5015}
+h1{font-size:24px;margin:0 0 8px}h2{font-size:18px}p{line-height:1.6}.muted{color:#556d80}
+.warning{padding:13px;border-left:5px solid #d27f21;background:#fff5e7;border-radius:8px}
+.ok{padding:13px;border-left:5px solid #10845b;background:#eaf8ef;border-radius:8px}
+.error{padding:13px;border-left:5px solid #c03535;background:#fff1f0;border-radius:8px}
+button,.back{display:inline-block;background:#ef8926;border:0;border-radius:11px;padding:12px 16px;color:#17344c;font-weight:800;cursor:pointer;text-decoration:none;font:700 15px system-ui}
+button:disabled{opacity:.5;cursor:not-allowed}.back{background:#e8f2f6;margin-bottom:17px}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:10px 8px;text-align:left;border-bottom:1px solid #dce6ee;overflow-wrap:anywhere}
+th{background:#f0f6fa}.buttons{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+small{display:block;color:#536e80}#details[hidden],#download[hidden]{display:none!important}
+@media(max-width:600px){main{padding:15px}h1{font-size:21px}table{font-size:12px}td,th{padding:8px 5px}}
+</style></head><body><main>
+<a class="back" href="./index.html#account">← EmlakCRM'ye Dön</a>
+<h1>Eski Yerel Kayıtları Kontrol Et</h1>
+<p class="warning"><strong>Yalnızca okuma ve yerel kopyalama.</strong> Bu sayfa kayıt silmez, yükleme yapmaz veya sunucuya eski müşteri bilgilerini göndermez. Eski ortak kayıtlarda deneme ya da başka hesaba ait kayıt bulunabilir; bunlar otomatik olarak hiçbir hesaba aktarılmaz.</p>
+<p><strong>Önemli:</strong> Eski kayıtların bulunduğu <strong>aynı bilgisayar ve tarayıcıda</strong> aç. Tarayıcı geçmişi/site verileri temizlenmişse bu yöntem kayıtları geri getiremez.</p>
+<p id="state" class="muted" role="status" aria-live="polite">Süper yönetici oturumu doğrulanıyor…</p>
+<section id="details" hidden>
+<h2>Bulunan yerel kayıtlar</h2>
+<div style="overflow-x:auto"><table><thead><tr><th>Yerel alan</th><th>Kaynak</th><th>Bulunan içerik</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p id="summary" class="muted"></p>
+<div class="buttons"><button id="rescan" type="button">Yeniden Tara</button><button id="download" type="button" disabled>⬇ Eski Kayıtların Güvenli Yerel Kopyasını İndir</button></div>
+<small>İndirilen dosya yalnızca bu cihazda oluşturulur. Oturum bilgileri, parolalar ve anahtarlar dışarı aktarılmaz. Bu işlem başka abonelerle veri paylaşmaz.</small>
+<p class="warning"><strong>Henüz otomatik içe aktarma yapmıyoruz.</strong> Önce eski ve mevcut kayıtları karşılaştırıp hangilerinin sana ait olduğunu doğrulayacağız; sonra yalnızca senin hesabına, mevcut kayıtları silmeden seçici aktarım yapacağız.</p>
+</section>
+</main>
+<script>
+"use strict";
+const API="https://tffvwxskvjuxoekwgdef.supabase.co";
+const PUBLIC_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const $=id=>document.getElementById(id);
+let verifiedUser=null,records=[];
+function errorText(msg){$("state").className="error";$("state").textContent=msg}
+function forbiddenKey(name,userId){
+ if(!name.startsWith("emlakcrm_"))return true;
+ if(/auth|session|token|secret|password|remember|recovery|active_account|credential|apikey|oauth/i.test(name))return true;
+ const marker="__owner_";
+ const pos=name.indexOf(marker);
+ if(pos<0)return false;
+ const tail=name.slice(pos+marker.length).toLowerCase();
+ return tail!==userId&&tail!=="anonymous"; // NEVER inspect other verified users' records
+}
+function describe(parsed){
+ if(Array.isArray(parsed))return parsed.length+" öğe";
+ if(!parsed||typeof parsed!=="object")return "Metin/veri";
+ const labels=[["clients","müşteri"],["tasks","ajanda"],["portfolios","portföy"],["presented","sunum"],["offices","ofis"],["members","danışman"]];
+ const parts=labels.filter(([k])=>Array.isArray(parsed[k])).map(([k,label])=>parsed[k].length+" "+label);
+ if(parsed.drafts&&typeof parsed.drafts==="object")parts.push(Object.keys(parsed.drafts).length+" taslak");
+ return parts.join(", ")||"Kayıt nesnesi";
+}
+function scan(){
+ if(!verifiedUser)return;
+ const id=verifiedUser.id.toLowerCase(),all=[];
+ for(let i=0;i<localStorage.length;i++){
+  const k=localStorage.key(i);
+  if(!k||forbiddenKey(k,id))continue;
+  const raw=localStorage.getItem(k);
+  if(raw==null)continue;
+  let parsed;try{parsed=JSON.parse(raw)}catch{parsed=raw}
+  all.push({key:k,source:k.includes("__owner_"+id)?"Bu hesap":k.includes("__owner_anonymous")?"Eski anonim alan":"Eski ortak alan",raw,description:describe(parsed)});
+ }
+ records=all.sort((a,b)=>a.source.localeCompare(b.source)||a.key.localeCompare(b.key));
+ $("rows").replaceChildren();
+ for(const item of records){
+  const tr=document.createElement("tr");
+  for(const v of [item.key,item.source,item.description]){const td=document.createElement("td");td.textContent=v;tr.appendChild(td)}
+  $("rows").appendChild(tr);
+ }
+ $("summary").textContent=records.length?records.length+" yerel alan bulundu. Eski ortak/anonim: "+records.filter(x=>x.source!=="Bu hesap").length+", bu hesap: "+records.filter(x=>x.source==="Bu hesap").length+".":"Hiçbir EmlakCRM yerel kayıt alanı bulunamadı. Eski tarayıcı profili veya farklı cihaz gerekebilir.";
+ $("download").disabled=!records.length;
+ $("details").hidden=false;
+}
+async function verify(){
+ try{
+  const saved=JSON.parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1")||"null");
+  if(!saved?.access_token)throw Error("Önce ana EmlakCRM'de kendi süper yönetici hesabına giriş yap; bu sayfayı aynı sekmede aç.");
+  const headers={apikey:PUBLIC_KEY,Authorization:"Bearer "+saved.access_token};
+  const a=await fetch(API+"/auth/v1/user",{headers,cache:"no-store"});
+  if(!a.ok)throw Error("Oturum doğrulanamadı. Ana uygulamada yeniden giriş yapmalısın.");
+  const user=await a.json();
+  if(!user?.id)throw Error("Hesap kimliği doğrulanamadı.");
+  const active=localStorage.getItem("emlakcrm_active_account_v1");
+  if(active&&active!==user.id)throw Error("Bu tarayıcıda başka hesap aktif. Kayıtlara dokunulmadı.");
+  const r=await fetch(API+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers,cache:"no-store"});
+  if(!r.ok)throw Error("Yönetici yetkisi doğrulanamadı.");
+  const list=await r.json();
+  if(!Array.isArray(list)||!list.some(x=>x.user_id===user.id))throw Error("Bu kayıt kurtarma kontrolü sadece süper yöneticinin kendi tarayıcısında çalışır.");
+  verifiedUser=user;
+  $("state").className="ok";$("state").textContent="Süper yönetici oturumu doğrulandı. Tarama yalnızca bu tarayıcıdaki kayıtları inceliyor.";
+  scan();
+ }catch(e){errorText(e.message||"Kayıt taraması başlatılamadı.")}
+}
+$("rescan").addEventListener("click",scan);
+$("download").addEventListener("click",()=>{
+ if(!verifiedUser||!records.length)return;
+ const snapshot={format:"EmlakCRM-Yerel-Kurtarma-Kopyasi",version:1,exportedAt:new Date().toISOString(),origin:location.origin,owner:verifiedUser.id,
+  warning:"Eski ortak alanlar başka hesap veya deneme verisi içerebilir; otomatik içe aktarılmamalıdır.",
+  entries:records.map(x=>({key:x.key,source:x.source,raw:x.raw}))};
+ const blob=new Blob([JSON.stringify(snapshot)],{type:"application/json"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="EmlakCRM_Eski_Yerel_Kayit_Kurtarma_"+new Date().toISOString().slice(0,10)+".json";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),120000);
+});
+void verify();
+</script></body></html>
