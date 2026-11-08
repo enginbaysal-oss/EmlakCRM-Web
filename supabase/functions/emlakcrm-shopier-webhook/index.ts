@@ -41,10 +41,13 @@ Deno.serve(async req=>{
   if(!configs?.length)return respond(503,"Not configured");
   const cfg=configs[0];
   const event=req.headers.get("Shopier-Event");
-  const subscriptionId=req.headers.get("Shopier-Webhook-Id");
-  if(subscriptionId&&subscriptionId!==cfg.webhook_id)return respond(401,"Invalid webhook");
+  // Shopier-Webhook-Id identifies a webhook delivery, not the subscribed webhook.
+  // Origin authentication is enforced by HMAC against the stored subscription token.
   const signature=req.headers.get("Shopier-Signature")||req.headers.get("X-Shopier-Signature")||"";
-  if(!await authentic(raw,signature,cfg.token))return respond(401,"Invalid signature");
+  if(!await authentic(raw,signature,cfg.token)){
+   console.warn("Shopier webhook: rejected_signature",{signature_present:Boolean(signature),signature_length:signature.length});
+   return respond(401,"Invalid signature");
+  }
   if(event&&event!=="order.created")return respond(200,"ignored");
   const evt=JSON.parse(raw);
   const id=orderIdFrom(evt);
