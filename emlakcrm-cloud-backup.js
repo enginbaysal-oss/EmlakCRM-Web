@@ -11,13 +11,19 @@ const parse=value=>{try{return JSON.parse(value)}catch{return null}};
 const accountId=()=>window.emlakcrmAccountDataScope?.currentUserId?.()||null;
 const currentSession=()=>parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"));
 async function verified(){
- const uid=accountId(),saved=currentSession();
- if(!uid||!saved?.access_token||localStorage.getItem("emlakcrm_active_account_v1")!==uid)return null;
+ const uid=accountId(),saved=currentSession(),activeKey="emlakcrm_active_account_v1";
+ if(!uid||!saved?.access_token)return null;
+ const before=localStorage.getItem(activeKey);
+ if(before&&before!==uid)return null; // fail closed on another active account
  const headers={apikey:KEY,Authorization:"Bearer "+saved.access_token};
  const r=await fetch(PROJECT+"/auth/v1/user",{headers,cache:"no-store"});
  if(!r.ok)return null;
  const user=await r.json();
  if(!user?.id||user.id!==uid||user.id!==accountId())return null;
+ const now=localStorage.getItem(activeKey);
+ if(now&&now!==uid)return null;
+ if(!now)localStorage.setItem(activeKey,uid); // verified same-account session; missing marker only
+ if(localStorage.getItem(activeKey)!==uid)return null;
  return {uid,headers};
 }
 async function hash(text){
