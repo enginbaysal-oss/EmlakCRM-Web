@@ -75,7 +75,21 @@
   let saved=null;
   try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||"null")}catch{}
   if(!saved?.access_token){try{saved=JSON.parse(localStorage.getItem(rememberKey)||"null")}catch{}}
-
+  if(!saved?.access_token&&window.parent!==window){
+   // Handshake is accepted only from our same-origin CRM parent and re-verified below.
+   saved=await new Promise(resolve=>{
+    let completed=false;
+    const finish=value=>{if(completed)return;completed=true;window.removeEventListener("message",receive);clearTimeout(timer);resolve(value)};
+    const receive=event=>{
+     if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=="emlakcrm-assistant-session")return;
+     finish(event.data.session||null);
+    };
+    window.addEventListener("message",receive);
+    const timer=setTimeout(()=>finish(null),6000);
+    window.parent.postMessage({type:"emlakcrm-assistant-ready"},location.origin);
+   });
+   if(saved?.access_token)sessionStorage.setItem(sessionKey,JSON.stringify(saved));
+  }
   if(!saved?.access_token)throw Error("Oturum bulunamadı");
   let token=saved.access_token;
   let userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
