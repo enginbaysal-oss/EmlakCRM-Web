@@ -13,14 +13,43 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * Never changes payments, subscription activations or contract wording.
  */
 const env=(name:string)=>Deno.env.get(name)||"";
+const allowedOrigin="https://enginbaysal-oss.github.io";
+const cors={"access-control-allow-origin":allowedOrigin,
+ "access-control-allow-methods":"GET,POST,OPTIONS",
+ "access-control-allow-headers":"authorization,apikey,content-type",
+ "vary":"Origin","cache-control":"no-store"};
 const respond=(code:number,data:Record<string,unknown>)=>
  new Response(JSON.stringify(data),{status:code,headers:{
-  "content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
+  ...cors,"content-type":"application/json; charset=utf-8"}});
 const authOk=(req:Request)=>{
  const token=req.headers.get("authorization")||"";
  const service=env("SUPABASE_SERVICE_ROLE_KEY");
  return Boolean(service)&&token==="Bearer "+service;
 };
+async function adminOk(req:Request):Promise<boolean>{
+ const token=req.headers.get("authorization")||"";
+ if(!/^Bearer [A-Za-z0-9._~-]+$/.test(token))return false;
+ const host=env("SUPABASE_URL"),pub=env("SUPABASE_ANON_KEY"),service=env("SUPABASE_SERVICE_ROLE_KEY");
+ if(!host||!pub||!service)return false;
+ try{
+  const r=await fetch(host+"/auth/v1/user",{
+   headers:{apikey:pub,authorization:token},
+   cache:"no-store",signal:AbortSignal.timeout(7000)
+  });
+  if(!r.ok)return false;
+  const user=await r.json();
+  const uid=String(user?.id||"");
+  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(uid))return false;
+  const rows=await fetch(host+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+
+    encodeURIComponent(uid)+"&limit=1",{
+    headers:{apikey:service,authorization:"Bearer "+service},
+    cache:"no-store",signal:AbortSignal.timeout(7000)
+  });
+  if(!rows.ok)return false;
+  const result=await rows.json();
+  return Array.isArray(result)&&result.length===1&&result[0]?.user_id===uid;
+ }catch(_){return false}
+}
 async function rpc<T>(name:string,data:Record<string,unknown>):Promise<T>{
  const url=env("SUPABASE_URL"),key=env("SUPABASE_SERVICE_ROLE_KEY");
  if(!url||!key)throw Error("server_unavailable");
@@ -89,12 +118,24 @@ async function deliver(job:Job):Promise<string>{
  return j.id;
 }
 Deno.serve(async(req:Request)=>{
+ if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST"&&req.method!=="GET")return respond(405,{error:"method_not_allowed"});
- if(!authOk(req))return respond(401,{error:"service_role_required"});
+ const service=authOk(req);
+ if(req.method==="GET"){
+  if(!service&&!(await adminOk(req)))return respond(403,{error:"admin_or_service_role_required"});
+  const active=env("LEGAL_MAIL_AUTOSEND_ENABLED")==="true";
+  const keyPresent=Boolean(env("RESEND_API_KEY"));
+  const senderPresent=Boolean(env("LEGAL_MAIL_FROM"));
+  return respond(200,{
+   provider:"resend",provider_key_configured:keyPresent,
+   sender_configured:senderPresent,
+   worker_enabled:active,fully_configured:keyPresent&&senderPresent,
+   note:"sender_configured only verifies a secret value exists; DNS domain verification must be checked at the mail provider"
+  });
+ }
+ if(!service)return respond(401,{error:"service_role_required"});
  const active=env("LEGAL_MAIL_AUTOSEND_ENABLED")==="true";
  const configured=Boolean(env("RESEND_API_KEY")&&env("LEGAL_MAIL_FROM"));
- if(req.method==="GET")return respond(200,{active,configured,
-  message:active&&configured?"worker_configured":"worker_disabled_or_unconfigured"});
  // Neither a frontend toggle nor a subscriber JWT can enable outgoing email.
  if(!active||!configured)return respond(503,{error:"legal_mail_not_enabled"});
  try{
