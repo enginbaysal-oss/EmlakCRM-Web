@@ -63,7 +63,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   </div>
   <p id="officeGift" class="gift" hidden>🎁 İlyada 3 danışmanlarına özel: 7 RE/MAX EmlakAsistan JSON şablonu hediye!</p>
 </section>
-<nav class="roadmap" aria-label="Abonelik aşamaları"><span><b>1</b> Hesap</span><span><b>2</b> Bilgiler</span><span><b>3</b> Ödeme</span></nav>
+<nav class="roadmap" aria-label="Abonelik aşamaları" style="grid-template-columns:repeat(2,1fr)"><span><b>1</b> Hesap</span><span><b>2</b> Ödeme</span></nav>
 <section class="panel">
   <div class="section-heading"><span class="step-count">1</span><div><h2 style="margin:0">Hesabın</h2><span class="muted" style="font-size:13px">Bir kez kayıt olman yeterli</span></div></div>
   <p id="accountMessage" class="muted" role="status">EmlakCRM hesabın kontrol ediliyor.</p>
@@ -79,22 +79,13 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   </div>
 </section>
 <section class="panel">
-  <div class="section-heading"><span class="step-count">2</span><div><h2 style="margin:0">Bilgilerini tamamla</h2><span class="muted" style="font-size:13px">Güvenli ödeme için gerekli bilgiler</span></div></div>
-  <form id="checkout">
-    <div class="grid">
-      <div><label for="name">Ad</label><input id="name" maxlength="100" autocomplete="given-name" placeholder="Adın" required></div>
-      <div><label for="surname">Soyad</label><input id="surname" maxlength="100" autocomplete="family-name" placeholder="Soyadın" required></div>
-      <div><label for="identityNumber">T.C. kimlik / vergi numarası</label><input id="identityNumber" maxlength="25" autocomplete="off" inputmode="numeric" placeholder="Kimlik veya vergi numarası" required></div>
-      <div><label for="city">İl</label><input id="city" maxlength="80" autocomplete="address-level1" placeholder="Örn. Manisa" required></div>
-    </div>
-    <label for="address">Fatura adresi</label><input id="address" maxlength="350" autocomplete="street-address" placeholder="Mahalle, sokak, bina ve daire no" required>
-    <p class="invoice-tip">Bu bilgiler iyzico'nun ödeme işlemi içindir. Kart bilgilerin EmlakCRM tarafından alınmaz.</p>
-    <label class="checkbox"><input type="checkbox" id="approve" required><span><strong id="consentPrice">750 TL</strong> (KDV dahil) tutarında, 12 aylık ve otomatik yenilemesiz aboneliği satın almayı kabul ediyorum. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Satış sözleşmesini</a>, <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">iade koşullarını</a> ve <a href="./gizlilik-politikasi.html" target="_blank" rel="noopener noreferrer">gizlilik politikasını</a> inceleyebilirim.</span></label>
-    <div class="checkout-action"><div class="section-heading" style="margin:0"><span class="step-count">3</span><h2 style="margin:0">Güvenli ödeme</h2></div>
-    <p id="checkoutNotice" class="muted" role="status" aria-live="polite">Ödeme uygunluğu kontrol ediliyor.</p>
-    <button type="submit" id="pay" disabled>Güvenli Ödemeye Geç</button>
-    <p id="result" role="status" aria-live="polite"></p></div>
-  </form>
+  <div class="section-heading"><span class="step-count">2</span><div><h2 style="margin:0">Ödeme</h2><span class="muted" style="font-size:13px">Shopier ile güvenli ödeme</span></div></div>
+  <p class="muted">EmlakCRM hesabınızın e-posta adresini Shopier'de de aynı girin. Ödeme tamamlandıktan sonra aboneliğiniz doğrulanacaktır.</p>
+  <p id="buyerEmail" class="muted"></p>
+  <label class="checkbox"><input type="checkbox" id="approve"><span><strong id="consentPrice">750 TL</strong> (KDV dahil) tutarında 12 aylık, otomatik yenilemesiz abonelik satın alma koşullarını kabul ediyorum. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Satış sözleşmesi</a> ve <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">iade koşulları</a>.</span></label>
+  <p id="checkoutNotice" class="muted" role="status" aria-live="polite">Ödeme uygunluğu kontrol ediliyor…</p>
+  <button type="button" id="pay" disabled>Shopier ile Güvenli Ödeme</button>
+  <p id="result" role="status" aria-live="polite"></p>
 </section>
 <section class="panel support"><h2>Yardıma mı ihtiyacın var?</h2><p class="muted">Ödeme yaptıysan ancak aboneliğin açılmadıysa <strong>tekrar ödeme yapma.</strong> Önce bize ulaş, kontrol edelim.</p><p><a href="mailto:enginbysl45@gmail.com?subject=EmlakCRM%20Abonelik%20Destek">E-posta ile destek</a> · <a href="https://wa.me/905531354681?text=Merhaba%2C%20EmlakCRM%20aboneli%C4%9Fim%20i%C3%A7in%20destek%20istiyorum.">WhatsApp ile destek</a></p></section>
 <p><a class="footer-link" href="./index.html">← EmlakCRM ana sayfaya dön</a></p></main>
@@ -103,176 +94,92 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
-const result=byId("result"),pay=byId("pay");
-let approvedDiscount=false,discountStatus="none",paymentReady=false,discountReady=false;
-let officeDeclined=false,officeRequestWorking=false;
-function renderOfficeQuestion(){
-  const yes=byId("officeYes"),no=byId("officeNo"),message=byId("officeAnswer");
-  const decided=["pending","approved","rejected"].includes(discountStatus);
-  byId("officeActions").hidden=decided;
-  yes.disabled=officeRequestWorking;
-  no.disabled=officeRequestWorking;
-  if(discountStatus==="pending"){
-    message.textContent="Ofis kaydınızın doğrulanması bekleniyor. İşlem tamamlanınca aboneliğinize devam edebilirsiniz.";
-  }else if(discountStatus==="approved"){
-    message.textContent="Ofis kaydınız doğrulandı. Abonelik işlemlerine devam edebilirsiniz.";
-  }else if(discountStatus==="rejected"){
-    message.textContent="Ofis kaydınız doğrulanamadı. Standart abonelikle devam edebilirsiniz.";
-  }else if(officeDeclined){
-    message.textContent="Standart abonelikle devam edebilirsiniz.";
-  }else{
-    message.textContent="";
-  }
-}
-byId("officeYes").addEventListener("click",async()=>{
-  if(!token()){
-    byId("officeAnswer").textContent="Ofisinizi doğrulatmak için önce hesabınıza giriş yapın. Üstteki 'Giriş Yap / Hesap Oluştur' bağlantısını kullanın.";
-    return;
-  }
-  if(officeRequestWorking)return;
-  officeRequestWorking=true;byId("officeYes").disabled=true;
-  byId("officeAnswer").textContent="İlyada 3 doğrulama talebiniz gönderiliyor...";
-  try{
-    const next=await discountRpc("emlakcrm_request_office_discount",{p_code:"ILYADA3"});
-    if(!["pending","approved","rejected"].includes(next))throw Error("unexpected_office_response");
-    discountStatus=next;discountReady=true;officeDeclined=false;
-    discountPrice(next==="approved");updatePaymentUi();
-  }catch{
-    byId("officeAnswer").textContent="Ofis bilginiz gönderilemedi. Oturumunuzu kontrol edip yeniden deneyin.";
-  }finally{officeRequestWorking=false;byId("officeYes").disabled=false;
-    if(["pending","approved","rejected"].includes(discountStatus))renderOfficeQuestion();
-  }
-});
-byId("officeNo").addEventListener("click",()=>{
-  officeDeclined=true;renderOfficeQuestion();
-});
-function updatePaymentUi(){
-  const logged=Boolean(token()),holding=discountStatus==="pending";
-  pay.disabled=!logged||!paymentReady||!discountReady||holding;
-  pay.textContent=!logged?"Önce Giriş Yap":holding?"Ofis Onayı Bekleniyor":!paymentReady?"Ödeme Şimdilik Kapalı":"Güvenli Ödemeye Geç";
-  byId("checkoutNotice").textContent=!logged
-    ?"Ödeme yapabilmek için önce EmlakCRM hesabına giriş yap veya hesap oluştur."
-    :holding
-    ?"Ofis onayın bekleniyor. Yanlış tutarda ödeme yapılmasını önlemek için ödeme kapalı."
-    :!discountReady
-    ?"Hesap ve ödeme bilgileriniz kontrol ediliyor."
-    :!paymentReady
-    ?"Canlı ödeme henüz açık değil. Bu sayfayı daha sonra kontrol edebilirsin."
-    :approvedDiscount
-    ?"İlyada 3 fiyatın: 500 TL (KDV dahil). Sonraki adım iyzico güvenli ödeme ekranı."
-    :"Ödeme tutarın: 750 TL (KDV dahil). Sonraki adım iyzico güvenli ödeme ekranı.";
-  byId("accountMessage").textContent=logged?"Hesap oturumu bulundu. Aşağıdaki bilgileri tamamlayabilirsin.":"Önce EmlakCRM hesabına giriş yap veya hesap oluştur.";
-  byId("accountLink").hidden=logged;
-  renderOfficeQuestion();
-}
-async function discountRpc(name,body){
- const access=token();if(!access)throw Error("Önce EmlakCRM hesabınıza giriş yapın.");
- const r=await fetch(base+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:key,authorization:"Bearer "+access,"content-type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
- if(!r.ok)throw Error("Ofis bilgisi kontrol edilemedi. Oturumunuzu kontrol edin.");return r.json();
-}
-function discountPrice(approved){
- approvedDiscount=approved;
- byId("displayPrice").textContent=approved?"500 TL":"750 TL";
- byId("consentPrice").textContent=approved?"500 TL":"750 TL";
- byId("officeGift").hidden=!approved;
- updatePaymentUi();
-}
-async function checkDiscount(){
-  discountReady=false;updatePaymentUi();
-  try{
-    const status=await discountRpc("emlakcrm_my_office_discount",{});
-    if(!["none","pending","approved","rejected"].includes(status))throw Error("unexpected_discount_state");
-    discountStatus=status;discountReady=true;discountPrice(status==="approved");
-  }catch{
-    discountReady=false;updatePaymentUi();
-  }
-}
+let officeStatus="none",paymentData=null,officeBusy=false,officeDeclined=false;
 function token(){
- for(const [storage,key] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
-  try{const s=JSON.parse(storage.getItem(key)||"null");if(s?.access_token)return s.access_token}catch{}
+ for(const [storage,k] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
+  try{const s=JSON.parse(storage.getItem(k)||"null");if(s?.access_token)return s.access_token}catch{}
  }return null;
 }
-async function availability(){
- try{
-  const r=await fetch(base+"/functions/v1/emlakcrm-checkout-config",{cache:"no-store"});
-  const d=await r.json();
-  const ready=d.payment_enabled===true&&d.activation_enabled===true;
-  paymentReady=ready;
-  updatePaymentUi();
-  if(!ready){result.textContent="Ödeme şu anda sunucu tarafından kullanıma açık bildirilmedi.";result.className="muted"}
- }catch{paymentReady=false;updatePaymentUi();result.textContent="Ödeme durumu doğrulanamadı.";result.className="error"}
+async function rpc(name,body){
+ const t=token();if(!t)throw Error("Oturum bulunamadı");
+ const r=await fetch(base+"/rest/v1/rpc/"+name,{method:"POST",
+  headers:{"apikey":key,"authorization":"Bearer "+t,"content-type":"application/json"},
+  body:JSON.stringify(body||{}),cache:"no-store"});
+ if(!r.ok)throw Error("Ofis onayı kontrol edilemedi ("+r.status+")");
+ return r.json();
 }
-byId("checkout").addEventListener("submit",async e=>{
- e.preventDefault();if(pay.disabled)return;
- if(discountStatus==="pending"||!discountReady){result.textContent="Ofis doğrulamasının tamamlanmasını bekleyin.";result.className="error";return;}
- const access=token();if(!access){result.textContent="Önce EmlakCRM'de giriş yapın.";result.className="error";return}
- pay.disabled=true;result.textContent="Ödeme tutarı sunucudan doğrulanıyor…";result.className="muted";
+async function readiness(){
+ const t=token();if(!t)throw Error("Önce giriş yapın");
+ const r=await fetch(base+"/functions/v1/emlakcrm-shopier-checkout",{
+  headers:{"apikey":key,"authorization":"Bearer "+t},cache:"no-store"});
+ if(!r.ok)throw Error("Ödeme güvenliği kontrol edilemedi");
+ return r.json();
+}
+function render(){
+ const logged=Boolean(token());
+ byId("accountMessage").textContent=logged?"EmlakCRM hesabınızla giriş yapılmış.":"Önce EmlakCRM hesabınıza giriş yapın.";
+ byId("accountLink").hidden=logged;
+ const pending=officeStatus==="pending";
+ byId("officeActions").hidden=["pending","approved","rejected"].includes(officeStatus)||officeDeclined;
+ byId("officeYes").disabled=officeBusy;
+ byId("officeNo").disabled=officeBusy;
+ byId("officeAnswer").textContent=pending?"İlyada 3 ofis onayınız bekleniyor. Henüz ödeme yapmayın."
+ :officeStatus==="approved"?"İlyada 3 onayınız tamamlandı. Özel fiyat uygulanacak."
+ :officeStatus==="rejected"?"Standart abonelik geçerlidir."
+ :officeDeclined?"Standart abonelikle devam edebilirsiniz.":"";
+ const amount=officeStatus==="approved"?500:750;
+ byId("displayPrice").textContent=amount+" TL";
+ byId("consentPrice").textContent=amount+" TL";
+ byId("officeGift").hidden=officeStatus!=="approved";
+ const ready=paymentData?.payment_enabled===true&&paymentData?.activation_enabled===true&&
+  paymentData?.price_kurus===amount*100&&!pending&&!paymentData?.already_active;
+ byId("pay").disabled=!logged||!ready||!byId("approve").checked;
+ byId("pay").textContent=!logged?"Önce Giriş Yap":pending?"Ofis Onayı Bekleniyor":
+  paymentData?.already_active?"Aboneliğiniz Aktif":ready?"Shopier ile Güvenli Ödeme":"Ödeme Şimdilik Kapalı";
+ byId("checkoutNotice").textContent=!logged?"Ödeme için oturum açın.":pending?"Ofis onayını bekleyin.":
+  paymentData?.already_active?"Aboneliğiniz zaten aktif. Yeniden ödeme yapmayın.":
+  ready?"Ödeme Shopier'de tamamlanır. EmlakCRM e-postanızı aynı girin.":
+  "Shopier otomatik abonelik doğrulaması test edilene kadar ödeme kapalı.";
+ byId("buyerEmail").textContent=paymentData?.required_buyer_email
+  ?"Shopier'de kullanmanız gereken e-posta: "+paymentData.required_buyer_email:"";
+}
+async function refresh(){
+ paymentData=null;render();
  try{
-  const latest=await discountRpc("emlakcrm_my_office_discount",{});
-  if(!["none","pending","approved","rejected"].includes(latest))throw Error("discount_state_invalid");
-  if(latest!==discountStatus){
-   discountStatus=latest;discountPrice(latest==="approved");
-   result.textContent="Abonelik fiyatınız güncellendi. Lütfen tutarı kontrol edip tekrar devam edin.";
-   result.className="muted";updatePaymentUi();return;
-  }
-  if(latest==="pending"){result.textContent="Ofis bilginiz doğrulanmayı bekliyor.";result.className="muted";return;}
-  result.textContent="iyzico güvenli ödeme sayfası hazırlanıyor…";
- }catch{result.textContent="Ödeme uygunluğu kontrol edilemedi. Lütfen tekrar giriş yapın.";result.className="error";updatePaymentUi();return;}
- const fields=["name","surname","identityNumber","city","address"];
- const body=Object.fromEntries(fields.map(x=>[x,byId(x).value.trim()]));body.discount_code=approvedDiscount?"ILYADA3":"";
+  const d=await readiness();
+  officeStatus=d.office_status||"none";
+  paymentData=d;
+  const expected=officeStatus==="approved"?50000:75000;
+  if(d.price_kurus!==expected||d.provider!=="shopier")throw Error("Fiyat uyuşmazlığı");
+  render();
+ }catch(e){paymentData=null;byId("result").textContent=e.message;render()}
+}
+byId("officeYes").addEventListener("click",async()=>{
+ if(!token()){byId("result").textContent="Önce EmlakCRM hesabınıza giriş yapın.";return}
+ if(officeBusy)return;officeBusy=true;render();
  try{
-  const r=await fetch(base+"/functions/v1/emlakcrm-checkout-start",{
-   method:"POST",headers:{"apikey":key,"authorization":"Bearer "+access,"content-type":"application/json"},
-   body:JSON.stringify(body),cache:"no-store"});
-  const data=await r.json();
-  if(!r.ok){
-   if(data.error==="subscription_already_active"){
-    result.textContent="Aboneliğiniz zaten aktif. Yanlışlıkla ikinci ödeme alınmasını önlemek için satın alma durduruldu.";
-    result.className="muted";return;
-   }
-   if(data.error==="checkout_requires_review"){
-    result.textContent="Önceki ödemenizin sonucu kesinleşmemiş. Yeni ödeme yapmayın. ";
-    result.className="error";
-    if(typeof data.order_id==="string"&&/^[0-9a-f-]{36}$/i.test(data.order_id)){
-     const link=document.createElement("a");link.href="./odeme-sonucu.html?order="+encodeURIComponent(data.order_id);
-     link.textContent="Önceki ödemenin durumunu kontrol et";result.appendChild(link);
-    }
-    return;
-   }
-   if(data.error==="checkout_in_progress"){
-    result.textContent="Ödeme işleminiz başka bir istekte hazırlanıyor. Biraz sonra durumu kontrol edin.";
-    result.className="muted";return;
-   }
-   if(data.error==="discount_approval_pending"){
-    discountStatus="pending";updatePaymentUi();
-    result.textContent="Ofis kaydınız yönetici onayını bekliyor.";result.className="muted";return;
-   }
-   throw Error("payment_not_ready");
-  }
-  const expectedAmount=approvedDiscount?50000:75000;
-  if(data.amount_kurus!==undefined&&data.amount_kurus!==expectedAmount)throw Error("unexpected_payment_amount");
-  const url=new URL(data.payment_page_url);
-  if(url.protocol!=="https:"||!(url.hostname==="iyzipay.com"||url.hostname.endsWith(".iyzipay.com")||
-   url.hostname==="iyzico.com"||url.hostname.endsWith(".iyzico.com")))throw Error("invalid_redirect");
-  window.location.assign(url.href);
-  }catch{result.textContent="Ödeme başlatılamadı. Lütfen tekrar denemeden önce destekle iletişime geçin.";result.className="error";updatePaymentUi()}
+  const status=await rpc("emlakcrm_request_office_discount",{p_code:"ILYADA3"});
+  if(!["pending","approved","rejected"].includes(status))throw Error("Ofis durumu doğrulanamadı");
+  officeStatus=status;await refresh();
+ }catch(e){byId("result").textContent=e.message}
+ finally{officeBusy=false;render()}
 });
-
-async function prefillNameFromAccount(){
+byId("officeNo").addEventListener("click",()=>{officeDeclined=true;render()});
+byId("approve").addEventListener("change",render);
+byId("pay").addEventListener("click",async()=>{
+ if(byId("pay").disabled)return;
+ byId("pay").disabled=true;
+ byId("result").textContent="Ödeme öncesi tutar ve üyelik durumu yeniden kontrol ediliyor…";
  try{
-  const access=token();if(!access)return;
-  const r=await fetch(base+"/auth/v1/user",{headers:{apikey:key,authorization:"Bearer "+access},cache:"no-store"});
-  if(!r.ok)return;
-  const u=await r.json(),m=u.user_metadata||{};
-  let first=typeof m.first_name==="string"?m.first_name.trim():"";
-  let last=typeof m.last_name==="string"?m.last_name.trim():typeof m.surname==="string"?m.surname.trim():"";
-  if((!first||!last)&&typeof m.full_name==="string"){
-   const parts=m.full_name.trim().split(/\s+/);
-   if(parts.length>=2){first ||=parts.slice(0,-1).join(" ");last ||=parts.at(-1);}
-  }
-  if(!byId("name").value&&first)byId("name").value=first.slice(0,100);
-  if(!byId("surname").value&&last)byId("surname").value=last.slice(0,100);
- }catch{}
-}
-void availability();void checkDiscount();void prefillNameFromAccount();
+  const fresh=await readiness(),expected=officeStatus==="approved"?50000:75000;
+  if(!fresh.payment_enabled||!fresh.activation_enabled||fresh.already_active||
+    fresh.office_status!==officeStatus||fresh.price_kurus!==expected)throw Error("Ödeme uygunluğu değişti, lütfen sayfayı yenileyin");
+  const url=new URL(fresh.payment_page_url);
+  if(url.protocol!=="https:"||url.hostname!=="www.shopier.com"||
+    !/^\/enginbaysal\/\d{5,20}$/.test(url.pathname))throw Error("Shopier bağlantısı doğrulanamadı");
+  if(!byId("approve").checked)throw Error("Satış koşullarını onaylayın");
+  window.location.assign(url.href);
+ }catch(e){byId("result").textContent=e.message;await refresh()}
+});
+void refresh();
 </script></body></html>
