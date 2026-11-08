@@ -1,36 +1,45 @@
-/* EmlakCRM acil gizlilik yaması: eski cihaz-ortak kayıtlara dokunmadan kullanıcıya göre ayrı veri alanı. */
+/* EmlakCRM: zorunlu hesap bazlı yerel veri izolasyonu; eski ortak kayıtları silmez. */
 (function(){
  "use strict";
  const baseGet=Storage.prototype.getItem,baseSet=Storage.prototype.setItem,baseRemove=Storage.prototype.removeItem;
- const authKey="emlakcrm_auth_session_v1",rememberKey="emlakcrm_auth_remember_v1";
- const excluded=new Set([rememberKey]);
- function accountId(){
+ const authKey="emlakcrm_auth_session_v1",rememberKey="emlakcrm_auth_remember_v1",activeKey="emlakcrm_active_account_v1";
+ const excluded=new Set([rememberKey,activeKey]);
+ function jwtSubject(){
   try{
    const session=JSON.parse(baseGet.call(sessionStorage,authKey)||"null");
    const token=String(session?.access_token||"");
-   const payload=token.split(".")[1];
-   if(!payload)return null;
-   const encoded=payload.replace(/-/g,"+").replace(/_/g,"/");
-   const jwt=JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length/4)*4,"=")));
-   if(typeof jwt.sub==="string"&&/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(jwt.sub))return jwt.sub.toLowerCase();
-  }catch(_){}
-  return null;
+   const payload=token.split(".")[1];if(!payload)return null;
+   const decoded=JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/").padEnd(Math.ceil(payload.length/4)*4,"=")));
+   if(typeof decoded.sub!=="string"||!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(decoded.sub))return null;
+   return decoded.sub.toLowerCase();
+  }catch(_){return null}
+ }
+ function currentUserId(){
+  const id=jwtSubject();if(!id)return null;
+  const active=baseGet.call(localStorage,activeKey);
+  if(active&&active!==id)return null;
+  return id;
  }
  function scoped(key){
   const name=String(key);
-  if(!name.startsWith("emlakcrm_")||excluded.has(name)||name.includes("__owner_"))return name;
-  const id=accountId();
-  // Never read unscoped legacy records automatically. Keep them intact for verified migration.
-  return name+"__owner_"+(id||"anonymous");
+  if(!name.startsWith("emlakcrm_")||excluded.has(name))return name;
+  const id=currentUserId();if(!id)return null; // fail closed, not shared anonymous storage
+  const suffix="__owner_"+id;
+  if(name.includes("__owner_"))return name.endsWith(suffix)?name:null;
+  return name+suffix;
  }
  Storage.prototype.getItem=function(key){
-  return baseGet.call(this,this===localStorage?scoped(key):key);
+  if(this!==localStorage)return baseGet.call(this,key);
+  const dest=scoped(key);return dest===null?null:baseGet.call(this,dest);
  };
  Storage.prototype.setItem=function(key,value){
-  return baseSet.call(this,this===localStorage?scoped(key):key,value);
+  if(this!==localStorage)return baseSet.call(this,key,value);
+  const dest=scoped(key);if(dest===null)throw Error("Hesap kimliği doğrulanmadı; özel kayıt saklanamaz.");
+  return baseSet.call(this,dest,value);
  };
  Storage.prototype.removeItem=function(key){
-  return baseRemove.call(this,this===localStorage?scoped(key):key);
+  if(this!==localStorage)return baseRemove.call(this,key);
+  const dest=scoped(key);if(dest!==null)return baseRemove.call(this,dest);
  };
- window.emlakcrmAccountDataScope={currentUserId:accountId,legacyRecordsPreserved:true};
+ window.emlakcrmAccountDataScope={currentUserId,sessionSubject:jwtSubject,activeAccountKey:activeKey,legacyRecordsPreserved:true};
 })();
