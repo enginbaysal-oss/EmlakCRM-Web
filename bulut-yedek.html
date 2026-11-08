@@ -85,7 +85,7 @@ function download(name,value){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 async function loadHistory(){
- versions=await dataRequest("select=id,kind,item_count,created_at,source&order=created_at.desc&limit=100");
+ versions=await dataRequest("select=id,kind,item_count,created_at,exported_at,source&order=created_at.desc&limit=100");
  preview=null;$("preview").hidden=true;
  for(const kind of ["portfolios","clients"]){
   const container=$(kind);container.replaceChildren();
@@ -95,8 +95,9 @@ async function loadHistory(){
    const row=document.createElement("div");row.className="row";
    const label=document.createElement("div"),head=document.createElement("strong"),info=document.createElement("small");
    head.textContent=new Date(v.created_at).toLocaleString("tr-TR");
-   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":" · Tarayıcı yedeği");
-   if(v.source==="legacy_cloud")info.className="legacy-label";
+   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":v.source==="manual_file"?" · YÜKLENEN DOSYA YEDEĞİ":" · Otomatik tarayıcı yedeği");
+   if(v.source==="manual_file"&&v.exported_at)info.textContent+=" · Dosya tarihi: "+new Date(v.exported_at).toLocaleString("tr-TR");
+   if(v.source==="legacy_cloud"||v.source==="manual_file")info.className="legacy-label";
    label.append(head,info);
    const button=document.createElement("button");button.type="button";button.textContent="Kayıtları Gör ve Seç";
    button.onclick=()=>void showPreview(v);
@@ -122,6 +123,8 @@ async function showPreview(version){
   $("previewTitle").textContent=(version.kind==="portfolios"?"Portföy":"Müşteri")+" yedeğindeki kayıtlar ("+entry.payload.length+")";
   $("previewSource").textContent=entry.source==="legacy_cloud"
    ?"Eski bulut arşivi: Buradaki kayıtlar önceki sistemden alınmıştır. Deneme kayıtları olabilir; bugünkü bilgisayar yedeğinle aynı olduğunu varsayma."
+   :entry.source==="manual_file"
+   ?"Bu sürüm, senin yüklediğin EmlakCRM tam yedek dosyasından alındı. Bulut hesabında güvenli bir kopya olarak saklanıyor; mevcut kayıtların kendiliğinden değiştirilmedi. Geri yüklemek istersen yalnızca gerekli kayıtları seç."
    :"Bu kayıtlar EmlakCRM'deki kişisel tarayıcı yedeklerinden alınmıştır. Yalnızca ihtiyacın olanları işaretle.";
   $("previewSource").className=entry.source==="legacy_cloud"?"warn":"notice";
   const root=$("previewRows");root.replaceChildren();
