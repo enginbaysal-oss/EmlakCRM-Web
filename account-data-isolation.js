@@ -20,6 +20,14 @@
   if(active&&active!==id)return null;
   return id;
  }
+ // Restore a remembered session BEFORE any CRM, portfolio or draft storage is read.
+ if(!baseGet.call(sessionStorage,authKey)){
+  const remembered=baseGet.call(localStorage,rememberKey);
+  if(remembered){
+   baseSet.call(sessionStorage,authKey,remembered);
+   if(!currentUserId())baseRemove.call(sessionStorage,authKey);
+  }
+ }
  function scoped(key){
   const name=String(key);
   if(!name.startsWith("emlakcrm_")||excluded.has(name))return name;
