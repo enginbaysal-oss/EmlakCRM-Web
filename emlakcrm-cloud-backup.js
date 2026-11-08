@@ -77,6 +77,7 @@ Storage.prototype.setItem=function(key,value){
 };
 window.addEventListener("storage",event=>{if(event.storageArea===localStorage&&event.key)checkKey(event.key)});
 window.EmlakCRMCloudBackup={run:async()=>{notify("☁️ Bulut yedeği hazırlanıyor…");await upload("clients",true);await upload("portfolios",true)}};
+const manual=document.getElementById("crmCloudBackupNow");if(manual)manual.addEventListener("click",()=>{void window.EmlakCRMCloudBackup.run()});
 window.setTimeout(()=>{schedule("clients",1000);schedule("portfolios",3000)},5000);
 window.setInterval(()=>{schedule("clients",1000);schedule("portfolios",3500)},120000);
 })();
