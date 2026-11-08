@@ -190,17 +190,25 @@ function render(){
  byId("buyerEmail").textContent=paymentData?.required_buyer_email
   ?"Shopier'de kullanmanız gereken e-posta: "+paymentData.required_buyer_email:"";
 }
+let latestRefresh=0;
 async function refresh(){
+ const request=++latestRefresh;
  paymentData=null;render();
  try{
   const d=await readiness();
+  if(request!==latestRefresh)return;
   officeStatus=d.office_status||"none";
-  paymentData=d;
   const expected=officeStatus==="approved"?50000:75000;
   if(d.price_kurus!==expected||d.provider!=="shopier")throw Error("Fiyat uyuşmazlığı");
+  paymentData=d;
   byId("result").textContent="";
   render();
- }catch(e){paymentData=null;byId("result").textContent=e.message;render()}
+ }catch(e){
+  if(request!==latestRefresh)return;
+  paymentData=null;
+  byId("result").textContent=token()?"Ödeme uygunluğu kontrol edilemedi: "+String(e.message||e):"";
+  render();
+ }
 }
 byId("officeYes").addEventListener("click",async()=>{
  if(!token()){byId("result").textContent="Önce EmlakCRM hesabınıza giriş yapın.";return}
