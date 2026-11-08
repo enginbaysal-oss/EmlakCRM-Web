@@ -11,8 +11,9 @@
 <section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
 <h2>Shopier Ödeme Bağlantısı</h2>
 <p class="muted">Shopier siparişlerinin güvenli bildirim bağlantısını kurar. Ödemeleri önce doğrulama listesine alır; kullanıcı aboneliği bu aşamada otomatik açılmaz.</p>
-<div class="toolbar"><button type="button" id="shopierConnect" disabled>Shopier Bağlantısını Kur</button><button type="button" id="shopierCheck">Bağlantıyı Kontrol Et</button></div>
+<div class="toolbar"><button type="button" id="shopierConnect" disabled>Shopier Bağlantısını Kur</button><button type="button" id="shopierCheck">Bağlantıyı Kontrol Et</button><button type="button" id="shopierOrderHealthCheck">Shopier Sipariş API’sini Test Et</button></div>
 <p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
+<p id="shopierOrderHealthResult" class="muted" role="status" aria-live="polite"></p>
 </section>
 <section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 özel Shopier ürünü">
 <h2>İlyada 3 · 500 TL Shopier Ürünü</h2>
@@ -191,6 +192,25 @@ $("shopierOfficeProductSave").addEventListener("click",async()=>{
 });
 const shopierConnectBtn=$("shopierConnect");
 const shopierInfo=$("shopierConnectionInfo");
+$("shopierOrderHealthCheck").addEventListener("click",async()=>{
+ const button=$("shopierOrderHealthCheck"),output=$("shopierOrderHealthResult");
+ button.disabled=true;output.textContent="Shopier sipariş erişimi kontrol ediliyor. Herhangi bir ödeme veya yeni sipariş oluşturulmuyor…";
+ try{
+  const t=await verifiedToken();
+  const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-health",{
+   method:"GET",headers:{"apikey":apiKey,"authorization":"Bearer "+t},cache:"no-store"
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error("Bağlantı kontrolü başarısız ("+r.status+").");
+  const order=d.shopier_order_api||{},owner=d.shopier_owner_api||{};
+  output.textContent="Sipariş API: "+(order.ok?"Erişim başarılı":"Erişim reddedildi / HTTP "+String(order.http_status??"?"))+
+   " · Mağaza erişimi: "+(owner.ok?"Başarılı":"HTTP "+String(owner.http_status??"?"))+
+   " · Bildirim: "+(d.webhook_registered?"Kurulu":"Bulunamadı")+
+   " · Ürünler: "+(d.product_750_ready&&d.product_500_ready?"500/750 TL hazır":"Kontrol gerekli")+
+   " · Otomatik aktivasyon: "+(d.activation_enabled?"Açık":"Kapalı");
+ }catch(e){output.textContent="Shopier API kontrolü tamamlanamadı: "+String(e.message||e)}
+ finally{button.disabled=false}
+});
 async function shopierStatusRequest(method="GET"){
  const t=await verifiedToken();
  const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-setup",{
