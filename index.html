@@ -1781,6 +1781,7 @@ async function showScreen(name){
  if(selected==="customers"||selected==="matching")updateMatchCount();
  window.scrollTo({top:0,behavior:"instant"});
  if(name==="office")requestAnimationFrame(()=>$("officeSection")?.scrollIntoView({block:"start",behavior:"instant"}));
+ return selected;
 }
 // Ayrı HTML sayfalarına giden kartları da aynı lisans kontrolünden geçir.
 document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
@@ -1799,7 +1800,14 @@ document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
  });
 });
 document.querySelectorAll("[data-go]").forEach(el=>el.addEventListener("click",()=>{location.hash=el.dataset.go;showScreen(el.dataset.go)}));
-function quickDo(screen,button){location.hash=screen;showScreen(screen);const action=$(button);if(action&&!action.disabled)action.click();}
+async function quickDo(screen,button){
+ // Do not activate a private action before async subscription verification finishes.
+ const selected=await showScreen(screen);
+ if(selected!==screen)return;
+ history.replaceState(null,"","#"+screen);
+ const action=$(button);
+ if(action&&!action.disabled)action.click();
+}
 $("quickAddClient").addEventListener("click",()=>quickDo("customers","addClient"));
 $("quickAddReminder").addEventListener("click",()=>quickDo("agenda","addTask"));
 $("quickDownloadBackup").addEventListener("click",()=>quickDo("account","crmFullExport"));
