@@ -41,7 +41,7 @@ button:not(:disabled):hover{transform:translateY(-1px)}
 button#nextStep,button#pay{width:100%;font-size:16px;padding:14px 16px;margin-top:12px}
 button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 #previousStep{margin-top:10px}
-#checkoutNotice{font-size:13px;margin:12px 0 0}
+.checkout-summary{background:#f0f7fc;border-left:4px solid #16819e;padding:12px;border-radius:9px;font-size:14px;line-height:1.6}#checkoutNotice{font-size:13px;margin:12px 0 0}
 #result{font-size:14px}
 .security-caption{display:flex;align-items:center;gap:8px;font-size:12px;color:#517184;margin:14px 0 0}
 .checkbox{background:#f6f9fb;padding:12px;border:1px solid #e4edf3;border-radius:10px;font-size:13px;font-weight:500}
@@ -91,7 +91,10 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   <div class="section-heading"><span class="step-count">2</span><div><h2 style="margin:0">Ödeme</h2><span class="muted" style="font-size:13px">Shopier ile güvenli ödeme</span></div></div>
   <p class="muted">EmlakCRM hesabınızın e-posta adresini Shopier'de de aynı girin. Ödeme tamamlandıktan sonra aboneliğiniz doğrulanacaktır.</p>
   <p id="buyerEmail" class="muted"></p>
-  <label class="checkbox"><input type="checkbox" id="approve"><span><strong id="consentPrice">750 TL</strong> (KDV dahil) tutarında 12 aylık, otomatik yenilemesiz abonelik satın alma koşullarını kabul ediyorum. <a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Satış sözleşmesi</a> ve <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">iade koşulları</a>.</span></label>
+  <div class="checkout-summary" id="checkoutSummary" aria-live="polite">12 aylık EmlakCRM aboneliği · KDV dahil toplam <strong id="consentPrice">750 TL</strong> · Tek ödeme · Otomatik yenileme yok</div>
+  <label class="checkbox"><input type="checkbox" id="preInfoAck"><span><a href="./on-bilgilendirme-formu.html" target="_blank" rel="noopener noreferrer">Ön Bilgilendirme Formu</a>nu okudum ve satın alma öncesinde hizmet, ücret ve cayma koşulları hakkında bilgilendirildim.</span></label>
+  <label class="checkbox"><input type="checkbox" id="approve"><span><a href="./mesafeli-satis-sozlesmesi.html" target="_blank" rel="noopener noreferrer">Mesafeli Satış / Uzaktan Hizmet Sözleşmesi</a>ni ve <a href="./teslimat-iade.html" target="_blank" rel="noopener noreferrer">teslimat ve iade koşullarını</a> okudum; koşulları kabul ediyorum.</span></label>
+  <label class="checkbox"><input type="checkbox" id="earlyStart"><span>Ödeme doğrulandıktan sonra dijital hizmetimin derhal başlatılmasını istiyorum. <a href="./on-bilgilendirme-formu.html" target="_blank" rel="noopener noreferrer">Cayma hakkına ilişkin yasal istisnalar</a> hakkında bilgilendirildim; kanundan doğan haklarım saklıdır.</span></label>
   <p id="checkoutNotice" class="muted" role="status" aria-live="polite">Ödeme uygunluğu kontrol ediliyor…</p>
   <button type="button" id="pay" disabled>Shopier ile Güvenli Ödeme</button>
   <p id="result" role="status" aria-live="polite"></p>
@@ -180,13 +183,13 @@ function render(){
  byId("officeGift").hidden=officeStatus!=="approved";
  const ready=paymentData?.payment_enabled===true&&paymentData?.activation_enabled===true&&
   paymentData?.price_kurus===amount*100&&!pending&&!paymentData?.already_active;
- byId("pay").disabled=!logged||!ready||!byId("approve").checked;
+ byId("pay").disabled=!logged||!ready||!byId("approve").checked||!byId("preInfoAck").checked||!byId("earlyStart").checked;
  byId("pay").textContent=!logged?"Önce Giriş Yap":pending?"Ofis Onayı Bekleniyor":
   paymentData?.already_active?"Aboneliğiniz Aktif":ready?"Shopier ile Güvenli Ödeme":"Ödeme Şimdilik Kapalı";
  byId("checkoutNotice").textContent=!logged?"Ödeme için oturum açın.":pending?"Ofis onayını bekleyin.":
   paymentData?.already_active?"Aboneliğiniz zaten aktif. Yeniden ödeme yapmayın.":
   ready?"Ödeme Shopier'de tamamlanır. EmlakCRM e-postanızı aynı girin.":
-  "Shopier otomatik abonelik doğrulaması test edilene kadar ödeme kapalı.";
+  "Ödeme şu anda kullanılamıyor. Hesap ve ödeme uygunluğunu kontrol edin; sorun sürerse destek alın.";
  byId("buyerEmail").textContent=paymentData?.required_buyer_email
   ?"Shopier'de kullanmanız gereken e-posta: "+paymentData.required_buyer_email:"";
 }
@@ -222,6 +225,8 @@ byId("officeYes").addEventListener("click",async()=>{
 });
 byId("officeNo").addEventListener("click",()=>{officeDeclined=true;render()});
 byId("approve").addEventListener("change",render);
+byId("preInfoAck").addEventListener("change",render);
+byId("earlyStart").addEventListener("change",render);
 byId("pay").addEventListener("click",async()=>{
  if(byId("pay").disabled)return;
  byId("pay").disabled=true;
@@ -233,7 +238,7 @@ byId("pay").addEventListener("click",async()=>{
   const url=new URL(fresh.payment_page_url);
   if(url.protocol!=="https:"||url.hostname!=="www.shopier.com"||
     !/^\/enginbaysal\/\d{5,20}$/.test(url.pathname))throw Error("Shopier bağlantısı doğrulanamadı");
-  if(!byId("approve").checked)throw Error("Satış koşullarını onaylayın");
+  if(!byId("approve").checked||!byId("preInfoAck").checked||!byId("earlyStart").checked)throw Error("Ön bilgilendirme, sözleşme ve hizmet başlangıcı onaylarını tamamlayın");
   window.location.assign(url.href);
  }catch(e){byId("result").textContent=e.message;await refresh()}
 });
