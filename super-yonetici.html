@@ -24,7 +24,24 @@
  .stat strong{font-size:21px}
  .back{max-width:100%;font-size:13px}
 }
-.approval-alert{margin:0 0 16px;padding:13px 15px;border:1px solid #efb4b4;border-left:5px solid #bd2525;border-radius:11px;background:#fff0ee;color:#8c1616;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:750}.approval-alert[hidden]{display:none!important}.approval-alert button{background:#b62424;color:#fff}.notify-control{background:#f7fbff;border:1px solid #d7e5ed;border-radius:10px;padding:10px 12px;margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.notify-control button{background:#174f70}.notify-control .muted{flex:1;min-width:160px}.remax-package-summary{padding:12px 14px;border:1px solid #f0d3a5;background:#fff5e8;border-radius:10px;font-weight:750;color:#81540a}.remax-package-summary.ready{background:#ecf7f0;border-color:#b5ddc6;color:#186044}[hidden]{display:none!important}</style></head><body>
+.approval-alert{margin:0 0 16px;padding:13px 15px;border:1px solid #efb4b4;border-left:5px solid #bd2525;border-radius:11px;background:#fff0ee;color:#8c1616;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:750}.approval-alert[hidden]{display:none!important}.approval-alert button{background:#b62424;color:#fff}.notify-control{background:#f7fbff;border:1px solid #d7e5ed;border-radius:10px;padding:10px 12px;margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.notify-control button{background:#174f70}.notify-control .muted{flex:1;min-width:160px}.remax-package-summary{padding:12px 14px;border:1px solid #f0d3a5;background:#fff5e8;border-radius:10px;font-weight:750;color:#81540a}.remax-package-summary.ready{background:#ecf7f0;border-color:#b5ddc6;color:#186044}[hidden]{display:none!important}
+/* Mobile: readable approval and subscription cards, with action buttons fully visible. */
+@media(max-width:680px){
+ .scroll{overflow:visible;width:100%;max-width:100%}
+ .scroll table{width:100%;min-width:0;border-collapse:separate;display:block}
+ .scroll thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ .scroll tbody{display:grid;gap:10px;width:100%}
+ .scroll tbody tr{display:block;width:100%;min-width:0;overflow:hidden;background:#fff;border:1px solid #dbe7ef;border-radius:11px;box-shadow:0 2px 10px #123c6010}
+ .scroll tbody td{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;width:100%;border-bottom:1px solid #edf1f5;padding:10px 12px;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+ .scroll tbody td:last-child{border-bottom:0}
+ .scroll tbody td:before{content:attr(data-label);flex:0 0 37%;max-width:37%;color:#536b80;font-weight:750;font-size:12px;line-height:1.4}
+ .scroll tbody td[data-label="İşlem"],.scroll tbody td[data-label="İlyada 3"]{display:block}
+ .scroll tbody td[data-label="İşlem"]:before,.scroll tbody td[data-label="İlyada 3"]:before{display:block;max-width:100%;margin-bottom:7px}
+ .scroll tbody td button{width:100%;min-width:0;max-width:100%;margin:5px 0!important;white-space:normal;overflow-wrap:anywhere;line-height:1.4;min-height:44px}
+ .scroll tbody td .pill{max-width:60%;overflow-wrap:anywhere;text-align:right}
+ #officeApprovalPanel .scroll tbody td[data-label="İşlem"] button{display:block}
+}
+</style></head><body>
 <header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
@@ -363,10 +380,11 @@ async function loadDiscounts({quiet=false}={}){
   const items=await discountRpc("emlakcrm_admin_discount_requests",{},discountToken);
   if(!Array.isArray(items))throw Error("Beklenmeyen talep listesi.");
   items.sort((a,b)=>(a.status==="pending"?0:1)-(b.status==="pending"?0:1));
+  const newRows=document.createDocumentFragment();
   for(const item of items){
    const tr=document.createElement("tr");
-   addCell(tr,item.email||"—");addCell(tr,fmt(item.requested_at));addCell(tr,item.status==="pending"?"Onay bekliyor":item.status==="approved"?"Onaylandı":"Reddedildi");
-   const td=document.createElement("td");
+   addCell(tr,item.email||"—",null,"Danışman");addCell(tr,fmt(item.requested_at),null,"Talep");addCell(tr,item.status==="pending"?"Onay bekliyor":item.status==="approved"?"Onaylandı":"Reddedildi",null,"Durum");
+   const td=document.createElement("td");td.dataset.label="İşlem";
    if(item.status==="pending"){
     for(const [label,approved] of [["Onayla",true],["Reddet",false]]){
      const btn=document.createElement("button");btn.type="button";btn.textContent=label;btn.style.margin="3px";if(!approved)btn.style.background="#a63838";
@@ -378,8 +396,10 @@ async function loadDiscounts({quiet=false}={}){
       }catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
      td.append(btn);
     }
-   }tr.append(td);tbody.append(tr);
+   }tr.append(td);newRows.append(tr);
   }
+  // Replace once after a successful fetch; silent polling must not duplicate approval cards.
+  tbody.replaceChildren(newRows);
   const pendingItems=items.filter(item=>item.status==="pending");
   const pending=pendingItems.length;
   const ids=new Set(pendingItems.map(item=>String(item.id)));
@@ -400,25 +420,25 @@ async function loadDiscounts({quiet=false}={}){
 function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
 function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
-function addCell(tr,value,cls){const td=document.createElement("td");if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
+function addCell(tr,value,cls,label){const td=document.createElement("td");if(label)td.dataset.label=label;if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
 function render(){
  const term=$("search").value.toLocaleLowerCase("tr").trim(),filter=$("filter").value;
  const filtered=userRows.filter(u=>(!filter||u.subscription_status===filter)&&(!term||String(u.email||"").toLocaleLowerCase("tr").includes(term)));
  $("rows").replaceChildren();
  for(const u of filtered){
   const tr=document.createElement("tr"),status=u.subscription_status||"none";
-  addCell(tr,u.email||"E-posta bulunamadı");
-  addCell(tr,statusText(status),"pill "+(["active","unlimited"].includes(status)?"ok":status==="none"?"warn":""));
-  addCell(tr,fmt(u.created_at));addCell(tr,fmt(u.last_sign_in_at));
-  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.starts_at));
-  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.expires_at));
-  addCell(tr,u.payment_provider||"—");
-   const td=document.createElement("td"),email=String(u.email||"").trim().toLowerCase();
+  addCell(tr,u.email||"E-posta bulunamadı",null,"Kullanıcı");
+  addCell(tr,statusText(status),"pill "+(["active","unlimited"].includes(status)?"ok":status==="none"?"warn":""),"Yetki / Durum");
+  addCell(tr,fmt(u.created_at),null,"Kayıt tarihi");addCell(tr,fmt(u.last_sign_in_at),null,"Son giriş");
+  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.starts_at),null,"Abonelik başlangıcı");
+  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.expires_at),null,"Abonelik bitişi");
+  addCell(tr,u.payment_provider||"—",null,"Ödeme sağlayıcısı");
+   const td=document.createElement("td"),email=String(u.email||"").trim().toLowerCase();td.dataset.label="İlyada 3";
    const officeState=officeStatusByEmail.get(email)||"none";
    if(u.is_super_admin){td.textContent="Yönetici";}
    else{
      const approved=officeState==="approved";
-     const hint=document.createElement("div");hint.textContent=approved?(status==="active"?"Ofis onaylı · 500 TL · Şablon erişimi açık":status==="unlimited"?"Ofis onaylı · yönetici":"Ofis onaylı · 500 TL özel fiyat · Abonelik bekleniyor"):officeState==="pending"?"Onayınız bekleniyor":"750 TL standart";hint.className="muted";td.append(hint);
+     const hint=document.createElement("div");hint.textContent=approved?(status==="active"?"Ofis onaylı · yıllık 500 TL · Şablon erişimi açık":status==="unlimited"?"Ofis onaylı · yönetici":"Ofis onaylı · yıllık 500 TL özel fiyat · Abonelik bekleniyor"):officeState==="pending"?"Onayınız bekleniyor":"Yıllık 750 TL standart";hint.className="muted";td.append(hint);
      const btn=document.createElement("button");btn.type="button";btn.textContent=approved?"Ofis Yetkisini Kaldır":"İlyada 3 Olarak Onayla";btn.style.marginTop="6px";
      btn.onclick=async()=>{
        const message=approved?"İlyada 3 ofis yetkisi ve RE/MAX şablon erişimi kaldırılsın mı?":"Bu danışmanın İlyada 3 ofisinde çalıştığını doğruladınız mı? 500 TL fiyatı ve RE/MAX JSON paketi açılacaktır.";
