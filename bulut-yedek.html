@@ -13,7 +13,7 @@ button,.back{background:#ef8926;border:0;border-radius:10px;padding:11px 15px;fo
 button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #dde6ed}
 .row:last-child{border:0}.row strong{display:block}.row small{color:#66798b}.collection{border:1px solid #dbe6ee;border-radius:12px;margin:12px 0;overflow:hidden}
-#history[hidden]{display:none!important}.confirm{display:flex;align-items:flex-start;gap:10px;margin:16px 0}.confirm input{width:19px;height:19px;flex:none}
+.preview-row{display:flex;align-items:flex-start;gap:10px;padding:11px;border-bottom:1px solid #dce6ee;cursor:pointer}.preview-row input{width:19px;height:19px;margin:3px 0 0;accent-color:#138768}.preview-row strong{display:block}.preview-row small{display:block;color:#6a7d8c}.legacy-label{color:#9e5516;font-weight:700}#history[hidden],#preview[hidden]{display:none!important}.confirm{display:flex;align-items:flex-start;gap:10px;margin:16px 0}.confirm input{width:19px;height:19px;flex:none}
 @media(max-width:600px){main{padding:17px}.row{align-items:flex-start;flex-direction:column}.row button{width:100%}}
 </style></head><body><main>
 <a class="back" href="./index.html#account">← Hesap ve Yedekleme</a>
@@ -26,7 +26,7 @@ button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
 <label class="confirm"><input type="checkbox" id="confirmLocal"><span>Mevcut cihaz yedeğimi indirdim ve güvenli yerde sakladım.</span></label>
 <h2>Portföy yedeklerim</h2><div class="collection" id="portfolios"></div>
 <h2>Alıcı / Satıcı / Diğer Müşteri yedeklerim</h2><div class="collection" id="clients"></div>
-<p id="result" role="status"></p>
+<section id="preview" hidden><h2 id="previewTitle">Bu yedeğin içeriği</h2><p id="previewSource" class="warn"></p><p class="muted">Yalnızca sana ait olduğundan emin olduğun kayıtları işaretle. Deneme kayıtlarını seçme. Müşteri telefonları burada gösterilmez.</p><div class="collection" id="previewRows"></div><p id="previewCount" class="muted">Henüz seçim yok.</p><div class="bar"><button type="button" id="restoreSelected" disabled>Seçilenleri Kendi Hesabıma Ekle</button></div></section><p id="result" role="status"></p>
 <p class="muted">Bu özellik yalnızca CRM müşteri kayıtları ve Portföy Yönetimi kayıtlarını kapsar. PDF İmzala arşivi, Emlak Asistanı şablonları, ajanda ve görsel boyutu sınırını aşan kayıtlar bu yedeklere otomatik dâhil edilmez. Eski sürümler silinmez.</p>
 </section></main>
 <script>
@@ -37,7 +37,7 @@ const parse=x=>{try{return JSON.parse(x)}catch{return null}};
 const isObject=x=>x!==null&&typeof x==="object"&&!Array.isArray(x);
 const clean=x=>String(x??"").trim().toLocaleLowerCase("tr-TR").replace(/\s+/g," ");
 const keys=id=>({clients:"emlakcrm_demo_v1__owner_"+id,portfolios:"emlakcrm_portfoy_rapor_v1__owner_"+id});
-let account=null,versions=[],downloaded=false,processing=false;
+let account=null,versions=[],downloaded=false,processing=false,preview=null;
 function message(str,kind="notice"){$("status").className=kind;$("status").textContent=str}
 function currentSession(){return parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"))}
 async function identity(){
@@ -69,7 +69,8 @@ function download(name,value){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 async function loadHistory(){
- versions=await dataRequest("select=id,kind,item_count,created_at&order=created_at.desc&limit=100");
+ versions=await dataRequest("select=id,kind,item_count,created_at,source&order=created_at.desc&limit=100");
+ preview=null;$("preview").hidden=true;
  for(const kind of ["portfolios","clients"]){
   const container=$(kind);container.replaceChildren();
   const rows=versions.filter(x=>x.kind===kind).slice(0,20);
@@ -78,14 +79,49 @@ async function loadHistory(){
    const row=document.createElement("div");row.className="row";
    const label=document.createElement("div"),head=document.createElement("strong"),info=document.createElement("small");
    head.textContent=new Date(v.created_at).toLocaleString("tr-TR");
-   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":" portföy");
+   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":" · Tarayıcı yedeği");
+   if(v.source==="legacy_cloud")info.className="legacy-label";
    label.append(head,info);
-   const button=document.createElement("button");button.type="button";button.textContent="Bu Sürümü Kendi Hesabıma Ekle";
-   button.onclick=()=>void restore(v);
+   const button=document.createElement("button");button.type="button";button.textContent="Kayıtları Gör ve Seç";
+   button.onclick=()=>void showPreview(v);
    row.append(label,button);container.append(row);
   }
  }
  message("Yedek geçmişi yüklendi. Eski kayıtları silmeden birleştirerek geri alabilirsiniz.","good");
+}
+function updatePreviewSelection(){
+ const count=document.querySelectorAll('#previewRows input[type="checkbox"]:checked').length;
+ $("previewCount").textContent=count+" kayıt seçildi.";
+ $("restoreSelected").disabled=!count||!preview||!downloaded||!$("confirmLocal").checked||processing;
+}
+async function showPreview(version){
+ $("result").className="notice";$("result").textContent="Yedek kayıtları yükleniyor…";
+ try{
+  const auth=await identity();if(!account||auth.uid!==account.uid)throw Error("Aktif hesap değişti.");
+  const rows=await dataRequest("select=id,kind,item_count,payload,source&user_id=eq."+encodeURIComponent(auth.uid)+"&id=eq."+encodeURIComponent(version.id)+"&limit=1");
+  if(!Array.isArray(rows)||rows.length!==1||rows[0].kind!==version.kind||!Array.isArray(rows[0].payload))throw Error("Yedek bulunamadı veya hesabınıza ait değil.");
+  const entry=rows[0];
+  if(entry.payload.length>10000)throw Error("Bu sürümde çok sayıda kayıt var. Destek ile kontrollü kurtarma yapılmalı.");
+  preview={version,source:entry.source};
+  $("previewTitle").textContent=(version.kind==="portfolios"?"Portföy":"Müşteri")+" yedeğindeki kayıtlar ("+entry.payload.length+")";
+  $("previewSource").textContent=entry.source==="legacy_cloud"
+   ?"Eski bulut arşivi: Buradaki kayıtlar önceki sistemden alınmıştır. Deneme kayıtları olabilir; bugünkü bilgisayar yedeğinle aynı olduğunu varsayma."
+   :"Bu kayıtlar EmlakCRM'deki kişisel tarayıcı yedeklerinden alınmıştır. Yalnızca ihtiyacın olanları işaretle.";
+  $("previewSource").className=entry.source==="legacy_cloud"?"warn":"notice";
+  const root=$("previewRows");root.replaceChildren();
+  entry.payload.forEach((x,i)=>{
+   const label=document.createElement("label");label.className="preview-row";
+   const input=document.createElement("input");input.type="checkbox";input.dataset.index=String(i);input.onchange=updatePreviewSelection;
+   const contents=document.createElement("div"),head=document.createElement("strong"),detail=document.createElement("small");
+   head.textContent=String(version.kind==="portfolios"?(x?.title||x?.name||"Başlıksız portföy"):(x?.name||"İsimsiz müşteri")).slice(0,180);
+   detail.textContent=String(version.kind==="portfolios"?(x?.location||x?.kind||"Konum belirtilmedi"):(x?.type||"Müşteri")).slice(0,150);
+   contents.append(head,detail);label.append(input,contents);root.append(label);
+  });
+  $("restoreSelected").onclick=()=>void restore(version);
+  $("preview").hidden=false;updatePreviewSelection();
+  $("preview").scrollIntoView({behavior:"smooth",block:"start"});
+  $("result").textContent="";
+ }catch(e){$("result").className="bad";$("result").textContent=String(e.message||e)}
 }
 function merge(kind,current,incoming){
  const idSet=new Set(current.filter(x=>isObject(x)&&x.id!=null).map(x=>String(x.id)));
@@ -108,12 +144,15 @@ async function restore(version){
  processing=true;$("result").className="notice";$("result").textContent="Yedek kontrol ediliyor…";
  try{
   if(!downloaded||!$("confirmLocal").checked)throw Error("Önce mevcut cihaz yedeğini indirip onaylamalısınız.");
+  if(!preview||preview.version.id!==version.id)throw Error("Önce yedek içeriğini açıp kayıt seçmelisiniz.");
+  const chosen=new Set([...document.querySelectorAll('#previewRows input[type="checkbox"]:checked')].map(x=>Number(x.dataset.index)));
+  if(!chosen.size)throw Error("En az bir kayıt seçmelisiniz.");
   const auth=await identity();if(auth.uid!==account.uid)throw Error("Hesap değişti.");
   const rows=await dataRequest("select=id,kind,item_count,payload&user_id=eq."+encodeURIComponent(auth.uid)+"&id=eq."+encodeURIComponent(version.id)+"&limit=1");
   if(!Array.isArray(rows)||rows.length!==1||rows[0].kind!==version.kind||!Array.isArray(rows[0].payload))throw Error("Yedek doğrulanamadı.");
   const item=rows[0],type=version.kind;
   const key=keys(auth.uid)[type],arrayKey=type==="clients"?"clients":"portfolios";
-  const {raw,parsed}=localData(key,arrayKey),joined=merge(type,parsed[arrayKey],item.payload);
+  const {raw,parsed}=localData(key,arrayKey),joined=merge(type,parsed[arrayKey],item.payload.filter((_,i)=>chosen.has(i)));
   if(!joined.added){$("result").className="notice";$("result").textContent="Yeni kayıt bulunmadı. "+joined.duplicates+" kayıt zaten mevcut veya çakışıyor.";return}
   if(!confirm(joined.added+" "+(type==="clients"?"müşteri":"portföy")+" yalnızca sizin bu cihazdaki hesabınıza eklensin mi? Mevcut kayıtlar silinmeyecek."))return;
   const second=await identity();if(second.uid!==auth.uid)throw Error("Hesap değişti.");
@@ -122,8 +161,9 @@ async function restore(version){
   localStorage.setItem(key,updated);
   $("result").className="good";
   $("result").textContent=joined.added+" kayıt geri eklendi; "+joined.duplicates+" mükerrer/çakışan kayıt atlandı. Ana uygulamayı açarak kontrol edin.";
+  preview=null;$("preview").hidden=true;
  }catch(e){$("result").className="bad";$("result").textContent="Geri yükleme tamamlanamadı: "+String(e.message||e)}
- finally{processing=false}
+ finally{processing=false;updatePreviewSelection()}
 }
 $("downloadLocal").addEventListener("click",()=>{
  if(!account)return;
@@ -133,9 +173,10 @@ $("downloadLocal").addEventListener("click",()=>{
    format:"EmlakCRM-Restore-Preflight",user_id:account.uid,created_at:new Date().toISOString(),
    crm:localData(k.clients,"clients").parsed,portfolio:localData(k.portfolios,"portfolios").parsed
   });
-  downloaded=true;$("result").className="notice";$("result").textContent="Mevcut cihaz yedeği indirildi. Dosyanın İndirilenler klasöründe olduğundan emin olun.";
+  downloaded=true;updatePreviewSelection();$("result").className="notice";$("result").textContent="Mevcut cihaz yedeği indirildi. Dosyanın İndirilenler klasöründe olduğundan emin olun.";
  }catch(e){$("result").className="bad";$("result").textContent=e.message}
 });
+$("confirmLocal").addEventListener("change",updatePreviewSelection);
 $("reload").addEventListener("click",()=>{void loadHistory().catch(e=>message(e.message,"bad"))});
 (async()=>{try{account=await identity();$("history").hidden=false;await loadHistory()}catch(e){message(String(e.message||e),"bad")}})();
 </script></body></html>
