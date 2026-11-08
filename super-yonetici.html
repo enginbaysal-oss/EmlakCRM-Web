@@ -19,7 +19,7 @@
 <p class="muted">İlyada 3 için seçtiğimiz kare görseli yükle. Sistem <strong>500 TL (KDV dahil)</strong> fiyatlı, <strong>12 aylık dijital</strong> ürünü mağaza vitrininde gizli olacak şekilde yalnızca senin onayınla oluştursun. Mevcut 750 TL ürün korunur.</p>
 <label for="shopierOfficeArtwork" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün görseli (PNG)</label>
 <input type="file" id="shopierOfficeArtwork" accept="image/png,.png" style="display:block;width:100%;margin:0 0 12px">
-<div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button></div>
+<div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button><button id="shopierOfficeProductDiscover" type="button">Shopier’deki 500 TL Ürününü Bul</button></div>
 <p class="muted" id="shopierOfficeCreateStatus" role="status" aria-live="polite">Ürün durumu kontrol ediliyor…</p>
 <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:650">Shopier'de önceden oluşturulan ürünün bağlantısını elle kaydet</summary>
 <label for="shopierOfficeProductUrl" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün bağlantısı</label>
@@ -105,6 +105,25 @@ shopierProductImage.addEventListener("change",()=>{
   :"Görsel seçilmedi.";
 });
 $("shopierOfficeCreateCheck").addEventListener("click",shopierProductCreationCheck);
+$("shopierOfficeProductDiscover").addEventListener("click",async()=>{
+ const button=$("shopierOfficeProductDiscover"),status=$("shopierOfficeCreateStatus");
+ button.disabled=true;status.textContent="Shopier ürünleri okunuyor. Yeni ürün oluşturulmuyor…";
+ try{
+  const t=await verifiedToken();
+  const r=await fetch(endpoint+"/functions/v1/emlakcrm-shopier-product",{
+    method:"PUT",headers:{"apikey":apiKey,"authorization":"Bearer "+t,"content-type":"application/json"},cache:"no-store"
+  });
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(j.reason||j.error||"Shopier ürün kaydı alınamadı");
+  if(j.status!=="ready"||!/^https:\/\/www\.shopier\.com\/enginbaysal\/\d+$/.test(j.product_url||""))throw Error("Ürün doğrulaması tamamlanamadı");
+  $("shopierOfficeProductUrl").value=j.product_url;
+  status.textContent="500 TL dijital ürün Shopier'den doğrulandı ve EmlakCRM'ye kaydedildi. Ödeme aktivasyonu henüz kapalı.";
+  await loadOfficeShopierProduct();
+ }catch(e){
+  status.textContent="Shopier ürününü otomatik bulamadım: "+e.message+". Var olan ürünün bağlantısını aşağıdaki alandan elle kaydedebilirsin.";
+ }finally{button.disabled=false}
+});
+
 shopierProductCreateBtn.addEventListener("click",async()=>{
  if(shopierProductCreationBlocked)return;
  const file=shopierProductImage.files?.[0];

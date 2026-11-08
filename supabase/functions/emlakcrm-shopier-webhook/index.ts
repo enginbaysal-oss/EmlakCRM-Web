@@ -60,8 +60,10 @@ Deno.serve(async req=>{
   const wrapper=JSON.parse(rawOrder);const order=wrapper?.data?.id?wrapper.data:(wrapper?.order?.id?wrapper.order:wrapper);
   if(String(order?.id)!==id)return respond(503,"Order mismatch");
   const products=order.lineItems;
-  const hasProduct=Array.isArray(products)&&products.length===1&&
-    String(products[0]?.productId)==="52694231"&&Number(products[0]?.quantity)===1;
+  const validLine=Array.isArray(products)&&products.length===1&&Number(products[0]?.quantity)===1;
+  const orderedProduct=validLine?String(products[0].productId??""):"";
+  const configured=await query("emlakcrm_shopier_product_config?status=eq.ready&select=tier,product_id,expected_amount_kurus");
+  const product=(Array.isArray(configured)?configured:[]).find(p=>p.product_id===orderedProduct);
   const total=decimalCents(order?.totals?.total);
   const currency=order?.currency;
   const paid=order?.paymentStatus==="paid";
@@ -69,17 +71,31 @@ Deno.serve(async req=>{
   const shipping=String(order?.shippingInfo?.email||"").trim().toLowerCase();
   const buyerEmail=billing||shipping;
   const emailOkay=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)&&(!billing||!shipping||billing===shipping);
-  const valid=paid&&hasProduct&&currency==="TRY"&&total===75000&&emailOkay;
-  const reason=!paid?"unpaid":!hasProduct?"wrong_product":currency!=="TRY"?"wrong_currency":total!==75000?"wrong_amount":!emailOkay?"email_mismatch":"";
+  const valid=paid&&!!product&&currency==="TRY"&&total===product.expected_amount_kurus&&emailOkay;
+  const reason=!paid?"unpaid":!product?"wrong_product":currency!=="TRY"?"wrong_currency":total!==product.expected_amount_kurus?"wrong_amount":!emailOkay?"email_mismatch":"";
+  // A duplicate webhook MUST NOT overwrite an already activated order row.
+  const oldRows=await query("emlakcrm_shopier_orders?order_id=eq."+encodeURIComponent(id)+"&select=processing_status&limit=1");
+  if(Array.isArray(oldRows)&&oldRows[0]?.processing_status==="activated")return respond(200,"already_processed");
   await query("emlakcrm_shopier_orders?on_conflict=order_id","POST",{
-    order_id:id,product_id:hasProduct?"52694231":null,
+    order_id:id,product_id:product?.product_id||null,
     buyer_email:emailOkay?buyerEmail:null,
     payment_status:paid?"paid":"not_paid",amount_kurus:total,
     currency:currency==="TRY"?"TRY":null,
     processing_status:valid?"verified_review":"needs_review",
     review_reason:reason||null,last_checked_at:new Date().toISOString()
   });
-  // Deliberate staged rollout: provider verification does NOT grant access yet.
+  if(!valid)return respond(200,"received_for_review");
+  // The database function is service-role-only, serializes concurrent orders,
+  // checks email/account/office eligibility, and remains disabled until
+  // an actual provider-paid end-to-end test has been completed.
+  const state=await query("rpc/emlakcrm_shopier_activate_verified_order","POST",{
+    p_order_id:id,p_product_id:product.product_id,p_email:buyerEmail,p_amount_kurus:total
+  });
+  if(state!=="activated"&&state!=="already_activated"&&state!=="activation_disabled"){
+    await query("emlakcrm_shopier_orders?order_id=eq."+encodeURIComponent(id),"PATCH",{
+      processing_status:"needs_review",review_reason:String(state).slice(0,80),last_checked_at:new Date().toISOString()
+    });
+  }
   return respond(200,"received");
  }catch(e){console.error("Shopier webhook staging:",e instanceof Error?e.message:"error");return respond(503,"Unavailable")}
 });
