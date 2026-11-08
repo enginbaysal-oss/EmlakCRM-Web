@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 /** Shopier 500 TRY hidden digital product creation. Superadmin only.
  * Never opens subscriptions or changes the existing 750 TRY product.
  */
-const cors={"access-control-allow-origin":"https://enginbaysal-oss.github.io","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"GET,POST,OPTIONS","cache-control":"no-store","content-type":"application/json; charset=utf-8","vary":"Origin"};
+const cors={"access-control-allow-origin":"https://enginbaysal-oss.github.io","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"GET,POST,PUT,OPTIONS","cache-control":"no-store","content-type":"application/json; charset=utf-8","vary":"Origin"};
 const respond=(status:number,payload:unknown)=>new Response(JSON.stringify(payload),{status,headers:cors});
 const base=()=>Deno.env.get("SUPABASE_URL")||"";
 const service=()=>Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -67,9 +67,34 @@ function unwrap(j:any){
  }
  return j;
 }
+function productsFromResult(response:any):any[]{
+ if(Array.isArray(response))return response;
+ if(response&&typeof response==="object")for(const field of ["data","items","products","result"])if(Array.isArray(response[field]))return response[field];
+ throw Error("provider_product_list_unrecognized");
+}
+async function discoverPrivateOfficeProduct(){
+ const matches=new Map<string,any>();
+ for(let page=1;page<=12;page++){
+  const results=productsFromResult(await shopier("products?limit=50&page="+page));
+  for(const candidate of results){
+   const id=String(candidate?.id??"");
+   if(!/^\\d{5,20}$/.test(id)||id==="52694231")continue;
+   const title=String(candidate?.title||"");
+   if(!title.startsWith("EmlakCRM")||!title.includes("İlyada 3"))continue;
+   const exact=unwrap(await shopier("products/"+encodeURIComponent(id)));
+   if(!verifyProduct(exact)||String(exact.id)!==id)continue;
+   matches.set(id,exact);
+  }
+  if(results.length<50)break;
+  if(page===12)throw Error("provider_product_list_not_exhaustive");
+ }
+ if(matches.size===0)throw Error("matching_private_product_not_found");
+ if(matches.size!==1)throw Error("multiple_matching_products_manual_review");
+ return [...matches.keys()][0];
+}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
- if(!["GET","POST"].includes(req.method))return respond(405,{error:"method_not_allowed"});
+ if(!["GET","POST","PUT"].includes(req.method))return respond(405,{error:"method_not_allowed"});
  try{
   if(!await admin(req))return respond(403,{error:"superadmin_required"});
   const current=await config();
@@ -79,6 +104,16 @@ Deno.serve(async(req:Request)=>{
     image_ready:await imageReady(),create_attempted:!!current?.create_attempted_at,subscriptions_activated:false});
   }
   if(current?.status==="ready")return respond(200,{status:"ready",product_url:current.product_url,subscriptions_activated:false});
+  if(req.method==="PUT"){
+   // Only read Shopier products. No extra product will be created.
+   const id=await discoverPrivateOfficeProduct();
+   const productUrl="https://www.shopier.com/enginbaysal/"+id;
+   await db("PATCH","emlakcrm_shopier_product_config?tier=eq.ilyada3",
+    {product_id:id,product_url:productUrl,status:"ready",updated_at:new Date().toISOString()},"return=minimal");
+   const saved=await config();
+   if(saved?.status!=="ready"||saved.product_id!==id)throw Error("product_registration_unconfirmed");
+   return respond(200,{status:"ready",product_url:productUrl,subscriptions_activated:false});
+  }
   if(current?.create_attempted_at)return respond(409,{error:"attempt_already_recorded",detail:"Shopier'de olası ürün kontrol edilmeden tekrar oluşturulamaz."});
   if(!await imageReady())return respond(409,{error:"image_not_uploaded"});
   const lease=crypto.randomUUID();
