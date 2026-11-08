@@ -1,5 +1,5 @@
 <!doctype html><html lang="tr"><head>
-<script src="./account-data-isolation.js?v=20261108"></script>
+<script src="./account-data-isolation.js?v=20261108b"></script>
 <style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
 <script>
 /* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
@@ -77,7 +77,7 @@
 const $=id=>document.getElementById(id);let templates=[],selected=-1,page=0,values={},signaturePositions={};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-const DB="emlakcrm_templates_v1",KEY="templates";
+const DB="emlakcrm_templates_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous"),KEY="templates";
 const OFFICE_STORAGE_BASE="https://tffvwxskvjuxoekwgdef.supabase.co";
 const OFFICE_STORAGE_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const OFFICE_REMAX_PATH="/storage/v1/object/emlakcrm-office-templates/ilyada3/remax-templates.json";
