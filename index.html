@@ -409,7 +409,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <button type="button" class="tool crm" data-go="customers"><div class="tool-icon">👥</div><div class="tool-title">Müşteri Yönetimi + Ajanda</div><div class="tool-desc">Müşteriler ve hatırlatmalar</div></button>
 <a href="portfoy-rapor.html?v=20261108f#portfoyler" class="tool portfolio"><div class="tool-icon">🏠</div><div class="tool-title">Portföy Yönetimi</div><div class="tool-desc">İlanlar ve yetki süreleri</div></a>
 <a href="https://enginbaysal-oss.github.io/crm/ilan-asistani.html" class="tool ilan-asistani" style="background:#e9f4ed;text-decoration:none;cursor:pointer"><div class="tool-icon">🔎</div><div class="tool-title">İlan Asistanı</div><div class="tool-desc">Kişisel favori aramalar ve yeni ilanlar</div></a>
-<a href="drone-cekim.html?v=20261108f" class="tool drone"><div class="tool-icon">🚁</div><div class="tool-title">Drone Çekim</div><div class="tool-desc">Parsel ve video uçuşu</div></a>
+<a href="drone-cekim.html?v=20261108g" class="tool drone"><div class="tool-icon">🚁</div><div class="tool-title">Drone Çekim</div><div class="tool-desc">Parsel ve video uçuşu</div></a>
 <button type="button" data-go="assistant" class="tool emlakasistan"><div class="tool-icon">📄</div><div class="tool-title">EmlakAsistan</div><div class="tool-desc">Belgeler ve sözleşmeler</div></button>
 <button type="button" data-go="tapu" class="tool tapumatik"><div class="tool-icon">🧮</div><div class="tool-title">TapuMatik</div><div class="tool-desc">Tapu ve masraf hesaplama</div></button>
 <button type="button" data-go="pdf" class="tool pdf"><div class="tool-icon">✍️</div><div class="tool-title">PDF İmzala</div><div class="tool-desc">İmza ve belge paylaşımı</div></button>
@@ -1754,7 +1754,7 @@ async function showScreen(name){
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
  }
- if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108f");
+ if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108g");
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
  $("appNav").hidden=selected==="home";
