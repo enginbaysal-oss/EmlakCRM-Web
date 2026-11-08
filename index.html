@@ -1476,6 +1476,7 @@ async function crmHandleSignupConfirmationCallback(){
    expires_at:Date.now()+(Number(fragment.get("expires_in"))||3600)*1000,email:user.email},false);
   $("crmInlineResult").textContent="E-posta adresiniz doğrulandı, hesabınıza giriş yapıldı.";
   await updateAccountStatus();
+  location.reload();
  }catch(e){$("crmInlineResult").textContent=String(e.message||e)}
 }
 // Supabase recovery callback: token stays in memory, never stored in localStorage.
