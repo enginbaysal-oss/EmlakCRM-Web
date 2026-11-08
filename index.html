@@ -392,7 +392,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <div id="crmInlineRegisterFields" hidden><label for="crmInlineName">Ad soyad</label><input type="text" id="crmInlineName" maxlength="100" autocomplete="name">
 <label for="crmInlinePasswordConfirm">Şifre tekrar</label><input type="password" id="crmInlinePasswordConfirm" minlength="8" autocomplete="new-password"></div>
 <button type="submit" id="crmInlineSubmit">Giriş Yap</button>
-</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button><section id="crmRecoveryPanel" class="card" hidden><h3>Yeni Şifre Belirle</h3><form id="crmRecoveryForm"><label for="crmRecoveryPassword">Yeni şifre</label><input id="crmRecoveryPassword" type="password" minlength="8" autocomplete="new-password" required><label for="crmRecoveryConfirm">Yeni şifre tekrar</label><input id="crmRecoveryConfirm" type="password" minlength="8" autocomplete="new-password" required><button type="submit" id="crmRecoverySave">Şifreyi Kaydet</button></form><p id="crmRecoveryStatus" role="status"></p></section>
+</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button><button type="button" class="secondary" id="crmInlineResend" hidden>Doğrulama e-postasını yeniden gönder</button><section id="crmRecoveryPanel" class="card" hidden><h3>Yeni Şifre Belirle</h3><form id="crmRecoveryForm"><label for="crmRecoveryPassword">Yeni şifre</label><input id="crmRecoveryPassword" type="password" minlength="8" autocomplete="new-password" required><label for="crmRecoveryConfirm">Yeni şifre tekrar</label><input id="crmRecoveryConfirm" type="password" minlength="8" autocomplete="new-password" required><button type="submit" id="crmRecoverySave">Şifreyi Kaydet</button></form><p id="crmRecoveryStatus" role="status"></p></section>
 <p id="crmInlineResult" class="mini" aria-live="polite" role="status"></p>
 </div>
 <button type="button" id="accountLogout" class="secondary" hidden>Çıkış Yap</button>
@@ -1375,6 +1375,7 @@ $("cloudOfficeList").onclick=async event=>{
   $("cloudOfficeStatus").textContent="“"+officeName+"” silindi. Şimdi yeni ofis oluşturabilir veya bir ofise katılabilirsin.";
  }catch(err){$("cloudOfficeStatus").textContent="Ofis silinemedi: "+err.message;del.disabled=false}
 };
+const CRM_AUTH_RETURN_URL="https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
 let crmAuthMode="login";
 function crmInlineMode(next){
  crmAuthMode=next;const register=next==="register";
@@ -1386,6 +1387,7 @@ function crmInlineMode(next){
  $("crmLoginTab").setAttribute("aria-pressed",String(!register));
  $("crmRegisterTab").setAttribute("aria-pressed",String(register));
  $("crmInlineForgot").hidden=register;
+ $("crmInlineResend").hidden=true;
  $("crmRememberRow").hidden=register;
  $("crmInlineResult").textContent="";
 }
@@ -1414,8 +1416,8 @@ $("crmInlineAuthForm").onsubmit=async event=>{
  try{
   let d;
   if(crmAuthMode==="register"){
-   d=await crmAuthPost("/signup",{email,password,data:{app:"EmlakCRM",full_name:$("crmInlineName").value.trim()}});
-   if(!d.access_token){crmInlineMode("login");result.textContent="Hesabınız oluşturuldu. Giriş için e-posta doğrulama bağlantısını açın.";return}
+   d=await crmAuthPost("/signup?redirect_to="+encodeURIComponent(CRM_AUTH_RETURN_URL),{email,password,data:{app:"EmlakCRM",full_name:$("crmInlineName").value.trim()}});
+   if(!d.access_token){crmInlineMode("login");$("crmInlineResend").hidden=false;result.textContent="Hesabınız oluşturuldu. E-postadaki doğrulama bağlantısını açın. Bağlantı eski veya hatalıysa yeni doğrulama e-postası isteyebilirsiniz.";return}
   }else d=await crmAuthPost("/token?grant_type=password",{email,password});
   if(!d.access_token||!d.refresh_token)throw Error("Oturum bilgileri alınamadı.");
   crmSaveAuthSession({access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Date.now()+(d.expires_in||3600)*1000,email:d.user?.email||email},crmAuthMode==="login"&&$("crmRememberMe").checked);
@@ -1433,10 +1435,47 @@ $("crmInlineForgot").onclick=async()=>{
  const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult");
  if(!$("crmInlineEmail").checkValidity()||!email){result.textContent="Şifre yenileme için geçerli e-posta adresinizi yazın.";return}
  const btn=$("crmInlineForgot");btn.disabled=true;
- try{await crmAuthPost("/recover?redirect_to="+encodeURIComponent("https://enginbaysal-oss.github.io/EmlakCRM-Web/"),{email});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
+ try{await crmAuthPost("/recover?redirect_to="+encodeURIComponent(CRM_AUTH_RETURN_URL),{email});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
  catch(err){result.textContent=err.message}
  finally{btn.disabled=false}
 };
+$("crmInlineResend").onclick=async()=>{
+ const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult"),btn=$("crmInlineResend");
+ if(!$("crmInlineEmail").checkValidity()||!email){result.textContent="Geçerli e-posta adresinizi yazın.";return}
+ btn.disabled=true;result.textContent="Doğrulama bağlantısı isteniyor…";
+ try{
+  await crmAuthPost("/resend?redirect_to="+encodeURIComponent(CRM_AUTH_RETURN_URL),{type:"signup",email});
+  result.textContent="Yeni doğrulama e-postası istendi. Lütfen en son gelen e-postadaki bağlantıyı açın.";
+ }catch(err){result.textContent="Doğrulama e-postası gönderilemedi: "+err.message}
+ finally{btn.disabled=false}
+};
+async function crmHandleSignupConfirmationCallback(){
+ const fragment=new URLSearchParams(location.hash.slice(1));
+ const t=fragment.get("type");
+ const err=fragment.get("error_description")||fragment.get("error");
+ if(t==="recovery")return;
+ const token=fragment.get("access_token"),refresh=fragment.get("refresh_token");
+ if(!["signup","email","magiclink","invite"].includes(t)&&!err)return;
+ history.replaceState(null,"",location.pathname+"#account");
+ await showScreen("account");
+ try{
+  if(err)throw Error(err);
+  if(!token||!refresh){
+    $("crmInlineResult").textContent="E-posta doğrulandıysa mevcut şifrenizle giriş yapabilirsiniz.";
+    return;
+  }
+  const res=await fetch(crmApiBase+"/auth/v1/user",{
+   headers:{apikey:crmPublicKey,Authorization:"Bearer "+token},cache:"no-store"
+  });
+  if(!res.ok)throw Error("Doğrulama oturumu alınamadı. Mevcut şifrenizle giriş yapın.");
+  const user=await res.json();
+  if(!user?.id||!user?.email_confirmed_at)throw Error("E-posta doğrulaması henüz tamamlanmadı.");
+  crmSaveAuthSession({access_token:token,refresh_token:refresh,
+   expires_at:Date.now()+(Number(fragment.get("expires_in"))||3600)*1000,email:user.email},false);
+  $("crmInlineResult").textContent="E-posta adresiniz doğrulandı, hesabınıza giriş yapıldı.";
+  await updateAccountStatus();
+ }catch(e){$("crmInlineResult").textContent=String(e.message||e)}
+}
 // Supabase recovery callback: token stays in memory, never stored in localStorage.
 let crmRecoveryToken=null;
 async function crmHandleRecoveryCallback(){
@@ -1646,6 +1685,7 @@ $("quickDownloadBackup").addEventListener("click",()=>quickDo("account","crmFull
 window.addEventListener("hashchange",()=>showScreen(location.hash.slice(1)));
 showScreen(location.hash.slice(1));
 void crmHandleRecoveryCallback();
+void crmHandleSignupConfirmationCallback();
 
 </script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
