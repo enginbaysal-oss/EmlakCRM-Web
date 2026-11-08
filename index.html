@@ -374,7 +374,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 </div>
 <section class="card" aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
 <h3 style="margin:0 0 8px">Tek Paket · EmlakCRM Yıllık Abonelik</h3>
-<p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(KDV dahil / 12 ay)</span></p>
+<p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(standart · KDV dahil / 12 ay)</span></p><p style="font-size:13px;color:#22637d;margin:3px 0 8px"><strong>İlyada 3 danışmanları:</strong> Ofis onayından sonra 500 TL (KDV dahil / 12 ay).</p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
 <p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a></p>
@@ -1632,7 +1632,7 @@ async function showScreen(name){
    if(request!==crmNavigationRequest)return;
    if(!entitlement.allowed){
     selected="account";
-    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Yıllık abonelik 750 TL (KDV dahil). Ödeme için güvenli ödeme ekranını kontrol edin.");
+    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Standart yıllık abonelik 750 TL; onaylı İlyada 3 danışmanları için 500 TL (KDV dahil). Ödeme durumunu abonelik ekranından kontrol edin.");
    }
   }catch(err){
    if(request!==crmNavigationRequest)return;
@@ -1669,7 +1669,7 @@ document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
   try{
    const entitlement=await crmCheckEntitlement();
    if(entitlement.allowed){window.location.assign(href);return}
-   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Yıllık ücret 750 TL (KDV dahil). Ödeme durumu güvenli ödeme sayfasında kontrol edilir.");
+   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Standart yıllık ücret 750 TL; onaylı İlyada 3 danışmanları için 500 TL (KDV dahil). Ödeme durumunu abonelik ekranından kontrol edin.");
   }catch(_){
    alert("Devam etmek için önce Ayarlar bölümünden giriş yapın.");
   }
@@ -1689,12 +1689,12 @@ void crmHandleSignupConfirmationCallback();
 
 </script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
-<p><strong>Lansmana özel tanıtım fiyatı: 750 TL (KDV dâhil) / 12 ay.</strong> Dijital yazılım kullanım hakkıdır; fiziksel teslimat yoktur. Otomatik yenileme yapılmaz. <strong>Ödeme durumu, güvenli ödeme ekranında anlık olarak kontrol edilir.</strong></p>
+<p><strong>Standart fiyat: 750 TL (KDV dâhil) / 12 ay.</strong> Onaylı RE/MAX İlyada 3 danışmanları için 500 TL (KDV dâhil) / 12 ay uygulanır. Dijital yazılım kullanım hakkıdır; fiziksel teslimat ve otomatik yenileme yoktur. <strong>Ödeme ve üyelik durumu abonelik ekranında kontrol edilir.</strong></p>
 <nav aria-label="Yasal belgeler" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0">
 <a href="mesafeli-satis-sozlesmesi.html">Mesafeli Satış Sözleşmesi</a>
 <a href="teslimat-iade.html">Teslimat ve İade</a>
 <a href="gizlilik-politikasi.html">Gizlilik Politikası</a>
 <a href="iletisim.html">İletişim ve Satıcı Bilgileri</a>
 </nav>
-<div aria-label="Ödeme markaları" style="margin:16px 0;padding:14px;border:1px solid #dce5ee;border-radius:10px;text-align:center"><img src="assets/iyzico-logo-band.png" alt="iyzico ile Öde, Visa, Mastercard ve diğer ödeme markaları" style="display:block;max-width:100%;width:429px;height:auto;margin:auto"><p style="font-size:12px;margin:10px 0 0">Ödeme hizmeti henüz aktif değildir; şu anda ödeme alınmamaktadır.</p></div>
+<div aria-label="Shopier ödeme bilgisi" style="margin:16px 0;padding:14px;border:1px solid #dce5ee;border-radius:10px;text-align:center"><strong>Güvenli ödeme altyapısı: Shopier</strong><p style="font-size:12px;margin:10px 0 0">Ödeme sonrası EmlakCRM aboneliğinin otomatik açılması henüz test aşamasındadır. Ödeme düğmesi doğrulama tamamlanana kadar kapalıdır.</p></div>
 </section><script>(function(){function togglePaymentFooter(){var section=document.getElementById("emlakcrm-legal");if(!section)return;var route=decodeURIComponent(location.hash.slice(1)).split("?")[0];var allowed=["","account","abonelik","subscription","payment","checkout","on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"];section.hidden=!allowed.includes(route);section.style.display=section.hidden?"none":"";}window.addEventListener("hashchange",togglePaymentFooter);togglePaymentFooter();})();</script><script>(function(){function openLegal(){var id=decodeURIComponent(location.hash.slice(1));if(!["on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"].includes(id))return;var e=document.getElementById(id);if(e&&e.tagName==="DETAILS")e.open=true;}window.addEventListener("hashchange",openLegal);openLegal();})();</script></body></html>
