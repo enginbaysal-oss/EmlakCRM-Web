@@ -380,6 +380,7 @@ async function loadDiscounts({quiet=false}={}){
   const items=await discountRpc("emlakcrm_admin_discount_requests",{},discountToken);
   if(!Array.isArray(items))throw Error("Beklenmeyen talep listesi.");
   items.sort((a,b)=>(a.status==="pending"?0:1)-(b.status==="pending"?0:1));
+  const newRows=document.createDocumentFragment();
   for(const item of items){
    const tr=document.createElement("tr");
    addCell(tr,item.email||"—",null,"Danışman");addCell(tr,fmt(item.requested_at),null,"Talep");addCell(tr,item.status==="pending"?"Onay bekliyor":item.status==="approved"?"Onaylandı":"Reddedildi",null,"Durum");
@@ -395,8 +396,10 @@ async function loadDiscounts({quiet=false}={}){
       }catch(e){$("discountMessage").textContent=e.message;btn.disabled=false}};
      td.append(btn);
     }
-   }tr.append(td);tbody.append(tr);
+   }tr.append(td);newRows.append(tr);
   }
+  // Replace once after a successful fetch; silent polling must not duplicate approval cards.
+  tbody.replaceChildren(newRows);
   const pendingItems=items.filter(item=>item.status==="pending");
   const pending=pendingItems.length;
   const ids=new Set(pendingItems.map(item=>String(item.id)));
