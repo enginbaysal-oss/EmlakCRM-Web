@@ -1,0 +1,94 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EmlakCRM | Sözleşme Onay Kopyalarım</title>
+<style>
+:root{font:15px/1.55 system-ui,sans-serif;color:#1c3a4d;background:#eff5fa}
+*{box-sizing:border-box}body{margin:0;padding:14px}main{max-width:820px;margin:14px auto;background:#fff;border-radius:15px;padding:23px;box-shadow:0 6px 25px #193a5212}
+h1{font-size:25px;line-height:1.3}h2{font-size:18px}a{color:#0b6988}
+.notice{background:#edf6fa;border-left:4px solid #1d7189;padding:13px;border-radius:9px}
+.warn{background:#fff5e7;border-left:4px solid #c48a39;padding:13px;border-radius:9px}
+.card{border:1px solid #dbe5ed;padding:13px;margin:11px 0;border-radius:11px}
+.card>strong{display:block}small,.muted{color:#657889}button,.link{background:#ee8720;color:#15364a;border:0;border-radius:9px;padding:10px 15px;font:700 14px system-ui;cursor:pointer;display:inline-block;text-decoration:none}
+button:disabled{opacity:.5}.link{background:#e4edf3}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+[hidden]{display:none!important}@media(max-width:580px){main{padding:16px}.row button{width:100%;max-width:100%}h1{font-size:21px}}
+</style></head><body><main>
+<a href="./index.html#account" class="link">← EmlakCRM Hesabıma Dön</a>
+<h1>Satın Alma Öncesi Sözleşme Onaylarım</h1>
+<p class="notice">Burada yalnızca bu hesaptan Shopier ödeme sayfasına yönlendirilmeden önce verilen ve sunucuda kayıtlı olan onayları görebilir, o tarihte görüntülenen hukuki belgelerin arşiv kopyalarını indirebilirsiniz.</p>
+<p class="warn"><strong>Önemli:</strong> Bu kayıt, ödemenin tamamlandığını veya bir aboneliğin başladığını kanıtlamaz. Ödeme ve abonelik için EmlakCRM hesap durumunuzu ve Shopier sipariş kaydınızı esas alın.</p>
+<p id="status" role="status">Hesap doğrulanıyor…</p>
+<div id="events"></div>
+<section id="copies" hidden><h2 id="copyTitle">Sözleşme kopyaları</h2><p class="muted">Her belgeyi kendi cihazınıza ayrı ayrı indirebilirsiniz. Dosyalar kabul edilen sürümün sunucuda saklanan kopyasıdır.</p><div id="buttons" class="row"></div></section>
+</main>
+<script>
+"use strict";
+const BASE="https://tffvwxskvjuxoekwgdef.supabase.co",KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const $=id=>document.getElementById(id);
+let identity=null,authHeaders=null;
+const parse=s=>{try{return JSON.parse(s)}catch{return null}};
+async function who(){
+ const session=parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"));
+ if(!session?.access_token)throw Error("EmlakCRM hesabınıza yeniden giriş yapın.");
+ const headers={apikey:KEY,Authorization:"Bearer "+session.access_token};
+ const resp=await fetch(BASE+"/auth/v1/user",{headers,cache:"no-store"});
+ if(!resp.ok)throw Error("Oturumunuz doğrulanamadı. Ana EmlakCRM'den tekrar giriş yapın.");
+ const user=await resp.json();
+ const active=localStorage.getItem("emlakcrm_active_account_v1");
+ if(!user?.id||(active&&active!==user.id))throw Error("Tarayıcıda farklı bir hesap oturumu algılandı. Kendi EmlakCRM hesabınızla yeniden giriş yapın.");
+ return {uid:user.id,headers};
+}
+async function request(path,opts){
+ const current=await who();
+ if(current.uid!==identity)throw Error("Hesap değişti. Sayfayı kendi hesabınızdan yeniden açın.");
+ const response=await fetch(BASE+"/rest/v1/"+path,{...opts,headers:{...authHeaders,...opts?.headers},cache:"no-store"});
+ if(!response.ok)throw Error("Sözleşme kopyasına erişilemedi ("+response.status+").");
+ return response.json();
+}
+function download(name,raw){
+ const blob=new Blob([raw],{type:"text/html;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+async function display(eventId){
+ $("copies").hidden=true;$("status").textContent="Arşiv belgeleri doğrulanıyor…";
+ try{
+  const j=await request("rpc/emlakcrm_checkout_consent_copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({p_event_id:eventId})});
+  if(!j?.documents||typeof j.documents!=="object"||!Array.isArray(Object.keys(j.documents)))throw Error("Arşiv kopyası bulunamadı.");
+  const entries=[
+   ["on-bilgilendirme-formu.html","Ön Bilgilendirme Formu"],
+   ["mesafeli-satis-sozlesmesi.html","Mesafeli Satış / Hizmet Sözleşmesi"],
+   ["teslimat-iade.html","Teslimat ve İade Koşulları"]
+  ];
+  const root=$("buttons");root.replaceChildren();
+  for(const [filename,title] of entries){
+   const html=j.documents[filename];
+   if(typeof html!=="string"||!html.toLowerCase().includes("<html"))throw Error("Bu sürümün belge içeriği eksik.");
+   const btn=document.createElement("button");btn.type="button";btn.textContent="⬇ "+title;
+   btn.onclick=()=>download(j.id+"_"+filename,html);root.append(btn);
+  }
+  $("copyTitle").textContent="Onay: "+new Date(j.accepted_at).toLocaleString("tr-TR")+" · "+(j.amount_kurus/100).toLocaleString("tr-TR")+" TL / 12 ay";
+  $("copies").hidden=false;
+  $("status").textContent="Onaylı sürümün üç belge kopyası hazır.";
+ }catch(e){$("status").textContent=String(e.message||e)}
+}
+(async()=>{
+ try{
+  const session=await who();identity=session.uid;authHeaders=session.headers;
+  const rows=await request("emlakcrm_checkout_consent_events?select=id,created_at,amount_kurus,legal_version,event_type&order=created_at.desc&limit=50");
+  const root=$("events");root.replaceChildren();
+  if(!rows.length){$("status").textContent="Bu hesapta henüz kaydedilmiş ödeme öncesi sözleşme onayı yok.";return}
+  for(const rec of rows){
+   const card=document.createElement("div");card.className="card";
+   const title=document.createElement("strong"),sub=document.createElement("small");
+   title.textContent=new Date(rec.created_at).toLocaleString("tr-TR")+" · "+(rec.amount_kurus/100).toLocaleString("tr-TR")+" TL / yıl";
+   sub.textContent="Sürüm: "+rec.legal_version+" · Shopier yönlendirmesi öncesi onay";
+   const wrap=document.createElement("div");wrap.className="row";
+   const button=document.createElement("button");button.type="button";button.textContent="Bu Sürümün Belgelerini Aç";
+   button.onclick=()=>void display(rec.id);
+   wrap.append(button);card.append(title,sub,wrap);root.append(card);
+  }
+  $("status").textContent=rows.length+" sözleşme onay kaydı bulundu.";
+ }catch(e){$("status").textContent=String(e.message||e)}
+})();
+</script>
+</body></html>
