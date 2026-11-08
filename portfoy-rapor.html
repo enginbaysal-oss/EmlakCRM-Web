@@ -1,4 +1,4 @@
-<!doctype html><html lang="tr"><head><script src="./account-data-isolation.js?v=20261108"></script><style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
+<!doctype html><html lang="tr"><head><script src="./account-data-isolation.js?v=20261108b"></script><style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
 <script>
 /* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
 (async function(){
@@ -246,7 +246,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <section class="panel" id="sitesPanel" hidden><h3>İlan Takibi</h3><p class="hint">Site listesi tüm portföylerde ortaktır. Görüntülenme ve favori sayıları yalnızca açık portföye kaydedilir. Bilmediğiniz alanı boş bırakın.</p><div id="trackingStats" class="grid"></div><div class="row"><input id="trackingSiteName" placeholder="Yeni ilan sitesi" style="flex:1"><button type="button" id="trackingAdd">Site ekle</button></div><button type="button" id="trackingSave">Kaydet</button><p id="trackingMessage" class="hint" role="status"></p></section><section class="panel" id="reportPanel" hidden><div id="editor"><h3>İlerleme raporu hazırla</h3><div class="grid"><div><label>Dönem başlangıcı</label><input id="from" type="date"></div><div><label>Dönem bitişi</label><input id="to" type="date"></div><div class="full hint">İlan sitelerinin toplam görüntülenme ve favori sayılarını yazın. Önceki kayıtlı raporla farkı hesaplanır.</div><div class="full hint">İstatistikler İlan Takibi bölümünden otomatik alınır. Hiç rakam girilmeyen siteler raporda gösterilmez.</div><div class="full grid" id="statsInputs" hidden></div><div class="full"><label>Genel değerlendirme / gelecek hafta planı</label><textarea id="eval"></textarea></div></div><div class="row noPrint"><button id="draft" class="light">Taslak kaydet</button><button id="generate">Raporu oluştur ve kaydet</button><button id="print" class="light">PDF / Yazdır</button><button id="share" class="light">Paylaş</button></div></div><article class="paper" id="paper" hidden><div class="paperHead"><h1 class="paperTitle">İLERLEME RAPORU</h1><h2 id="rTitle"></h2><p id="rLocation"></p><div id="rPeriod"></div><img id="rCover" class="reportCover" alt="Portföy kapak fotoğrafı" hidden><h2 id="rPrice"></h2></div><p id="rOwner"></p><div class="reportBlock"><h3>İLAN PERFORMANSI</h3><div id="rCards" class="reportCards"></div><p class="hint">Veriler danışman tarafından girilmiştir. Önceki dönem mevcutsa değişimler kutuların içinde gösterilir.</p></div><div class="reportBlock"><h3>HAFTALIK HAREKETLER VE YAPILAN ÇALIŞMALAR</h3><p id="rActSummary" class="movementSummary"></p><div id="rActs"></div></div><div class="reportBlock reportEval"><h3>GENEL DEĞERLENDİRME</h3><p id="rEval"></p></div><div class="reportFooter"><div id="rAdvisor"></div></div></article></section>
 <section class="panel" id="histPanel" hidden><h3>Geçmiş raporlar</h3><div id="history"></div></section><section class="panel" id="advisorPanel" hidden><h3>Danışman bilgileri</h3><div class="grid"><div><label>Ad soyad</label><input id="cName"></div><div><label>Telefon</label><input id="cPhone"></div><div class="full"><label>Ofis</label><input id="cOffice"></div></div><div class="row"><button id="saveC">Bilgileri kaydet</button></div></section><p class="hint">Portföylerin ve raporların bu tarayıcıda saklanır. Bireysel abonelik için bulut eşitlemesi henüz etkin değildir.</p></main>
 <script>
-"use strict";const $=x=>document.getElementById(x),key="emlakcrm_portfoy_rapor_v1",today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},plus=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},tr=s=>s?new Date(s+"T12:00:00").toLocaleDateString("tr-TR"):"—",esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),id=()=>String(Date.now())+Math.random().toString(36).slice(2),fmt=n=>Number(n).toLocaleString("tr-TR"),parse=s=>Number(String(s||"").replace(/\./g,"").replace(",","."))||0;
+"use strict";const $=x=>document.getElementById(x),key="emlakcrm_portfoy_rapor_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous"),today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},plus=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},tr=s=>s?new Date(s+"T12:00:00").toLocaleDateString("tr-TR"):"—",esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),id=()=>String(Date.now())+Math.random().toString(36).slice(2),fmt=n=>Number(n).toLocaleString("tr-TR"),parse=s=>Number(String(s||"").replace(/\./g,"").replace(",","."))||0;
 let db;try{db=JSON.parse(localStorage.getItem(key))}catch{}if(!db||!Array.isArray(db.portfolios))db={portfolios:[],advisor:{},drafts:{}};db.advisor ||= {};db.drafts ||= {};let pid="",shown=null,newCover="",editedCover="";const save=()=>localStorage.setItem(key,JSON.stringify(db)),current=()=>db.portfolios.find(p=>p.id===pid),names=["sahibinden.com","hepsiemlak.com","emlakjet.com","remax.com"];
 // Ortak ilan sitesi listesi: eski portföylerin sitelerini kaybetmeden bir defa birleştir.
 if(!Array.isArray(db.siteCatalog)){const legacy=db.portfolios.flatMap(p=>Array.isArray(p.sites)?p.sites:[]);db.siteCatalog=[...new Map([...names,...legacy].map(x=>String(x||"").trim()).filter(Boolean).map(x=>[x.toLocaleLowerCase("tr").replace(/^(?:www\.)?/,"").replace(/\.com(?:\.tr)?$/,"").replace(/[^a-z0-9]/g,""),x])).values()];save()}
@@ -490,7 +490,7 @@ function ownerRenewalWhatsApp(p){
  return "https://wa.me/"+num+"?text="+encodeURIComponent(msg);
 }
 function readPortfolioPresentationRecords(){
- try{const rows=JSON.parse(localStorage.getItem("emlakcrm_presented_v1")||"[]");return Array.isArray(rows)?rows:[]}catch{return []}
+ try{const rows=JSON.parse(localStorage.getItem("emlakcrm_presented_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous"))||"[]");return Array.isArray(rows)?rows:[]}catch{return []}
 }
 function portfolioActivityFor(p,records){
  return records.filter(r=>r.portfolioId!=null&&String(r.portfolioId)===String(p.id));
@@ -553,8 +553,8 @@ function exportPortfolioCsv(){
 }
 function portfolioClientHistory(p){
  let records=[],clients=[];
- try{const stored=JSON.parse(localStorage.getItem("emlakcrm_presented_v1")||"[]");if(Array.isArray(stored))records=stored}catch{}
- try{const stored=JSON.parse(localStorage.getItem("emlakcrm_demo_v1")||"{}");if(Array.isArray(stored.clients))clients=stored.clients}catch{}
+ try{const stored=JSON.parse(localStorage.getItem("emlakcrm_presented_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous"))||"[]");if(Array.isArray(stored))records=stored}catch{}
+ try{const stored=JSON.parse(localStorage.getItem("emlakcrm_demo_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous"))||"{}");if(Array.isArray(stored.clients))clients=stored.clients}catch{}
  const related=portfolioActivityFor(p,records);
  if(!related.length)return '<details class="authHistory"><summary>👥 Müşteri Sunumları ve Teklifler (0)</summary><p class="hint">Bu portföye bağlı müşteri sunumu veya teklif kaydı henüz yok. Kayıtlar Eşleştirme bölümünden oluşturulur.</p></details>';
  const name=id=>clients.find(c=>String(c.id)===String(id))?.name||"Müşteri kaydı bulunamadı";
@@ -663,7 +663,7 @@ pick();
 // Ofis oturumunu otomatik baslatma: bireysel portfoy ekraninda ikinci giris yok.
 
 /* Bireysel portfoy cekme: tarayicinin CORS ve kaynak site izinlerine tabidir. */
-const externalPortfolioKey="emlakcrm_external_portfolios_v1";
+const externalPortfolioKey="emlakcrm_external_portfolios_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function externalPrice(value){
