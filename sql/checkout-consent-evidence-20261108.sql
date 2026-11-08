@@ -77,3 +77,27 @@ GRANT EXECUTE ON FUNCTION public.emlakcrm_capture_checkout_consents(integer,text
 -- encode(sha256(convert_to(document_snapshots::text,'UTF8')),'hex')
 -- The current 'emlakcrm-legal-2026-11-08-v2' snapshot remains status='draft'.
 -- Do not mark it approved or merge checkout until legal & durable-delivery review.
+
+-- Customer self-service: read back the exact HTML archive of one's own consent event.
+-- The function is intentionally read-only and does not disclose other users' events.
+CREATE OR REPLACE FUNCTION public.emlakcrm_checkout_consent_copy(p_event_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $function$
+DECLARE
+ v_uid uuid:=auth.uid();v_result jsonb;
+BEGIN
+ IF v_uid IS NULL THEN RAISE EXCEPTION 'login_required' USING ERRCODE='42501'; END IF;
+ SELECT jsonb_build_object(
+  'id',c.id,'accepted_at',c.created_at,'provider',c.provider,
+  'amount_kurus',c.amount_kurus,'currency',c.currency,'subscription_months',c.subscription_months,
+  'auto_renewal',c.auto_renewal,'legal_version',c.legal_version,
+  'legal_snapshot_sha256',c.legal_snapshot_sha256,'documents',b.document_snapshots
+ ) INTO v_result
+ FROM public.emlakcrm_checkout_consent_events c
+ JOIN public.emlakcrm_legal_bundle_versions b ON b.version=c.legal_version
+ WHERE c.id=p_event_id AND c.user_id=v_uid;
+ IF v_result IS NULL THEN RAISE EXCEPTION 'consent_not_found_for_account' USING ERRCODE='42501'; END IF;
+ RETURN v_result;
+END;$function$;
+REVOKE ALL ON FUNCTION public.emlakcrm_checkout_consent_copy(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.emlakcrm_checkout_consent_copy(uuid) TO authenticated;
