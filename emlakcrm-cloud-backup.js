@@ -32,21 +32,23 @@ async function hash(text){
 }
 function ownKey(kind){const uid=accountId();return uid?TYPES[kind].prefix+uid:null}
 async function upload(kind,force=false){
- if(busy){schedule(kind,2800);return}
- const k=ownKey(kind);if(!k)return;
+ const k=ownKey(kind);
+ if(!k)return {kind,status:"auth"};
  const raw=localStorage.getItem(k);
- if(!raw||(!force&&lastRaw.get(k)===raw))return;
+ if(!raw)return {kind,status:"empty"};
+ if(!force&&lastRaw.get(k)===raw)return {kind,status:"unchanged"};
  const obj=parse(raw),items=obj?.[TYPES[kind].array];
- if(!Array.isArray(items)||!items.length)return;
- if(items.length>20000){notify("Bulut yedeği durdu: kayıt sınırı aşıldı.");return}
+ if(!Array.isArray(items))return {kind,status:"invalid"};
+ if(!items.length)return {kind,status:"empty"};
+ if(items.length>20000)return {kind,status:"limit",count:items.length};
  const payload=JSON.stringify(items);
- if(new TextEncoder().encode(payload).byteLength>20*1024*1024){
-  notify("Bulut yedeği 20 MB sınırını aştı. Cihaz yedeğinizi indirin; görsel boyutlarını azaltın.");return
- }
+ if(new TextEncoder().encode(payload).byteLength>20*1024*1024)
+  return {kind,status:"size",count:items.length};
+ if(busy){schedule(kind,2800);return {kind,status:"scheduled"}}
  busy=true;
  try{
   const auth=await verified();
-  if(!auth||k!==ownKey(kind)){notify("Bulut yedekleme için hesabınızda tekrar giriş yapın.");return}
+  if(!auth||k!==ownKey(kind))return {kind,status:"auth"};
   const fingerprint=await hash(payload);
   const r=await fetch(PROJECT+"/rest/v1/emlakcrm_user_backups?on_conflict=user_id,kind,fingerprint",{
    method:"POST",
@@ -54,13 +56,16 @@ async function upload(kind,force=false){
    body:JSON.stringify({user_id:auth.uid,kind,payload:items,item_count:items.length,fingerprint}),
    cache:"no-store"
   });
-  if(!r.ok)throw Error("Sunucu yedeği kabul etmedi ("+r.status+").");
+  if(!r.ok){
+   let extra="";try{const detail=await r.json();extra=String(detail?.message||detail?.hint||"").slice(0,130)}catch(_){}
+   throw Error("Sunucu yedeği kabul etmedi ("+r.status+"). "+extra);
+  }
   lastRaw.set(k,raw);attempts.set(kind,0);
-  notify("☁️ Güvenli bulut yedeği güncellendi: "+new Date().toLocaleString("tr-TR")+".");
+  return {kind,status:"success",count:items.length};
  }catch(e){
-  notify("⚠️ Bulut yedeği kaydedilemedi: "+String(e.message||e)+". Cihaz yedeğinizi koruyun.");
   const n=attempts.get(kind)||0;attempts.set(kind,n+1);
-  if(n<3)setTimeout(()=>schedule(kind,2000),30000);
+  if(!force&&n<3)setTimeout(()=>schedule(kind,2000),30000);
+  return {kind,status:"error",message:String(e.message||e)};
  }finally{
   busy=false;
   if(k===ownKey(kind)&&raw!==localStorage.getItem(k))schedule(kind,1000);
@@ -82,8 +87,43 @@ Storage.prototype.setItem=function(key,value){
  return result;
 };
 window.addEventListener("storage",event=>{if(event.storageArea===localStorage&&event.key)checkKey(event.key)});
-window.EmlakCRMCloudBackup={run:async()=>{notify("☁️ Bulut yedeği hazırlanıyor…");await upload("clients",true);await upload("portfolios",true)}};
-const manual=document.getElementById("crmCloudBackupNow");if(manual)manual.addEventListener("click",()=>{void window.EmlakCRMCloudBackup.run()});
+function resultLabel(result){
+ const label=result.kind==="clients"?"Müşteri":"Portföy";
+ switch(result.status){
+  case "success":return "✓ "+label+": "+result.count+" kayıt güvenli buluta kaydedildi.";
+  case "empty":return label+": Bu cihazda yedeklenecek kayıt bulunamadı.";
+  case "unchanged":return label+": Son kayıtlarla aynı; tekrar yedeklemeye gerek yok.";
+  case "auth":return label+": Hesap doğrulanamadı. Uygulamada kendi hesabınızla yeniden giriş yapın.";
+  case "invalid":return label+": Yerel kayıt okunamadı. Mevcut dosya yedeğini koruyun.";
+  case "size":return label+": Kayıtlar 20 MB sınırını aşıyor; dosya yedeğinizi koruyun.";
+  case "limit":return label+": 20.000 kayıt sınırını aşıyor.";
+  case "scheduled":return label+": Başka yedekleme tamamlanınca yeniden denenecek.";
+  default:return "⚠️ "+label+": "+(result.message||"Bulut yedekleme tamamlanamadı.");
+ }
+}
+let manualRunning=false;
+async function manualRun(){
+ if(manualRunning)return;
+ manualRunning=true;
+ const btn=document.getElementById("crmCloudBackupNow"),label=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent="☁️ Yedekleniyor…"}
+ notify("☁️ Müşteri ve portföy yedekleri kontrol ediliyor…");
+ try{
+  const results=[await upload("clients",true),await upload("portfolios",true)];
+  notify(results.map(resultLabel).join("  |  "));
+  return results;
+ }catch(err){
+  notify("⚠️ Yedekleme başlatılamadı: "+String(err?.message||err));
+ }finally{
+  manualRunning=false;
+  if(btn){btn.disabled=false;btn.textContent=label||"☁️ Şimdi Buluta Yedekle"}
+ }
+}
+window.EmlakCRMCloudBackup={run:manualRun};
+document.addEventListener("click",event=>{
+ const btn=event.target?.closest?.("#crmCloudBackupNow");
+ if(btn){event.preventDefault();void manualRun()}
+});
 window.setTimeout(()=>{schedule("clients",1000);schedule("portfolios",3000)},5000);
 window.setInterval(()=>{schedule("clients",1000);schedule("portfolios",3500)},120000);
 })();
