@@ -14,8 +14,18 @@
    return decoded.sub.toLowerCase();
   }catch(_){return null}
  }
+ function sessionSubject(){
+  const jwt=jwtSubject();
+  if(jwt)return jwt;
+  // Fallback is populated only after /auth/v1/user verified this session.
+  try{
+   const saved=JSON.parse(baseGet.call(sessionStorage,authKey)||"null");
+   const id=String(saved?.verified_user_id||"").toLowerCase();
+   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)?id:null;
+  }catch(_){return null}
+ }
  function currentUserId(){
-  const id=jwtSubject();if(!id)return null;
+  const id=sessionSubject();if(!id)return null;
   const active=baseGet.call(localStorage,activeKey);
   if(active&&active!==id)return null;
   return id;
@@ -49,5 +59,5 @@
   if(this!==localStorage)return baseRemove.call(this,key);
   const dest=scoped(key);if(dest!==null)return baseRemove.call(this,dest);
  };
- window.emlakcrmAccountDataScope={currentUserId,sessionSubject:jwtSubject,activeAccountKey:activeKey,legacyRecordsPreserved:true};
+ window.emlakcrmAccountDataScope={currentUserId,sessionSubject,tokenSubject:jwtSubject,activeAccountKey:activeKey,legacyRecordsPreserved:true};
 })();
