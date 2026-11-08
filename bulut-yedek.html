@@ -17,6 +17,7 @@ button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
 @media(max-width:600px){main{padding:17px}.row{align-items:flex-start;flex-direction:column}.row button{width:100%}}
 </style></head><body><main>
 <a class="back" href="./index.html#account">← Hesap ve Yedekleme</a>
+<p class="muted" style="margin:4px 0 12px">Bu sayfa giriş yapmış olduğunuz EmlakCRM hesabına bağlıdır. Başka bir tarayıcıda açtıysanız önce orada da giriş yapmanız gerekir.</p>
 <h1>☁️ Güvenli Bulut Yedekleri</h1>
 <p class="notice">EmlakCRM hesabın açıkken müşteri ve portföy kayıtların buluta <strong>ayrı sürümler olarak</strong> yedeklenir. Bu sayfa hiçbir kaydı kendiliğinden geri yüklemez.</p>
 <p class="warn">Başka cihazdaki boş kayıtlar eski yedeği silmez. Geri yükleme seçerek ve <strong>mevcut kayıtları koruyarak</strong> yapılır. Yalnızca giriş yaptığın kendi hesabının yedeklerine erişebilirsin.</p>
@@ -47,7 +48,22 @@ async function identity(){
  const r=await fetch(ENDPOINT+"/auth/v1/user",{headers:h,cache:"no-store"});
  if(!r.ok)throw Error("Oturum geçersiz. Yeniden giriş yapın.");
  const user=await r.json();
- if(!user?.id||localStorage.getItem("emlakcrm_active_account_v1")!==user.id)throw Error("Bu tarayıcıdaki aktif hesap eşleşmiyor.");
+ if(!user?.id||! /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id))
+  throw Error("Hesap kimliği doğrulanamadı. Ana EmlakCRM üzerinden yeniden giriş yapın.");
+ // Auth server is authoritative; never silently adopt a DIFFERENT active account.
+ const activeKey="emlakcrm_active_account_v1";
+ const active=localStorage.getItem(activeKey);
+ if(active&&active!==user.id)
+  throw Error("Bu tarayıcıda başka hesap aktif görünüyor. Kayıtlarınız korunuyor. Ana EmlakCRM'de çıkış yapıp kendi hesabınıza yeniden giriş yapın; sonra bu sayfayı aynı tarayıcıdan açın.");
+ // A new mobile tab may carry the remembered, server-verified session but no active-account marker.
+ // Restore only that missing marker; never read common legacy records or another owner's keys.
+ if(!active){
+  if(localStorage.getItem(activeKey)!==null)
+   throw Error("Bu sırada aktif hesap değişti. EmlakCRM'den yeniden giriş yapın.");
+  localStorage.setItem(activeKey,user.id);
+ }
+ if(localStorage.getItem(activeKey)!==user.id)
+  throw Error("Hesap kontrolü tamamlanamadı. Ana uygulamadan yeniden giriş yapın.");
  return {uid:user.id,headers:h};
 }
 async function dataRequest(path){
@@ -178,5 +194,5 @@ $("downloadLocal").addEventListener("click",()=>{
 });
 $("confirmLocal").addEventListener("change",updatePreviewSelection);
 $("reload").addEventListener("click",()=>{void loadHistory().catch(e=>message(e.message,"bad"))});
-(async()=>{try{account=await identity();$("history").hidden=false;await loadHistory()}catch(e){message(String(e.message||e),"bad")}})();
+(async()=>{try{account=await identity();$("history").hidden=false;await loadHistory()}catch(e){message(String(e.message||e),"bad");const link=document.createElement("a");link.className="back";link.href="./index.html#account";link.textContent="EmlakCRM'de hesabıma giriş yap";$("status").append(document.createTextNode(" "),link)}})();
 </script></body></html>
