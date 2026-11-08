@@ -198,6 +198,7 @@ async function refresh(){
   paymentData=d;
   const expected=officeStatus==="approved"?50000:75000;
   if(d.price_kurus!==expected||d.provider!=="shopier")throw Error("Fiyat uyuşmazlığı");
+  byId("result").textContent="";
   render();
  }catch(e){paymentData=null;byId("result").textContent=e.message;render()}
 }
