@@ -107,6 +107,27 @@ const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
 let officeStatus="none",paymentData=null,officeBusy=false,officeDeclined=false;
+const LEGAL_BUNDLE_VERSION="emlakcrm-legal-2026-11-08-v2";
+async function recordPreCheckoutConsents(amountKurus){
+ const t=token();if(!t)throw Error("Önce hesabınıza giriş yapın.");
+ const r=await fetch(base+"/rest/v1/rpc/emlakcrm_capture_checkout_consents",{
+  method:"POST",headers:{apikey:key,authorization:"Bearer "+t,"content-type":"application/json"},
+  body:JSON.stringify({p_amount_kurus:amountKurus,p_legal_version:LEGAL_BUNDLE_VERSION,
+   p_preinfo_ack:byId("preInfoAck").checked,p_agreement_ack:byId("approve").checked,
+   p_early_start_ack:byId("earlyStart").checked}),cache:"no-store"
+ });
+ if(!r.ok){const e=await r.json().catch(()=>({}));
+  if(e?.message==="legal_version_not_approved")throw Error("Yasal belgeler henüz son onaydan geçmedi. Bu ekrandan ödeme geçici olarak başlatılamıyor.");
+  if(e?.message==="checkout_price_mismatch")throw Error("Ödenecek tutar değişti. Sayfayı yenileyip yeniden kontrol edin.");
+  if(e?.message==="office_approval_pending")throw Error("Ofis onayınız bekleniyor; henüz ödeme yapmayın.");
+  throw Error("Ödeme öncesi sözleşme onayınız kaydedilemedi. Yönlendirme durduruldu ("+r.status+").");
+ }
+ const eventId=await r.json().catch(()=>null);
+ if(typeof eventId!=="string"||!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(eventId))
+  throw Error("Onay kaydının sunucu doğrulaması tamamlanamadı; ödeme başlatılmadı.");
+ return eventId;
+}
+
 byId("inlineLogin").addEventListener("submit",async event=>{
  event.preventDefault();
  const button=byId("loginSubmit"),message=byId("loginMessage");
@@ -239,6 +260,10 @@ byId("pay").addEventListener("click",async()=>{
   if(url.protocol!=="https:"||url.hostname!=="www.shopier.com"||
     !/^\/enginbaysal\/\d{5,20}$/.test(url.pathname))throw Error("Shopier bağlantısı doğrulanamadı");
   if(!byId("approve").checked||!byId("preInfoAck").checked||!byId("earlyStart").checked)throw Error("Ön bilgilendirme, sözleşme ve hizmet başlangıcı onaylarını tamamlayın");
+  byId("result").textContent="Sözleşme onaylarınız hesabınıza güvenle kaydediliyor…";
+  await recordPreCheckoutConsents(expected);
+  // The consent event is pre-redirect intent, not proof of a successful Shopier payment.
+  byId("result").textContent="Onaylar kaydedildi. Shopier ödeme sayfasına yönlendiriliyorsunuz…";
   window.location.assign(url.href);
  }catch(e){byId("result").textContent=e.message;await refresh()}
 });
