@@ -1,5 +1,5 @@
 <!doctype html><html lang="tr"><head>
-<script src="./account-data-isolation.js?v=20261108b"></script>
+<script src="./account-data-isolation.js?v=20261108c"></script>
 <style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
 <script>
 /* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
@@ -27,6 +27,7 @@
   }
   if(!userRes.ok)throw Error("Oturum doğrulanamadı");
   const user=await userRes.json(),headers={apikey:key,Authorization:"Bearer "+token};
+   if(!user?.id||user.id!==window.emlakcrmAccountDataScope?.currentUserId())throw Error("Aktif hesap değişti. Tekrar giriş yapın.");
   const admin=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
   if(!admin.ok)throw Error("Yetki kontrolü başarısız");
   const admins=await admin.json();let allowed=admins.some(a=>a.user_id===user.id);
