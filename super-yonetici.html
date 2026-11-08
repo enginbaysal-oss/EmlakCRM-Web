@@ -24,11 +24,19 @@
  .stat strong{font-size:21px}
  .back{max-width:100%;font-size:13px}
 }
-.remax-package-summary{padding:12px 14px;border:1px solid #f0d3a5;background:#fff5e8;border-radius:10px;font-weight:750;color:#81540a}.remax-package-summary.ready{background:#ecf7f0;border-color:#b5ddc6;color:#186044}[hidden]{display:none!important}</style></head><body>
+.approval-alert{margin:0 0 16px;padding:13px 15px;border:1px solid #efb4b4;border-left:5px solid #bd2525;border-radius:11px;background:#fff0ee;color:#8c1616;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:750}.approval-alert[hidden]{display:none!important}.approval-alert button{background:#b62424;color:#fff}.notify-control{background:#f7fbff;border:1px solid #d7e5ed;border-radius:10px;padding:10px 12px;margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.notify-control button{background:#174f70}.notify-control .muted{flex:1;min-width:160px}.remax-package-summary{padding:12px 14px;border:1px solid #f0d3a5;background:#fff5e8;border-radius:10px;font-weight:750;color:#81540a}.remax-package-summary.ready{background:#ecf7f0;border-color:#b5ddc6;color:#186044}[hidden]{display:none!important}</style></head><body>
 <header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
 <div id="dashboard" class="hidden">
+<div id="approvalAlert" class="approval-alert" role="status" aria-live="polite" hidden>
+ <span id="approvalAlertText">İlyada 3 onay talebi bekliyor.</span>
+ <button type="button" id="approvalJump">Taleplere Git</button>
+</div>
+<div class="notify-control">
+ <button type="button" id="approvalNotifyEnable">🔔 Yeni Taleplerde Bildir</button>
+ <span id="approvalNotifyInfo" class="muted">İlyada 3 başvuruları panel açıkken 60 saniyede bir kontrol edilir.</span>
+</div>
 <section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
 <h2>Shopier Ödeme Bağlantısı</h2>
 <p class="muted">Shopier siparişlerinin güvenli bildirim bağlantısını kurar. Ödemeleri önce doğrulama listesine alır; kullanıcı aboneliği bu aşamada otomatik açılmaz.</p>
@@ -347,8 +355,9 @@ async function discountRpc(name,body,token){
  if(!response.ok)throw Error("Ofis doğrulama işlemi tamamlanamadı ("+response.status+").");
  return response.json();
 }
-async function loadDiscounts(){
- const tbody=$("discountRows");tbody.replaceChildren();$("discountMessage").textContent="Talepler yükleniyor...";
+let approvalKnownPending=null;
+async function loadDiscounts({quiet=false}={}){
+ const tbody=$("discountRows");if(!quiet){tbody.replaceChildren();$("discountMessage").textContent="Talepler yükleniyor...";}
  try{
   discountToken=await verifiedToken();
   const items=await discountRpc("emlakcrm_admin_discount_requests",{},discountToken);
@@ -371,11 +380,22 @@ async function loadDiscounts(){
     }
    }tr.append(td);tbody.append(tr);
   }
-  const pending=items.filter(item=>item.status==="pending").length;
+  const pendingItems=items.filter(item=>item.status==="pending");
+  const pending=pendingItems.length;
+  const ids=new Set(pendingItems.map(item=>String(item.id)));
+  const newlyArrived=approvalKnownPending!==null?pendingItems.filter(item=>!approvalKnownPending.has(String(item.id))):[];
+  approvalKnownPending=ids;
+  const alertBox=$("approvalAlert");
+  alertBox.hidden=!pending;
+  $("approvalAlertText").textContent=pending?("🔔 "+pending+" İlyada 3 danışmanının başvurusu onayınızı bekliyor."):"";
+  document.title=pending?"("+pending+" onay) Süper Yönetici | EmlakCRM":"Süper Yönetici | EmlakCRM";
+  if(newlyArrived.length&&window.Notification?.permission==="granted"){
+   try{new Notification("EmlakCRM: Yeni İlyada 3 başvurusu",{body:newlyArrived.length+" yeni danışman için onay bekleniyor.",tag:"emlakcrm-ilyada3-pending"});}catch(_){}
+  }
   $("discountMessage").textContent=pending?pending+" danışmanın doğrulama talebi onayınızı bekliyor.":"Bekleyen ofis onay talebi yok.";
    officeStatusByEmail=new Map(items.map(item=>[String(item.email||"").trim().toLowerCase(),item.status]));
    render();
- }catch(e){$("discountMessage").textContent=e.message}
+ }catch(e){if(!quiet)$("discountMessage").textContent=e.message}
 }
 function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
@@ -445,5 +465,16 @@ async function load(){
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
+$("approvalJump").addEventListener("click",()=>{$("discountRows").closest("section")?.scrollIntoView({behavior:"smooth",block:"start"});});
+$("approvalNotifyEnable").addEventListener("click",async()=>{
+ const info=$("approvalNotifyInfo");
+ if(!("Notification" in window)){info.textContent="Bu tarayıcı bildirimleri desteklemiyor; panel içi kırmızı uyarı çalışır.";return}
+ if(Notification.permission==="denied"){info.textContent="Bildirim izni tarayıcı ayarlarından açılmalı.";return}
+ try{
+  const permission=await Notification.requestPermission();
+  info.textContent=permission==="granted"?"Bildirim açık. Panel açıkken yeni İlyada 3 başvuruları bildirilir.":"İzin verilmedi. Paneldeki kırmızı uyarı çalışmaya devam eder.";
+ }catch(_){info.textContent="Bildirim izni alınamadı; paneldeki uyarı çalışır."}
+});
+setInterval(()=>{if(!$("dashboard").classList.contains("hidden"))void loadDiscounts({quiet:true})},60000);
 $("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("refresh").addEventListener("click",load);$("discountRefresh").addEventListener("click",loadDiscounts);load();
 </script></body></html>
