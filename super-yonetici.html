@@ -81,6 +81,8 @@
 <p class="muted">Yalnızca doğrulanmış Shopier ödemesine bağlı sözleşme kopyalarının teslimat durumunu gösterir. Bu ekran gönderimi başlatmaz.</p>
 <div class="toolbar"><button type="button" id="legalStatusRefresh">Gönderim Durumunu Yenile</button></div>
 <p id="legalStatusResult" role="status" aria-live="polite" class="notice">Sözleşme teslimatı kontrol ediliyor…</p>
+<p id="legalProviderResult" role="status" aria-live="polite" class="notice">E-posta servisinin kurulum durumu kontrol ediliyor…</p>
+<p class="muted" style="font-size:13px">Bu panel yalnızca ayarların varlığını kontrol eder. Gönderici alan adının doğrulanması e-posta sağlayıcısının panelinde ayrıca kontrol edilmelidir. <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer">Resend alan adı ayarları</a></p>
 </section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
@@ -468,8 +470,9 @@ function render(){
  $("none").textContent=userRows.filter(u=>u.subscription_status==="none").length;
 }
 async function loadLegalDeliveryStatus(){
- const status=$("legalStatusResult"),btn=$("legalStatusRefresh");
+ const status=$("legalStatusResult"),provider=$("legalProviderResult"),btn=$("legalStatusRefresh");
  btn.disabled=true;status.textContent="Sözleşme gönderimi kontrol ediliyor…";
+ provider.textContent="E-posta servisinin kurulumu kontrol ediliyor…";
  try{
   const token=await verifiedToken();
   const response=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_legal_delivery_status",{
@@ -486,8 +489,24 @@ async function loadLegalDeliveryStatus(){
    " · Tekrar denenecek: "+Number(x.retry||0)+
    " · Gönderildi: "+Number(x.sent||0)+
    " · Hatalı: "+Number(x.failed||0)+".";
- }catch(e){status.textContent="Durum alınamadı: "+String(e.message||e)}
- finally{btn.disabled=false}
+  try{
+   const remote=await fetch(endpoint+"/functions/v1/emlakcrm-legal-delivery",{
+    method:"GET",headers:{apikey:apiKey,Authorization:"Bearer "+token},cache:"no-store"
+   });
+   if(!remote.ok)throw Error("Kontrol servisi yanıt vermedi ("+remote.status+").");
+   const m=await remote.json();
+   const keyReady=m.provider_key_configured===true,senderReady=m.sender_configured===true;
+   provider.textContent="Resend API bağlantısı: "+(keyReady?"ayarlandı":"eksik")+
+    " · Gönderici adresi: "+(senderReady?"tanımlandı":"eksik")+
+    " · Otomatik çalışma izni: "+(m.worker_enabled===true?"açık":"kapalı")+
+    ". Gönderici alan adı DNS doğrulaması ayrıca gereklidir.";
+  }catch(err){
+   provider.textContent="E-posta sağlayıcısı durumu sorgulanamadı: "+String(err?.message||err);
+  }
+ }catch(e){
+  status.textContent="Durum alınamadı: "+String(e.message||e);
+  provider.textContent="Önce süper yönetici hesabınızla giriş yapın.";
+ }finally{btn.disabled=false}
 }
 async function verifiedToken(){
  let saved;try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||localStorage.getItem(rememberedKey)||"null")}catch{}
