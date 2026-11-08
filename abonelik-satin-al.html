@@ -151,6 +151,11 @@ async function readiness(){
  const t=token();if(!t)throw Error("Önce giriş yapın");
  const r=await fetch(base+"/functions/v1/emlakcrm-shopier-checkout",{
   headers:{"apikey":key,"authorization":"Bearer "+t},cache:"no-store"});
+ if(r.status===401){
+  sessionStorage.removeItem("emlakcrm_auth_session_v1");
+  localStorage.removeItem("emlakcrm_auth_remember_v1");
+  throw Error("Oturumunuzun süresi dolmuş. Bu ekrandan tekrar giriş yapabilirsiniz.");
+ }
  if(!r.ok)throw Error("Ödeme güvenliği kontrol edilemedi");
  return r.json();
 }
