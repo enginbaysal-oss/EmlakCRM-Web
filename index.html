@@ -1726,6 +1726,22 @@ window.addEventListener("message",async event=>{
  if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
  void sendPdfSession();
 });
+// Only the same-origin EmlakAsistan iframe may request a verified CRM session.
+window.addEventListener("message",async event=>{
+ const frame=document.getElementById("assistantFrame");
+ if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-assistant-ready")return;
+ try{
+  const entitlement=await crmCheckEntitlement();
+  if(!entitlement.allowed)return;
+  const saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null");
+  if(!saved?.access_token)return;
+  frame.contentWindow.postMessage({type:"emlakcrm-assistant-session",session:{
+   access_token:saved.access_token,refresh_token:saved.refresh_token||"",
+   verified_user_id:entitlement.userId||window.emlakcrmAccountDataScope?.currentUserId()||"",
+   expires_at:saved.expires_at||0
+  }},location.origin);
+ }catch(error){console.info("EmlakAsistan oturum aktarımı:",error.message)}
+});
 let crmNavigationRequest=0;
 async function showScreen(name){
  const request=++crmNavigationRequest;
@@ -1754,7 +1770,7 @@ async function showScreen(name){
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
  }
- if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108g");
+ if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108h");
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
  $("appNav").hidden=selected==="home";
