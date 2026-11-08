@@ -1,4 +1,4 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="tr"><head><script src="./account-data-isolation.js?v=20261108c"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Portföy Teklif Mektubu | EmlakCRM</title><meta name="robots" content="noindex,nofollow">
 <style>
 :root{font:15px system-ui,Segoe UI,sans-serif;color:#17324d;background:#f2f6fb}*{box-sizing:border-box}body{margin:0}header{background:#102e50;color:#fff;padding:16px}header>div,main{max-width:1080px;margin:auto}main{padding:18px 14px 45px}.back{background:#ef7316;color:#fff;text-decoration:none;border-radius:9px;padding:10px 13px;display:inline-block;font-weight:750}h1{font-size:22px;margin:10px 0 2px}h2{font-size:18px}.panel{background:#fff;border:1px solid #dce6ee;border-radius:13px;padding:18px;margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-weight:650;font-size:13px;margin:0 0 5px}input,textarea,select{font:inherit;width:100%;border:1px solid #bbcbda;padding:10px;border-radius:8px;background:#fff}textarea{min-height:70px}button{background:#117e91;color:white;border:0;border-radius:9px;padding:11px 14px;font:inherit;font-weight:750;cursor:pointer}.orange{background:#ef7316}.secondary{background:#e6f0f5;color:#14465a}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.hint{font-size:12px;color:#61778a}.paper{background:#fff;max-width:794px;min-height:900px;margin:12px auto;padding:54px 58px;box-shadow:0 3px 20px #11334d17;color:#172b3d;line-height:1.65}.paper h2{text-align:center;letter-spacing:.05em;font-size:19px;margin:28px 0}.paper .line{border-bottom:2px solid #234d67;margin:10px 0 25px}.paper table{width:100%;border-collapse:collapse}.paper td{padding:8px;border-bottom:1px solid #dce5ee;vertical-align:top}.paper td:first-child{width:38%;font-weight:650}.sign{display:flex;justify-content:space-between;gap:20px;margin-top:56px}.sign>div{width:48%}.sigline{border-bottom:1px solid #889bac;height:55px}.history{display:flex;flex-direction:column;gap:7px}.history>div{padding:9px;background:#f4f8fb;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.history select{width:auto}.warn{background:#fff6e6;border:1px solid #f0d69d;border-radius:9px;padding:10px;font-size:13px}.hidden{display:none!important}@media(max-width:700px){.grid{grid-template-columns:1fr}.paper{padding:28px 20px;min-height:700px}.sign{gap:12px}}@media print{header,.noPrint,#formPanel,#historyPanel{display:none!important}body{background:white}.paper{box-shadow:none;margin:0;max-width:none;min-height:0;padding:20mm 16mm}@page{size:A4;margin:0}}
@@ -42,7 +42,7 @@
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const dataKey="emlakcrm_portfoy_rapor_v1";
+const dataKey="emlakcrm_portfoy_rapor_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
 const paramId=new URLSearchParams(location.search).get("id");
 let portfolio=null,db=null;
 const iso=()=>new Date().toLocaleDateString("en-CA");
@@ -61,6 +61,7 @@ async function access(){
  if(!userRes.ok&&session.refresh_token){const refreshed=await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:session.refresh_token})});if(refreshed.ok){const j=await refreshed.json();session={...session,...j};token=j.access_token;sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify(session));if(localStorage.getItem("emlakcrm_auth_remember_v1"))localStorage.setItem("emlakcrm_auth_remember_v1",JSON.stringify(session));userRes=await fetch(base+"/auth/v1/user",{headers:headers()})}}
  if(!userRes.ok)throw Error("Oturum doğrulanamadı.");
  const user=await userRes.json();
+ if(user.id!==window.emlakcrmAccountDataScope?.currentUserId())throw Error("Hesap kimliği uyuşmadı. Yeniden giriş yapın.");
  const a=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers:headers()});if(!a.ok)throw Error("Yönetici yetkisi sorgulanamadı.");
  if((await a.json()).some(x=>x.user_id===user.id))return;
  const b=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&limit=20",{headers:headers()});if(!b.ok)throw Error("Abonelik sorgulanamadı.");
