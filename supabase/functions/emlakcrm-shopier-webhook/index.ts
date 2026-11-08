@@ -1,12 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-/** Shopier signed order.created receiver, staging. Never activates subscriptions yet. */
+/** Signed Shopier order.created receiver; activation remains gated pending real-payment verification. */
 const BASE=()=>Deno.env.get("SUPABASE_URL")||"";
 const KEY=()=>Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const respond=(status,body)=>new Response(body,{status,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
 async function query(path,method="GET",body){
  const url=BASE();const key=KEY();
  if(!url||!key)throw Error("server_not_configured");
- const r=await fetch(url+"/rest/v1/"+path,{method,headers:{"apikey":key,"authorization":"Bearer "+key,"content-type":"application/json",...(method!=="GET"?{"prefer":"resolution=merge-duplicates,return=minimal"}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:"no-store",signal:AbortSignal.timeout(1800)});
+ const r=await fetch(url+"/rest/v1/"+path,{method,headers:{"apikey":key,"authorization":"Bearer "+key,"content-type":"application/json",...(method==="POST"&&path.startsWith("emlakcrm_shopier_orders?")?{"prefer":"resolution=merge-duplicates,return=minimal"}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:"no-store",signal:AbortSignal.timeout(4500)});
  if(!r.ok)throw Error("db_"+r.status);
  if(r.status===204)return null;
  const t=await r.text();return t?JSON.parse(t):null;
@@ -91,6 +91,7 @@ Deno.serve(async req=>{
   const state=await query("rpc/emlakcrm_shopier_activate_verified_order","POST",{
     p_order_id:id,p_product_id:product.product_id,p_email:buyerEmail,p_amount_kurus:total
   });
+  if(typeof state!=="string")throw Error("activation_result_unavailable");
   if(state!=="activated"&&state!=="already_activated"&&state!=="activation_disabled"){
     await query("emlakcrm_shopier_orders?order_id=eq."+encodeURIComponent(id),"PATCH",{
       processing_status:"needs_review",review_reason:String(state).slice(0,80),last_checked_at:new Date().toISOString()
