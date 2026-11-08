@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const $=id=>document.getElementById(id);
-const DB="emlakcrm_pdf_archive_v1";
+const DB="emlakcrm_pdf_archive_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
 function store(mode,item){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB,1);req.onupgradeneeded=()=>req.result.createObjectStore("docs",{keyPath:"id"});req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result,tx=db.transaction("docs",mode==="all"?"readonly":"readwrite"),s=tx.objectStore("docs"),q=mode==="all"?s.getAll():mode==="del"?s.delete(item):s.put(item);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);tx.oncomplete=()=>db.close()}})}
 function b64(bytes){let result="";for(let i=0;i<bytes.length;i+=8192)result+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(result)}
 async function save(doc){const bytes=new Uint8Array(await doc.file.arrayBuffer());if(window.EmlakCRMAndroid?.savePdf)window.EmlakCRMAndroid.savePdf(b64(bytes),doc.name);else{const url=URL.createObjectURL(doc.file),a=document.createElement("a");a.href=url;a.download=doc.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}}
