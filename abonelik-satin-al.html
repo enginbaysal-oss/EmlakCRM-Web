@@ -67,7 +67,16 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
 <section class="panel">
   <div class="section-heading"><span class="step-count">1</span><div><h2 style="margin:0">Hesabın</h2><span class="muted" style="font-size:13px">Bir kez kayıt olman yeterli</span></div></div>
   <p id="accountMessage" class="muted" role="status">EmlakCRM hesabın kontrol ediliyor.</p>
-  <a id="accountLink" class="action-link" href="./index.html?checkout=1#account">Giriş Yap / Hesap Oluştur</a>
+  <form id="inlineLogin" autocomplete="on" style="display:grid;gap:10px;max-width:480px">
+    <label for="loginEmail">E-posta adresiniz</label>
+    <input id="loginEmail" type="email" autocomplete="username" required placeholder="E-posta">
+    <label for="loginPassword">Şifreniz</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="Şifre">
+    <button type="submit" id="loginSubmit">Hesabıma Giriş Yap</button>
+    <p id="loginMessage" class="muted" role="status" aria-live="polite"></p>
+    <p class="muted" style="font-size:13px;margin:0">Henüz hesabınız yoksa <a id="accountLink" href="./index.html?checkout=1#account">Hesap Oluştur</a>. Daha önce kayıt olduysanız tekrar hesap oluşturmayın.</p>
+  </form>
+  <p id="signedInEmail" class="muted" hidden></p>
   <div class="office-check">
     <p class="office-label">RE/MAX İlyada 3 ofisi danışmanı mısınız?</p>
     <p class="office-help">Cevabınız <strong>“Evet”</strong> ise lütfen ofis onayınızın tamamlanmasını bekleyiniz. Onaylandıktan sonra ödeme işlemine geçebilirsiniz.</p>
@@ -95,6 +104,36 @@ const base="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const byId=id=>document.getElementById(id);
 let officeStatus="none",paymentData=null,officeBusy=false,officeDeclined=false;
+byId("inlineLogin").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const button=byId("loginSubmit"),message=byId("loginMessage");
+ const email=byId("loginEmail").value.trim(),password=byId("loginPassword").value;
+ if(!email||!password){message.textContent="E-posta ve şifreyi giriniz.";return}
+ button.disabled=true;message.textContent="Giriş doğrulanıyor…";
+ try{
+  const response=await fetch(base+"/auth/v1/token?grant_type=password",{
+    method:"POST",headers:{"apikey":key,"content-type":"application/json"},
+    body:JSON.stringify({email,password}),cache:"no-store"
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    const err=String(data.error_description||data.msg||data.error||"");
+    if(/email not confirmed/i.test(err))throw Error("E-posta onayınız eksik. Ana sayfadan doğrulama e-postası isteyebilirsiniz.");
+    if(response.status===429)throw Error("Çok sayıda deneme yapıldı. Lütfen daha sonra tekrar deneyin.");
+    throw Error("Giriş başarısız. E-posta ve şifrenizi kontrol edin.");
+  }
+  if(!data.access_token||!data.refresh_token||!data.user?.id)throw Error("Giriş oturumu oluşturulamadı.");
+  // Existing EmlakCRM session format; stored only in this tab, not permanently.
+  sessionStorage.setItem("emlakcrm_auth_session_v1",JSON.stringify({
+    access_token:data.access_token,refresh_token:data.refresh_token,
+    expires_at:Date.now()+(Number(data.expires_in)||3600)*1000,email:data.user.email||email
+  }));
+  byId("loginPassword").value="";
+  message.textContent="";
+  await refresh();
+ }catch(err){message.textContent=String(err.message||"Giriş doğrulanamadı.")}
+ finally{button.disabled=false;render()}
+});
 function token(){
  for(const [storage,k] of [[sessionStorage,"emlakcrm_auth_session_v1"],[localStorage,"emlakcrm_auth_remember_v1"]]){
   try{const s=JSON.parse(storage.getItem(k)||"null");if(s?.access_token)return s.access_token}catch{}
@@ -118,7 +157,10 @@ async function readiness(){
 function render(){
  const logged=Boolean(token());
  byId("accountMessage").textContent=logged?"EmlakCRM hesabınızla giriş yapılmış.":"Önce EmlakCRM hesabınıza giriş yapın.";
- byId("accountLink").hidden=logged;
+ byId("inlineLogin").hidden=logged;
+ byId("signedInEmail").hidden=!logged;
+ byId("signedInEmail").textContent=logged&&paymentData?.required_buyer_email?"Giriş yapılan hesap: "+paymentData.required_buyer_email:"EmlakCRM hesabı açık.";
+
  const pending=officeStatus==="pending";
  byId("officeActions").hidden=["pending","approved","rejected"].includes(officeStatus)||officeDeclined;
  byId("officeYes").disabled=officeBusy;
