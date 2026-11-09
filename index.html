@@ -404,6 +404,14 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 </div>
 <header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1 class="emlakcrm-brand-inline"><img class="emlakcrm-brand-logo" src="assets/emlakcrm-logo.svg" alt="EmlakCRM logosu">EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><span id="crmHomeSessionLamp" role="status" aria-live="polite" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#fff"><span id="crmHomeSessionDot" style="width:10px;height:10px;border-radius:50%;background:#aeb8c3;display:inline-block"></span><span id="crmHomeSessionText">Kontrol ediliyor</span></span><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
 <main><div id="appNav" class="screenNav" hidden><button type="button" class="homeBack" data-go="home">← Ana Sayfaya Dön</button><nav id="crmNav" aria-label="Müşteri Yönetimi ve Ajanda"><button type="button" data-go="customers">Müşteriler</button><button type="button" data-go="agenda">Ajanda</button><button type="button" data-go="matching">Eşleştirme</button></nav></div><div id="homeView" class="view-screen">
+<section id="homeAnnouncements" class="card" style="margin:10px 0 16px;padding:14px;border:1px solid #cbdde9" aria-label="EmlakCRM duyuruları">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<h2 style="margin:0;font-size:17px">📣 Duyurular <span id="homeAnnouncementBadge" style="font-size:12px;background:#e55b2b;color:#fff;padding:3px 8px;border-radius:14px" hidden></span></h2>
+<button id="homeAnnouncementToggle" type="button" class="secondary" aria-expanded="false">🔔 Duyuruları Göster</button>
+</div>
+<p id="homeAnnouncementPreview" class="mini" style="margin:8px 0 0">Duyurular yükleniyor…</p>
+<div id="homeAnnouncementList" hidden style="margin-top:12px"></div>
+</section>
 <section class="homeModuleSection" aria-labelledby="homeModulesHeading">
 <div class="homeModuleHeading"><h2 id="homeModulesHeading">Uygulamalar</h2><span>7 modül • Tek ekranda</span></div>
 <div class="tools homeMainTools" aria-label="EmlakCRM ana modüller">
@@ -1846,4 +1854,61 @@ void crmHandleSignupConfirmationCallback();
 <a href="iletisim.html">İletişim ve Satıcı Bilgileri</a>
 </nav>
 <div aria-label="Shopier ödeme bilgisi" style="margin:16px 0;padding:14px;border:1px solid #dce5ee;border-radius:10px;text-align:center"><strong>Güvenli ödeme altyapısı: Shopier</strong><p style="font-size:12px;margin:10px 0 0">Ödeme sonrası EmlakCRM aboneliğinin otomatik açılması henüz test aşamasındadır. Ödeme düğmesi doğrulama tamamlanana kadar kapalıdır.</p></div>
-</section><script>(function(){function togglePaymentFooter(){var section=document.getElementById("emlakcrm-legal");if(!section)return;var route=decodeURIComponent(location.hash.slice(1)).split("?")[0];var allowed=["","account","abonelik","subscription","payment","checkout","on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"];section.hidden=!allowed.includes(route);section.style.display=section.hidden?"none":"";}window.addEventListener("hashchange",togglePaymentFooter);togglePaymentFooter();})();</script><script>(function(){function openLegal(){var id=decodeURIComponent(location.hash.slice(1));if(!["on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"].includes(id))return;var e=document.getElementById(id);if(e&&e.tagName==="DETAILS")e.open=true;}window.addEventListener("hashchange",openLegal);openLegal();})();</script></body></html>
+</section><script>(function(){function togglePaymentFooter(){var section=document.getElementById("emlakcrm-legal");if(!section)return;var route=decodeURIComponent(location.hash.slice(1)).split("?")[0];var allowed=["","account","abonelik","subscription","payment","checkout","on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"];section.hidden=!allowed.includes(route);section.style.display=section.hidden?"none":"";}window.addEventListener("hashchange",togglePaymentFooter);togglePaymentFooter();})();</script><script>(function(){function openLegal(){var id=decodeURIComponent(location.hash.slice(1));if(!["on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"].includes(id))return;var e=document.getElementById(id);if(e&&e.tagName==="DETAILS")e.open=true;}window.addEventListener("hashchange",openLegal);openLegal();})();</script><script>
+/* EmlakCRM ana sayfa: hesap doğrulamalı bulut duyuruları, kişiye özel okundu durumu. */
+(function(){
+"use strict";
+const host=document.getElementById("homeAnnouncements");
+if(!host)return;
+const $=id=>document.getElementById(id);
+const base="https://tffvwxskvjuxoekwgdef.supabase.co";
+const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+let items=[],seen=new Set(),userId="",token="",expanded=false;
+$("homeAnnouncementToggle").addEventListener("click",()=>{expanded=!expanded;$("homeAnnouncementList").hidden=!expanded;$("homeAnnouncementToggle").setAttribute("aria-expanded",String(expanded));$("homeAnnouncementToggle").textContent=expanded?"🔔 Duyuruları Gizle":"🔔 Duyuruları Göster"});
+function render(){
+ const unread=items.filter(x=>!seen.has(x.id));
+ $("homeAnnouncementBadge").hidden=!unread.length;
+ $("homeAnnouncementBadge").textContent=unread.length+" yeni";
+ $("homeAnnouncementPreview").textContent=items.length?unread.length?unread.length+" okunmamış duyurunuz var.":"Tüm duyurular okundu.":"Şu anda yayımlanmış duyuru yok.";
+ const root=$("homeAnnouncementList");root.replaceChildren();
+ for(const a of items){
+  const card=document.createElement("div");card.style.cssText="padding:12px 0;border-top:1px solid #dae3ea";
+  const heading=document.createElement("strong");heading.textContent=a.title;
+  const body=document.createElement("p");body.textContent=a.body;body.style.cssText="margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere";
+  const time=document.createElement("small");time.textContent=new Date(a.created_at).toLocaleDateString("tr-TR");time.style.color="#64748b";
+  card.append(heading,body,time);
+  if(!seen.has(a.id)){
+   const button=document.createElement("button");button.type="button";button.className="secondary";button.textContent="✓ Okudum";button.style.cssText="display:block;margin-top:8px";
+   button.onclick=async()=>{
+    button.disabled=true;
+    try{
+     const res=await fetch(base+"/rest/v1/emlakcrm_announcement_reads",{method:"POST",headers:{apikey:key,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({announcement_id:a.id,user_id:userId})});
+     if(!res.ok)throw Error("Okundu bilgisi kaydedilemedi");
+     seen.add(a.id);render();
+    }catch(e){button.disabled=false;$("homeAnnouncementPreview").textContent=e.message}
+   };card.append(button);
+  }
+  root.append(card);
+ }
+}
+async function load(){
+ try{
+  if(typeof crmAuthenticatedSession!=="function")return;
+  const auth=await crmAuthenticatedSession();token=auth.token;userId=auth.user.id;
+  const headers={apikey:key,Authorization:"Bearer "+token};
+  const [news,reads]=await Promise.all([
+   fetch(base+"/rest/v1/emlakcrm_announcements?select=id,title,body,created_at&order=created_at.desc&limit=50",{headers,cache:"no-store"}),
+   fetch(base+"/rest/v1/emlakcrm_announcement_reads?select=announcement_id&user_id=eq."+encodeURIComponent(userId),{headers,cache:"no-store"})
+  ]);
+  if(!news.ok||!reads.ok)throw Error("Duyurular alınamadı.");
+  items=await news.json();seen=new Set((await reads.json()).map(x=>x.announcement_id));render();
+  if(items.some(x=>!seen.has(x.id))&&!sessionStorage.getItem("emlakcrm_announcement_opened__"+userId)){
+   expanded=true;$("homeAnnouncementList").hidden=false;$("homeAnnouncementToggle").setAttribute("aria-expanded","true");$("homeAnnouncementToggle").textContent="🔔 Duyuruları Gizle";
+   sessionStorage.setItem("emlakcrm_announcement_opened__"+userId,"1");
+  }
+ }catch(e){$("homeAnnouncementPreview").textContent="Duyuruları görmek için hesabınızla giriş yapın."}
+}
+load();
+window.addEventListener("focus",()=>{if(!document.hidden)void load()});
+})();
+</script></body></html>
