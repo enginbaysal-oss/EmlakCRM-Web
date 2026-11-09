@@ -402,7 +402,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
  <button id="crmSafetyExport" type="button">Bu sekmenin yedeğini indir</button>
  <button id="crmReloadCurrent" type="button">Güncel kayıtları aç</button>
 </div>
-<header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1 class="emlakcrm-brand-inline"><img class="emlakcrm-brand-logo" src="assets/emlakcrm-logo.svg" alt="EmlakCRM logosu">EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
+<header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1 class="emlakcrm-brand-inline"><img class="emlakcrm-brand-logo" src="assets/emlakcrm-logo.svg" alt="EmlakCRM logosu">EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><span id="crmHomeSessionLamp" role="status" aria-live="polite" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#fff"><span id="crmHomeSessionDot" style="width:10px;height:10px;border-radius:50%;background:#aeb8c3;display:inline-block"></span><span id="crmHomeSessionText">Kontrol ediliyor</span></span><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
 <main><div id="appNav" class="screenNav" hidden><button type="button" class="homeBack" data-go="home">← Ana Sayfaya Dön</button><nav id="crmNav" aria-label="Müşteri Yönetimi ve Ajanda"><button type="button" data-go="customers">Müşteriler</button><button type="button" data-go="agenda">Ajanda</button><button type="button" data-go="matching">Eşleştirme</button></nav></div><div id="homeView" class="view-screen">
 <section class="homeModuleSection" aria-labelledby="homeModulesHeading">
 <div class="homeModuleHeading"><h2 id="homeModulesHeading">Uygulamalar</h2><span>7 modül • Tek ekranda</span></div>
@@ -1649,6 +1649,24 @@ async function crmCheckEntitlement(){
  const active=records.find(r=>r.status==="active"&&r.starts_at&&r.expires_at&&Date.parse(r.starts_at)<=now&&Date.parse(r.expires_at)>now);
  return {allowed:!!active,role:active?"subscriber":"unsubscribed",expiresAt:active?.expires_at||null};
 }
+async function crmRefreshHomeSessionLamp(){
+ const dot=document.getElementById("crmHomeSessionDot"),label=document.getElementById("crmHomeSessionText");
+ if(!dot||!label)return;
+ const show=(color,message)=>{dot.style.background=color;label.textContent=message;};
+ show("#aeb8c3","Kontrol ediliyor");
+ try{
+  crmRestoreRememberedAuth();
+  const saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null");
+  if(!saved?.access_token){show("#e85d62","Oturum kapalı");return;}
+  await crmAuthenticatedSession();
+  show("#2ed184","Oturum açık");
+ }catch(e){
+  const saved=sessionStorage.getItem(crmAuthSessionKey);
+  show(saved?"#aeb8c3":"#e85d62",saved?"Bağlantı kontrol ediliyor":"Oturum kapalı");
+ }
+}
+window.addEventListener("pageshow",()=>{void crmRefreshHomeSessionLamp()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)void crmRefreshHomeSessionLamp()});
 async function updateAccountStatus(){
  const status=$("accountSessionStatus"),sub=$("accountSubscriptionStatus"),logout=$("accountLogout"),login=$("crmInlineAuth");
  const licenseStart=$("crmLicenseStart"),licenseEnd=$("crmLicenseEnd"),licenseMessage=$("crmLicenseMessage");
@@ -1666,7 +1684,7 @@ async function updateAccountStatus(){
   else if(entitlement.allowed){sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";licenseEnd.textContent=new Date(entitlement.expiresAt).toLocaleDateString("tr-TR");licenseMessage.textContent="Aboneliğiniz aktif.";}
   else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Abonelik işlemleri için yukarıdaki düğmeye basın.";}
  }catch(err){$("crmAdminPanelLink").hidden=true;licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
-  if(status.textContent==="Oturum doğrulanıyor..."){crmClearAuthSession();status.textContent="Oturum süresi doldu · Yeniden giriş yapın";logout.hidden=true;login.hidden=false;sub.textContent="Giriş bekleniyor"}
+  if(status.textContent==="Oturum doğrulanıyor..."){status.textContent="Bağlantı veya oturum doğrulaması başarısız · Tekrar denenecek";logout.hidden=false;login.hidden=true;sub.textContent="Oturum kontrol edilemedi"}
   else{sub.textContent="Abonelik kontrol edilemedi"}
  }
 }
