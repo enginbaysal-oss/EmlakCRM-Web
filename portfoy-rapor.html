@@ -354,7 +354,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <section class="panel" id="externalPortfolioPanel">
 <details id="externalPortfolioDetails"><summary style="cursor:pointer;font-weight:800;padding:10px 4px;font-size:17px">🔗 Çekilen Portföyler <span id="externalPortfolioSummaryCount"></span> — Aç / Kapat</summary><div style="padding-top:12px">
 <p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
-<label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label>
+<label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label><p class="hint">Bağlantılar otomatik kaydedilir. Siz değiştirmedikçe burada kalır; yeniden çekmek için tekrar yazmanız gerekmez.</p>
 <textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://ornek.com/manisa"></textarea>
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" id="externalPortfolioCloudBackup" class="light">☁️ Çekilenleri Buluta Yedekle</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
@@ -868,6 +868,18 @@ pick();
 
 /* Bireysel portfoy cekme: tarayicinin CORS ve kaynak site izinlerine tabidir. */
 const externalPortfolioKey="emlakcrm_external_portfolios_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
+// Kaynak bağlantıları hesap bazında saklanır; yenileme ve veri çekme işlemi bunları silmez.
+const externalPortfolioSourceUrlsKey="emlakcrm_external_source_urls_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
+const externalPortfolioSourceUrlsField=document.getElementById("externalPortfolioUrls");
+try{
+ const savedSourceUrls=localStorage.getItem(externalPortfolioSourceUrlsKey);
+ if(savedSourceUrls!==null)externalPortfolioSourceUrlsField.value=savedSourceUrls;
+}catch(e){console.warn("Portföy kaynak bağlantıları okunamadı",e)}
+externalPortfolioSourceUrlsField.addEventListener("input",()=>{
+ try{localStorage.setItem(externalPortfolioSourceUrlsKey,externalPortfolioSourceUrlsField.value)}
+ catch(e){console.warn("Portföy kaynak bağlantıları kaydedilemedi",e)}
+});
+
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function externalPrice(value){
