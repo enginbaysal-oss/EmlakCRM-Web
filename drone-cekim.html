@@ -923,6 +923,15 @@ async function importParcelFile(file){
   if(file.size>5*1024*1024)throw Error("Dosya en fazla 5 MB olabilir.");
   const text=await file.text();
   const parsed=/\.kml$/i.test(file.name)||text.trimStart().startsWith("<")?parseKml(text):normalizeGeoJSON(JSON.parse(text));
+  // New valid parcel: clear captions from the previous parcel, including saved drafts.
+  clearTimeout(captionPreviewTimer);
+  captionPreviewing=false;
+  captionRows=[{sec:2,title:"",description:""},{sec:10,title:"",description:""}];
+  captionSchedule=[];
+  hideCaption();
+  $("captionEditor").hidden=true;
+  persistCaptionRows();
+  renderCaptionEditor();
   useParcel(parsed,file.name);
  }catch(err){status("Dosya okunamadı: "+err.message)}
 }
