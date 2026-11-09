@@ -198,7 +198,7 @@ header{top:8px;left:9px;right:9px}.brand{padding:9px}.brand strong{font-size:14p
 .droneTitleMain{font:750 clamp(22px,3vw,36px)/1.13 system-ui,Segoe UI,Arial,sans-serif;color:white;overflow-wrap:anywhere;text-shadow:0 2px 4px #0009}
 .droneTitleSub{font:500 clamp(12px,1.5vw,18px)/1.35 system-ui,Segoe UI,Arial,sans-serif;color:#e3f5fb;margin-top:7px;overflow-wrap:anywhere}
 .droneTitleSub[hidden]{display:none!important}
-body.flight-active .panel{display:none!important}
+body.flight-active .panel,body.flight-active header,body.flight-active .notice{display:none!important}
 body.recording-clean .captionEditor{display:none!important}
 #flightPauseFloating{position:absolute;z-index:12;top:18px;right:18px;background:#071827db;border:1px solid #7bbacfba;box-shadow:0 7px 28px #0008;backdrop-filter:blur(10px);padding:11px 17px}
 #flightPauseFloating[hidden],body.recording-clean #flightPauseFloating{display:none!important}
@@ -219,8 +219,7 @@ body.recording-clean #lastVideoModal{display:none!important}
 
 #mobileStopFloating[hidden]{display:none!important}
 #mobileStopFloating{position:fixed;z-index:20;right:14px;bottom:calc(18px + env(safe-area-inset-bottom,0px));background:#ae2330;color:white;border:1px solid #ff9199;border-radius:13px;padding:12px 20px;box-shadow:0 6px 25px #0008;font-weight:750;min-height:45px}
-body:not(.recording-clean) #mobileStopFloating{display:none!important}
-#mobileVideoUploadLabel[hidden],#mobileRecordingHelp[hidden]{display:none!important}
+body:not(.recording-clean) #mobileStopFloating,body.recording-clean #mobileStopFloating{display:none!important}
 @media(max-width:700px){#mobileStopFloating{right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 </style>
 </head>
@@ -234,7 +233,6 @@ body:not(.recording-clean) #mobileStopFloating{display:none!important}
 <button id="mobileStopFloating" type="button" hidden title="Mobil video kaydını bitir">■ Kaydı Bitir</button>
 <div id="droneSubtitle" aria-live="off" hidden><div class="droneTitleBox"><div id="droneSubtitleTitle" class="droneTitleMain"></div><div id="droneSubtitleDescription" class="droneTitleSub" hidden></div></div></div>
 <header>
-<div class="brand"><span style="font-size:25px">🚁</span><div><strong>Drone Çekim</strong><small>EmlakCRM • Sanal 3D parsel turu</small></div></div>
 <a class="back" href="index.html">← Ana Sayfaya Dön</a>
 </header>
 <div class="notice" aria-live="polite"><b id="parcelName">Örnek parsel</b><span id="status">Harita yükleniyor…</span><span class="placeHint" id="placeStatus">Harita sağlayıcısı: Mapbox uydu (Arsa Takip) tercih edilir</span></div>
@@ -251,19 +249,13 @@ body:not(.recording-clean) #mobileStopFloating{display:none!important}
 <button id="pause" type="button" disabled>⏸ Duraklat</button>
 <button id="reset" type="button" disabled>↺ Kamerayı sıfırla</button>
 <button id="record" type="button">● Video kaydet</button>
-<label id="mobileVideoUploadLabel" class="fileButton" for="mobileVideoUpload" hidden>📁 Telefon Videosunu Ekle</label>
-<input id="mobileVideoUpload" type="file" accept="video/*,.mp4,.mov,.webm" hidden>
 <button id="lastVideoWatch" type="button" disabled>▶ Son Videoyu İzle</button>
 <button id="lastVideoWhatsapp" type="button" disabled>🟢 WhatsApp'tan Gönder</button>
 <button id="editCaptions" type="button">✎ Video yazılarını düzenle</button>
 <button id="stopRecord" class="danger wide" type="button" hidden>■ Kaydı bitir ve videoyu indir</button>
 </div>
 <p class="note">🎞 Son çekilen video yalnızca bu cihazda, giriş yaptığınız EmlakCRM hesabına özel saklanır. Telefonunuz destekliyorsa WhatsApp'a dosya olarak paylaşılır; bilgisayarda video indirilip WhatsApp Web'de ataç ile eklenir.</p>
-<details id="mobileRecordingHelp" class="note" hidden>
-<summary>📱 Mobil video kaydı nasıl çalışır?</summary>
-<p>Telefonlarda masaüstündeki “Bu sekmeyi paylaş” yöntemi bulunmayabilir. Uygulama desteklenen cihazlarda harita görüntüsünü doğrudan videoya kaydetmeyi dener. Desteklenmeyen cihazda telefonun ekran kaydı özelliğini kullanıp ardından “Telefon Videosunu Ekle” düğmesini seçebilirsiniz.</p>
-<p><b>Android:</b> Hızlı Ayarlar → Ekran Kaydedici. <b>iPhone:</b> Denetim Merkezi → Ekran Kaydı. Sonra kaydı Dosyalar/Fotoğraflar'dan uygulamaya ekleyin.</p>
-</details>
+
 <div class="rangeLabel"><label for="pitch">Kamera açısı</label><output id="pitchOutput">75°</output></div>
 <input type="range" id="pitch" min="30" max="80" value="75">
 <div class="rangeLabel"><label for="duration">Tur süresi</label><output id="durationOutput">60 sn</output></div>
@@ -959,15 +951,11 @@ function isMobileDroneDevice(){
    (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 }
 function initMobileVideoUi(){
- const mobile=isMobileDroneDevice();
- $("mobileVideoUploadLabel").hidden=!mobile;
- $("mobileRecordingHelp").hidden=!mobile;
- if(mobile)$("record").title="Mobil harita videosunu kaydet (desteklenmeyen cihazda ekran kaydını içe aktar)";
+ if(isMobileDroneDevice())$("record").title="Mobil harita videosunu kaydet";
 }
 initMobileVideoUi();
 function mobileRecordFallback(message){
- status(message+" Telefonunuzun Ekran Kaydı özelliğiyle uçuşu kaydedip 📁 Telefon Videosunu Ekle düğmesini kullanabilirsiniz.");
- $("mobileRecordingHelp").hidden=false;
+ status(message+" Tarayıcınız doğrudan kaydı desteklemiyor; farklı bir tarayıcıda yeniden deneyin.");
 }
 async function startMobileRecording(){
  if(recording)return;
@@ -1012,7 +1000,7 @@ async function startMobileRecording(){
    }catch(_){failedFrames++;}
    if(failedFrames>5){
     if(recorder?.state==="recording")try{recorder.stop()}catch(_){}
-    status("Harita görüntüsü video alanına aktarılamadı. Telefonun Ekran Kaydı özelliğini kullanın.");
+    status("Harita görüntüsü video alanına aktarılamadı. Bu cihazın video desteği kontrol edilmeli.");
     return;
    }
    renderId=requestAnimationFrame(paint);
@@ -1058,7 +1046,7 @@ async function startMobileRecording(){
   // Keep flight-control panel and screenshot overlays out of the video.
   stopFlight();progress=0;beginCaptionFlight();window.flightAnchor=null;
   document.body.classList.add("recording-clean");
-  $("record").disabled=true;$("stopRecord").hidden=false;$("mobileStopFloating").hidden=false;
+  $("record").disabled=true;$("stopRecord").hidden=false;$("mobileStopFloating").hidden=true;
   const first=flightCamera(0);
   map.jumpTo({center:first.center,zoom:first.mapZoom,pitch:first.pitch,bearing:first.bearing});
   recording={stream,recorder,autoFlight:true,captureMode:"canvas"};
@@ -1109,9 +1097,9 @@ async function startRecording(){
    // MediaRecorder onstop gercekten calisana dek temiz goruntuyu koru.
    stream.getTracks().forEach(t=>t.stop());
    recording=null;
+   stopFlight();hideCaption();
    $("record").disabled=false;$("stopRecord").hidden=true;
-   // Ucus devam ediyorsa baslik, panel ve uyarilari hala gizli tut.
-   if(!flying)document.body.classList.remove("recording-clean");
+   document.body.classList.remove("recording-clean");
    if(chunks.length){
     const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
     const url=URL.createObjectURL(blob),link=document.createElement("a");
@@ -1162,7 +1150,7 @@ function stopRecording(){
   stream.getTracks().forEach(t=>t.stop());
   recording=null;
   $("record").disabled=false;$("stopRecord").hidden=true;
-  if(!flying)document.body.classList.remove("recording-clean");
+  stopFlight();hideCaption();document.body.classList.remove("recording-clean");
  }
 }
 document.addEventListener("keydown",e=>{
@@ -1171,19 +1159,6 @@ document.addEventListener("keydown",e=>{
 $("record").addEventListener("click",startRecording);
 $("stopRecord").addEventListener("click",stopRecording);
 $("mobileStopFloating").addEventListener("click",stopRecording);
-$("mobileVideoUpload").addEventListener("change",async e=>{
- const file=e.target.files?.[0];e.target.value="";
- if(!file)return;
- if(!file.type.startsWith("video/")&&!/\.(mp4|mov|webm)$/i.test(file.name)){
-  status("Lütfen MP4, MOV veya WebM video dosyası seçin.");return;
- }
- if(file.size>450*1024*1024){status("Bu video çok büyük. Lütfen 450 MB altındaki kaydı seçin.");return;}
- if(!window.emlakcrmDroneVideo?.remember){status("Video arşivi henüz yüklenmedi. Sayfayı yenileyip tekrar deneyin.");return;}
- try{
-  await window.emlakcrmDroneVideo.remember(file,file.name);
-  status("Telefon videosu son çekim olarak eklendi. ▶ Son Videoyu İzle veya WhatsApp'tan Gönder düğmesini kullanın.");
- }catch(err){status("Video içe aktarılamadı: "+(err?.message||"Bilinmeyen hata"))}
-});
 // İkinci CDN ve bağımsız önizleme: harita kütüphanesi yüklenmese de parsel dosyası okunur.
 function start3DMap(provider="esri"){
  const isMapbox=provider==="mapbox";
