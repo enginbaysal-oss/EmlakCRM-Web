@@ -1217,18 +1217,39 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu; telefon kontrolü: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+(Object.keys(phoneCheck.reasons).length?" Bulunamayanların nedeni: "+Object.entries(phoneCheck.reasons).map(([k,v])=>k+" ("+v+")").join(", ")+".":"")+" "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
  btn.disabled=false;
 };
+// Çekilen portföy bulut yedeği: bağımsız betik yüklenmese de doğrudan güvenli kayıt.
+async function externalPortfolioBackupDirect(){
+ const records=externalRead();
+ if(!records.length)return {status:"empty"};
+ if(records.length>1000)return {status:"limit",message:"1000 portföy sınırı aşıldı"};
+ const payload=JSON.stringify(records);
+ if(new TextEncoder().encode(payload).byteLength>20*1024*1024)return {status:"size",message:"20 MB yedek sınırı aşıldı"};
+ const auth=await externalSourceVerified();
+ if(!auth)return {status:"auth",message:"Oturum doğrulanamadı. Yeniden giriş yapın."};
+ if(!crypto?.subtle) return {status:"crypto",message:"Güvenli tarayıcı bağlantısı bulunamadı"};
+ const buffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(payload));
+ const fingerprint=Array.from(new Uint8Array(buffer),v=>v.toString(16).padStart(2,"0")).join("");
+ const response=await fetch(externalSourceProject+"/rest/v1/emlakcrm_user_backups?on_conflict=user_id,kind,fingerprint",{
+  method:"POST",cache:"no-store",
+  headers:{...auth.headers,"Content-Type":"application/json",Prefer:"resolution=ignore-duplicates,return=minimal"},
+  body:JSON.stringify({user_id:auth.uid,kind:"external_portfolios",payload:records,item_count:records.length,fingerprint})
+ });
+ if(!response.ok){
+  let info="";try{const obj=await response.json();info=String(obj?.message||obj?.hint||"").slice(0,180)}catch(_){}
+  return {status:"error",message:"Sunucu kaydı reddetti ("+response.status+"). "+info};
+ }
+ return {status:"success",count:records.length};
+}
 document.getElementById("externalPortfolioCloudBackup").onclick=async()=>{
- const btn=document.getElementById("externalPortfolioCloudBackup");
- const status=document.getElementById("externalPortfolioStatus");
- if(!window.EmlakCRMCloudBackup?.run){status.textContent="Bulut bağlantısı yüklenemedi. Sayfayı yenileyin.";return;}
- btn.disabled=true;status.textContent="☁️ Çekilen Portföyler yedeği doğrulanarak buluta aktarılıyor…";
+ const btn=document.getElementById("externalPortfolioCloudBackup"),status=document.getElementById("externalPortfolioStatus");
+ if(btn.disabled)return;
+ btn.disabled=true;status.textContent="☁️ Çekilen Portföyler bu hesaba özel güvenli buluta aktarılıyor…";
  try{
-  const results=await window.EmlakCRMCloudBackup.run();
-  const result=results?.find?.(x=>x.kind==="external_portfolios");
-  if(result?.status==="success")status.textContent="✓ "+result.count+" çekilen portföy bu hesaba özel bulut yedeğine kaydedildi. Safari'de Bulut Yedekleri ekranından geri yüklenebilir.";
-  else if(result?.status==="empty")status.textContent="Çekilen Portföyler listesi bu cihazda boş. Buluta boş kayıt aktarılmadı.";
-  else status.textContent="⚠️ Çekilen Portföyler yedeği tamamlanamadı: "+String(result?.message||result?.status||"Bilinmeyen hata");
- }catch(e){status.textContent="Bulut yedekleme hatası: "+String(e?.message||e)}
+  const result=await externalPortfolioBackupDirect();
+  if(result.status==="success")status.textContent="✓ "+result.count+" çekilen portföy buluta yedeklendi. Diğer cihazlarda Bulut Yedekleri bölümünden geri yükleyebilirsiniz.";
+  else if(result.status==="empty")status.textContent="Bu cihazdaki çekilen portföy listesi boş. Boş liste buluttaki yedekleri silmez.";
+  else status.textContent="⚠️ Bulut yedekleme tamamlanamadı: "+String(result.message||result.status||"Bilinmeyen hata");
+ }catch(err){status.textContent="⚠️ Bulut yedekleme hatası: "+String(err?.message||err)}
  finally{btn.disabled=false}
 };
 document.getElementById("externalPortfolioClear").onclick=()=>{if(!confirm("Yalnızca çekilen portföy listesini temizlemek istiyor musun?"))return;localStorage.removeItem(externalPortfolioKey);externalDraw();document.getElementById("externalPortfolioStatus").textContent="Çekilen liste temizlendi; kendi portföylerin değişmedi."};
