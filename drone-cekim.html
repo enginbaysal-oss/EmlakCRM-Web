@@ -221,6 +221,28 @@ body.recording-clean #lastVideoModal{display:none!important}
 #mobileStopFloating{position:fixed;z-index:20;right:14px;bottom:calc(18px + env(safe-area-inset-bottom,0px));background:#ae2330;color:white;border:1px solid #ff9199;border-radius:13px;padding:12px 20px;box-shadow:0 6px 25px #0008;font-weight:750;min-height:45px}
 body:not(.recording-clean) #mobileStopFloating,body.recording-clean #mobileStopFloating{display:none!important}
 @media(max-width:700px){#mobileStopFloating{right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
+
+/* Sabit alt hizalama kısa ekranlarda başlıkla çakışıyordu.
+   Geri düğmesi üstte kalır; kontrol paneli onun altında kaydırılır. */
+.panel{
+ top:76px;
+ bottom:auto;
+ max-height:calc(100vh - 92px);
+ max-height:calc(100dvh - 92px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+}
+.notice{display:none!important}
+@media(max-width:700px){
+ .panel{
+  top:69px;
+  bottom:auto;
+  max-height:calc(100vh - 82px);
+  max-height:calc(100dvh - 82px);
+  overflow-y:auto;
+ }
+}
 </style>
 </head>
 <body>
