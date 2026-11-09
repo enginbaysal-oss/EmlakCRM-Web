@@ -240,7 +240,6 @@ body:not(.recording-clean) #mobileStopFloating,body.recording-clean #mobileStopF
 <h1>Parsel üzerinde sinematik uçuş</h1>
 <p class="muted">Önce düz yaklaşma, belirli yükseklikte tek 360° çevre turu, ardından yakın plan. Parsel şeffaf kırmızı dolguyla işaretlenir; resmi kadastro sınırı değildir.</p>
 <div class="actions">
-<button id="example" type="button">📍 Örnek parsel</button>
 <button id="tkgm" type="button">🔎 TKGM Parsel Sorgu</button>
 <label for="parcelFile" class="fileButton wide" role="button" tabindex="0" id="fileLabel" title="GeoJSON veya KML seçin; bilgisayardan sürükleyip bırakabilirsiniz">📁 Parsel Dosyası Yükle</label>
 <input id="parcelFile" type="file" accept=".json,.geojson,.kml,application/json,application/geo+json,application/vnd.google-earth.kml+xml">
@@ -916,7 +915,6 @@ $("pitch").addEventListener("input",()=>{
  else if(nativeReady&&!flying){nativeState.pitch=Number($("pitch").value);renderNativeMap();}
 });
 $("duration").addEventListener("input",()=>{$("durationOutput").textContent=$("duration").value+" sn"});
-$("example").addEventListener("click",()=>useParcel(exampleParcel,"Örnek parsel — Manisa (temsili)"));
 $("fileLabel").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("parcelFile").click()}});
 async function importParcelFile(file){
  if(!file)return;
