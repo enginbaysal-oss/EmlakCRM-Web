@@ -637,7 +637,7 @@ async function printReportExactlyAsPreview(){
   // cannot fit, use natural multi-page flow instead of clipping or hiding.
   if(onePage){
    await new Promise(resolve=>requestAnimationFrame(resolve));
-   const visualHeight=copy.getBoundingClientRect().height*scale;
+   const visualHeight=copy.getBoundingClientRect().height;
    if(visualHeight>pageHeight-6){
     root.style.setProperty("--report-zoom","1");
     copy.style.removeProperty("width");
