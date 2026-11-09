@@ -623,7 +623,7 @@ async function printReportExactlyAsPreview(){
   // the *layout box* as well, so the next section follows immediately.
   const ratio=Math.min(1,(pageHeight-24)/Math.max(1,measured));
   const onePage=ratio>=0.64;
-  const scale=onePage?Math.min(1,ratio*0.93):1;
+  const scale=onePage?(ratio>=0.999?1:Math.min(1,ratio*0.95)):1;
   root.style.setProperty("--report-zoom",String(scale));
   // Keep full A4 width *after* zoom instead of shrinking into one corner.
   if(scale<1){
