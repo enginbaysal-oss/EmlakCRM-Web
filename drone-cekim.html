@@ -1035,10 +1035,21 @@ async function startMobileRecording(){
     const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
     const isMp4=blob.type.startsWith("video/mp4");
     const filename="EmlakCRM-Drone-Mobil-"+new Date().toISOString().replace(/[:.]/g,"-")+(isMp4?".mp4":".webm");
-    const url=URL.createObjectURL(blob),link=document.createElement("a");
-    link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),60000);
-    void window.emlakcrmDroneVideo?.remember(blob,filename);
+    // iPhone Chrome/WebKit may navigate to a blank blob page on a synthetic download click.
+    // Save the recording first, then open the in-app player; downloads require a user tap.
+    const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||
+      (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+    const saved=window.emlakcrmDroneVideo?.remember(blob,filename);
+    if(isIOS){
+     Promise.resolve(saved).then(()=>{
+      status("Video kaydedildi. Son videonuz açılıyor; indirmek veya paylaşmak için ilgili düğmeyi kullanın.");
+      $("lastVideoWatch")?.click();
+     }).catch(err=>status("Video saklanamadı: "+(err?.message||"Bilinmeyen hata")));
+    }else{
+     const url=URL.createObjectURL(blob),link=document.createElement("a");
+     link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
     status("Mobil video kaydedildi. Son Videoyu İzle veya WhatsApp'tan Gönder ile devam edebilirsiniz."+
        (isMp4?"":" WebM biçimini WhatsApp kabul etmezse MP4'e dönüştürün."));
    }else mobileRecordFallback("Tarayıcı video oluşturamadı.");
