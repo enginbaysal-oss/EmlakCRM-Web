@@ -354,7 +354,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <section class="panel" id="externalPortfolioPanel">
 <details id="externalPortfolioDetails"><summary style="cursor:pointer;font-weight:800;padding:10px 4px;font-size:17px">🔗 Çekilen Portföyler <span id="externalPortfolioSummaryCount"></span> — Aç / Kapat</summary><div style="padding-top:12px">
 <p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
-<label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label><p class="hint">Bağlantılar otomatik kaydedilir. Siz değiştirmedikçe burada kalır; yeniden çekmek için tekrar yazmanız gerekmez.</p>
+<label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label><p class="hint">Bağlantılar otomatik kaydedilir. Siz değiştirmedikçe burada kalır; yeniden çekmek için tekrar yazmanız gerekmez.</p><p class="hint" id="externalSourceCloudStatus" role="status" aria-live="polite">☁️ Bulut bağlantısı kontrol ediliyor…</p>
 <textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://ornek.com/manisa"></textarea>
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" id="externalPortfolioCloudBackup" class="light">☁️ Çekilenleri Buluta Yedekle</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
@@ -868,17 +868,101 @@ pick();
 
 /* Bireysel portfoy cekme: tarayicinin CORS ve kaynak site izinlerine tabidir. */
 const externalPortfolioKey="emlakcrm_external_portfolios_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
-// Kaynak bağlantıları hesap bazında saklanır; yenileme ve veri çekme işlemi bunları silmez.
+// Kaynak bağlantıları kullanıcı hesabına özel bulutla eşitlenir; yerel kopya çevrimdışında korunur.
 const externalPortfolioSourceUrlsKey="emlakcrm_external_source_urls_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
 const externalPortfolioSourceUrlsField=document.getElementById("externalPortfolioUrls");
+const externalSourceCloudStatus=document.getElementById("externalSourceCloudStatus");
+const externalSourceProject="https://tffvwxskvjuxoekwgdef.supabase.co";
+const externalSourceApiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+let externalSourceRevision=0,externalSourceWriteTimer=null,externalSourceWriting=false,externalSourcePending=false,externalSourceLastCloudValue=null,externalSourceLoading=false;
+const externalSourceStatus=message=>{if(externalSourceCloudStatus)externalSourceCloudStatus.textContent=message};
 try{
- const savedSourceUrls=localStorage.getItem(externalPortfolioSourceUrlsKey);
- if(savedSourceUrls!==null)externalPortfolioSourceUrlsField.value=savedSourceUrls;
-}catch(e){console.warn("Portföy kaynak bağlantıları okunamadı",e)}
+ const saved=localStorage.getItem(externalPortfolioSourceUrlsKey);
+ if(saved!==null)externalPortfolioSourceUrlsField.value=saved;
+}catch(e){console.warn("Kaynak bağlantıları okunamadı",e)}
+function externalSourceSession(){
+ try{return JSON.parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1")||"null")}
+ catch{return null}
+}
+async function externalSourceVerified(){
+ const uid=window.emlakcrmAccountDataScope?.currentUserId?.(),token=externalSourceSession()?.access_token;
+ if(!uid||!token||localStorage.getItem("emlakcrm_active_account_v1")!==uid)return null;
+ const headers={apikey:externalSourceApiKey,Authorization:"Bearer "+token};
+ const response=await fetch(externalSourceProject+"/auth/v1/user",{headers,cache:"no-store"});
+ if(!response.ok)return null;
+ const user=await response.json();
+ if(user?.id!==uid||window.emlakcrmAccountDataScope?.currentUserId?.()!==uid)return null;
+ return {uid,headers};
+}
+async function externalSourceLoad(){
+ if(externalSourceLoading||externalSourceWriting||externalSourcePending)return;
+ externalSourceLoading=true;
+ const initialRevision=externalSourceRevision;
+ try{
+  const auth=await externalSourceVerified();
+  if(!auth){externalSourceStatus("Bağlantılar bu cihazda kayıtlı. Bulut için oturum doğrulanamadı.");return}
+  const response=await fetch(externalSourceProject+"/rest/v1/emlakcrm_external_source_urls?select=urls&user_id=eq."+encodeURIComponent(auth.uid)+"&limit=1",{headers:auth.headers,cache:"no-store"});
+  if(!response.ok)throw Error("Bulut bağlantıları okunamadı ("+response.status+")");
+  const rows=await response.json();
+  if(!Array.isArray(rows))throw Error("Beklenmeyen bulut yanıtı");
+  if(externalSourceRevision!==initialRevision||externalSourcePending)return;
+  if(rows.length){
+   const urls=String(rows[0].urls||"");
+   externalSourceLastCloudValue=urls;
+   externalPortfolioSourceUrlsField.value=urls;
+   localStorage.setItem(externalPortfolioSourceUrlsKey,urls);
+   externalSourceStatus("☁️ Bağlantılar hesabınızın bulut kaydından yüklendi.");
+  }else{
+   externalSourceLastCloudValue=null;
+   if(externalPortfolioSourceUrlsField.value.trim()){
+    externalSourcePending=true;
+    externalSourceQueueWrite();
+   }else externalSourceStatus("☁️ Kaynak bağlantıları bu hesaba özel bulutta saklanacak.");
+  }
+ }catch(err){externalSourceStatus("⚠️ Bulut okunamadı; cihazdaki bağlantılar korundu. "+String(err.message||err))}
+ finally{externalSourceLoading=false}
+}
+function externalSourceQueueWrite(){
+ clearTimeout(externalSourceWriteTimer);
+ externalSourceWriteTimer=setTimeout(()=>{void externalSourceWrite()},850);
+}
+async function externalSourceWrite(){
+ if(!externalSourcePending||externalSourceWriting)return;
+ externalSourceWriting=true;
+ const revision=externalSourceRevision,value=externalPortfolioSourceUrlsField.value;
+ try{
+  if(value.length>20000)throw Error("Bağlantılar 20.000 karakter sınırını aşıyor");
+  const auth=await externalSourceVerified();
+  if(!auth)throw Error("Oturum doğrulanamadı");
+  const response=await fetch(externalSourceProject+"/rest/v1/emlakcrm_external_source_urls?on_conflict=user_id",{
+   method:"POST",
+   headers:{...auth.headers,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},
+   body:JSON.stringify({user_id:auth.uid,urls:value,updated_at:new Date().toISOString()}),
+   cache:"no-store"
+  });
+  if(!response.ok)throw Error("Buluta kayıt başarısız ("+response.status+")");
+  externalSourceLastCloudValue=value;
+  if(externalSourceRevision===revision&&externalPortfolioSourceUrlsField.value===value){
+   externalSourcePending=false;externalSourceStatus("☁️ Bağlantılar buluta kaydedildi; diğer cihazlarda da görünecek.");
+  }
+ }catch(err){externalSourceStatus("⚠️ Bağlantılar cihazda korundu fakat buluta kaydedilemedi: "+String(err.message||err))}
+ finally{
+  externalSourceWriting=false;
+  if(externalSourcePending&&(externalSourceRevision!==revision||externalPortfolioSourceUrlsField.value!==value))externalSourceQueueWrite();
+ }
+}
 externalPortfolioSourceUrlsField.addEventListener("input",()=>{
+ externalSourceRevision++;
  try{localStorage.setItem(externalPortfolioSourceUrlsKey,externalPortfolioSourceUrlsField.value)}
- catch(e){console.warn("Portföy kaynak bağlantıları kaydedilemedi",e)}
+ catch(err){console.warn("Kaynak bağlantıları yerel kaydedilemedi",err)}
+ externalSourcePending=true;
+ externalSourceStatus("☁️ Bağlantılar buluta kaydediliyor…");
+ externalSourceQueueWrite();
 });
+window.addEventListener("online",()=>{if(externalSourcePending)externalSourceQueueWrite();else void externalSourceLoad()});
+window.addEventListener("focus",()=>{if(externalSourcePending)externalSourceQueueWrite();else void externalSourceLoad()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(externalSourcePending)externalSourceQueueWrite();else void externalSourceLoad()}});
+void externalSourceLoad();
 
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
