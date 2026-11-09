@@ -734,7 +734,7 @@ async function saveProgressReportPdf(){
  const button=$("print");
  if(button.disabled)return;
  if($("paper").hidden||!shown){const report=form();if(!report)return;paper(report)}
- const title=String(current()?.title||"Portfoy").normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").slice(0,55);
+ const title=String(current()?.title||"Portfoy").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").slice(0,55);
  const filename="Ilerleme-Raporu-"+title+"-"+String(shown?.to||new Date().toISOString().slice(0,10))+".pdf";
  // Open the native Save As picker directly in the user click. Browsers disallow opening it after awaits.
  let saveHandle=null;
@@ -775,22 +775,37 @@ async function saveProgressReportPdf(){
    html2canvas:{scale:1.6,useCORS:true,allowTaint:false,backgroundColor:"#fff",scrollX:0,scrollY:0},
    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
    pagebreak:{mode:["css","legacy"],avoid:[".paperHead",".reportCard",".movementRow",".reportFooter"]}
-  }).from(copy).outputPdf("blob").then(async blob=>{
-    if(saveHandle){
-      const writable=await saveHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-    }else if(typeof navigator.share==="function" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
-      const file=new File([blob],filename,{type:"application/pdf"});
-      if(navigator.canShare?.({files:[file]})){
-        await navigator.share({files:[file],title:"İlerleme Raporu"});
-      }else{
-        alert("Bu tarayıcı konum seçerek PDF kaydetmeyi desteklemiyor. Bilgisayarda Chrome veya Edge kullanın.");
-      }
-    }else{
-      alert("Bu tarayıcı doğrudan kaydedilecek klasörü seçtiremiyor. Chrome veya Edge ile açın. Otomatik indirme yapılmadı.");
-    }
-  });
+  }).from(copy).outputPdf("blob");
+  if(saveHandle){
+   const writable=await saveHandle.createWritable();
+   await writable.write(blob);await writable.close();
+  }else if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+   // Opening the native share sheet after a lengthy PDF conversion loses user activation on iOS.
+   // Keep the generated file and let a fresh explicit tap open the system share sheet.
+   const old=document.getElementById("reportPdfSaveDialog");old?.remove();
+   const dialog=document.createElement("div");dialog.id="reportPdfSaveDialog";
+   dialog.style.cssText="position:fixed;inset:0;z-index:99999;background:#071d30cc;display:grid;place-items:center;padding:18px";
+   const card=document.createElement("div");card.style.cssText="width:min(420px,100%);background:#fff;color:#17324a;padding:20px;border-radius:14px;box-shadow:0 14px 48px #0005";
+   const heading=document.createElement("h3");heading.textContent="PDF hazır";heading.style.margin="0 0 10px";
+   const info=document.createElement("p");info.textContent="Dosyalara Kaydet seçeneği için Paylaş'a dokunun.";info.style.fontSize="14px";
+   const shareButton=document.createElement("button");shareButton.type="button";shareButton.textContent="📁 Paylaş / Dosyalara Kaydet";shareButton.style.cssText="width:100%;background:#157c88;color:white;padding:13px;border-radius:10px;margin:8px 0";
+   const openButton=document.createElement("button");openButton.type="button";openButton.textContent="PDF'yi Aç";openButton.style.cssText="width:100%;padding:12px;border-radius:10px;margin:6px 0";
+   const closeButton=document.createElement("button");closeButton.type="button";closeButton.textContent="Kapat";closeButton.style.cssText="width:100%;padding:10px;border-radius:10px";
+   const file=new File([blob],filename,{type:"application/pdf"});
+   const url=URL.createObjectURL(blob);
+   shareButton.onclick=()=>{
+    if(navigator.share&&navigator.canShare?.({files:[file]})){
+     navigator.share({files:[file],title:"İlerleme Raporu"}).catch(err=>{
+      if(err?.name!=="AbortError")info.textContent="Paylaşım açılamadı. PDF'yi Aç düğmesini kullanın.";
+     });
+    }else info.textContent="Bu tarayıcı dosya paylaşımını desteklemiyor. PDF'yi Aç düğmesini kullanın.";
+   };
+   openButton.onclick=()=>window.open(url,"_blank","noopener");
+   closeButton.onclick=()=>{dialog.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)};
+   card.append(heading,info,shareButton,openButton,closeButton);dialog.appendChild(card);document.body.appendChild(dialog);
+  }else{
+   alert("Tarayıcınız klasör seçerek kaydetmeyi desteklemiyor. Chrome veya Edge ile açın.");
+  }
  }catch(err){if(err?.name!=="AbortError")alert("PDF kaydedilemedi: "+String(err?.message||err))}
  finally{container?.remove();button.disabled=false;button.textContent=previous}
 }
