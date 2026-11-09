@@ -528,7 +528,8 @@ async function announcementFetch(url,options={}){
  const token=await verifiedToken();
  const res=await fetch(url,{...options,headers:{...announcementHeaders(token),...(options.headers||{})}});
  if(!res.ok){let error={};try{error=await res.json()}catch{}throw Error(error.message||"Duyuru işlemi başarısız ("+res.status+").")}
- return res.status===204?null:res.json();
+ if(res.status===204||res.status===201&&res.headers.get("content-length")==="0")return null;
+ const raw=await res.text();return raw?JSON.parse(raw):null;
 }
 async function loadAdminAnnouncements(){
  const root=$("announcementAdminList"),status=$("announcementAdminStatus");
