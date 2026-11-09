@@ -4,7 +4,7 @@
 "use strict";
 const PROJECT="https://tffvwxskvjuxoekwgdef.supabase.co";
 const KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-const TYPES={clients:{prefix:"emlakcrm_demo_v1__owner_",array:"clients"},portfolios:{prefix:"emlakcrm_portfoy_rapor_v1__owner_",array:"portfolios"}};
+const TYPES={clients:{prefix:"emlakcrm_demo_v1__owner_",array:"clients"},portfolios:{prefix:"emlakcrm_portfoy_rapor_v1__owner_",array:"portfolios"},external_portfolios:{prefix:"emlakcrm_external_portfolios_v1__owner_",array:null}};
 const attempts=new Map(),lastRaw=new Map(),timers=new Map();let busy=false;
 const notify=message=>{const el=document.getElementById("crmCloudBackupStatus");if(el)el.textContent=message};
 const parse=value=>{try{return JSON.parse(value)}catch{return null}};
@@ -37,10 +37,10 @@ async function upload(kind,force=false){
  const raw=localStorage.getItem(k);
  if(!raw)return {kind,status:"empty"};
  if(!force&&lastRaw.get(k)===raw)return {kind,status:"unchanged"};
- const obj=parse(raw),items=obj?.[TYPES[kind].array];
+ const obj=parse(raw),items=TYPES[kind].array?obj?.[TYPES[kind].array]:obj;
  if(!Array.isArray(items))return {kind,status:"invalid"};
  if(!items.length)return {kind,status:"empty"};
- if(items.length>20000)return {kind,status:"limit",count:items.length};
+ if(items.length>(kind==="external_portfolios"?1000:20000))return {kind,status:"limit",count:items.length};
  const payload=JSON.stringify(items);
  if(new TextEncoder().encode(payload).byteLength>20*1024*1024)
   return {kind,status:"size",count:items.length};
@@ -88,7 +88,7 @@ Storage.prototype.setItem=function(key,value){
 };
 window.addEventListener("storage",event=>{if(event.storageArea===localStorage&&event.key)checkKey(event.key)});
 function resultLabel(result){
- const label=result.kind==="clients"?"Müşteri":"Portföy";
+ const label=result.kind==="clients"?"Müşteri":result.kind==="external_portfolios"?"Çekilen Portföy":"Portföy";
  switch(result.status){
   case "success":return "✓ "+label+": "+result.count+" kayıt güvenli buluta kaydedildi.";
   case "empty":return label+": Bu cihazda yedeklenecek kayıt bulunamadı.";
@@ -96,7 +96,7 @@ function resultLabel(result){
   case "auth":return label+": Hesap doğrulanamadı. Uygulamada kendi hesabınızla yeniden giriş yapın.";
   case "invalid":return label+": Yerel kayıt okunamadı. Mevcut dosya yedeğini koruyun.";
   case "size":return label+": Kayıtlar 20 MB sınırını aşıyor; dosya yedeğinizi koruyun.";
-  case "limit":return label+": 20.000 kayıt sınırını aşıyor.";
+  case "limit":return label+": Liste kayıt sınırını aşıyor.";
   case "scheduled":return label+": Başka yedekleme tamamlanınca yeniden denenecek.";
   default:return "⚠️ "+label+": "+(result.message||"Bulut yedekleme tamamlanamadı.");
  }
@@ -107,9 +107,9 @@ async function manualRun(){
  manualRunning=true;
  const btn=document.getElementById("crmCloudBackupNow"),label=btn?.textContent;
  if(btn){btn.disabled=true;btn.textContent="☁️ Yedekleniyor…"}
- notify("☁️ Müşteri ve portföy yedekleri kontrol ediliyor…");
+ notify("☁️ Müşteri, portföy ve çekilen ilan yedekleri kontrol ediliyor…");
  try{
-  const results=[await upload("clients",true),await upload("portfolios",true)];
+  const results=[await upload("clients",true),await upload("portfolios",true),await upload("external_portfolios",true)];
   notify(results.map(resultLabel).join("  |  "));
   return results;
  }catch(err){
@@ -124,6 +124,6 @@ document.addEventListener("click",event=>{
  const btn=event.target?.closest?.("#crmCloudBackupNow");
  if(btn){event.preventDefault();void manualRun()}
 });
-window.setTimeout(()=>{schedule("clients",1000);schedule("portfolios",3000)},5000);
-window.setInterval(()=>{schedule("clients",1000);schedule("portfolios",3500)},120000);
+window.setTimeout(()=>{schedule("clients",1000);schedule("portfolios",3000);schedule("external_portfolios",5000)},5000);
+window.setInterval(()=>{schedule("clients",1000);schedule("portfolios",3500);schedule("external_portfolios",6000)},120000);
 })();
