@@ -281,13 +281,13 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
  body.reportPrintMode>*:not(#reportPrintRoot){display:none!important}
  body.reportPrintMode #reportPrintRoot{display:block!important;position:static!important;visibility:visible!important;
   width:194mm!important;max-width:194mm!important;margin:0!important;padding:0!important;
-  height:var(--report-visual-height,auto)!important;overflow:visible!important}
+  height:auto!important;min-height:0!important;overflow:visible!important}
  body.reportPrintMode #reportPrintRoot #paper{
   display:block!important;visibility:visible!important;width:194mm!important;max-width:194mm!important;
   font-size:15px!important;line-height:1.55!important;
   padding:14px!important;margin:0!important;box-sizing:border-box!important;
   border-radius:10px!important;background:#eaf1f8!important;color:#101e32!important;
-  transform:scale(var(--report-scale,1));transform-origin:top left;
+  transform:none!important;zoom:var(--report-zoom,1);
   -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
  }
  body.reportPrintMode #reportPrintRoot #paper .paperHead{padding:18px!important}
@@ -300,9 +300,15 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
  body.reportPrintMode #reportPrintRoot #paper .reportCover{display:block!important;max-height:210px!important}
  body.reportPrintMode #reportPrintRoot #paper .reportCover[hidden]{display:none!important}
  body.reportPrintMode #reportPrintRoot #paper .reportFooter{padding:15px!important}
- body.reportPrintMode #reportPrintRoot #paper .reportBlock,
+ /* Let the browser flow the report continuously instead of moving whole sections
+    onto a second page and leaving a giant gap. Keep individual movement rows intact. */
+ body.reportPrintMode #reportPrintRoot #paper .reportBlock{
+  break-inside:auto!important;page-break-inside:auto!important;
+ }
  body.reportPrintMode #reportPrintRoot #paper .reportCard,
- body.reportPrintMode #reportPrintRoot #paper .movementRow{break-inside:avoid;page-break-inside:avoid}
+ body.reportPrintMode #reportPrintRoot #paper .movementRow{
+  break-inside:avoid!important;page-break-inside:avoid!important;
+ }
  body.reportPrintMode #reportPrintRoot #paper .reportBlock[hidden],
  body.reportPrintMode #reportPrintRoot #paper .reportEval[hidden],
  body.reportPrintMode #reportPrintRoot #paper .reportFooter[hidden]{display:none!important}
@@ -319,6 +325,16 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 }
 #paper .reportCard .favoriteMetric{margin-top:5px}
 #paper .reportCard .favoriteMetric strong{font-size:19px;line-height:1.2}
+/* 2026-11-09: Printed layout is scaled by zoom, never transform.
+   Do not keep a reserved scaled-height box or page-break an entire section. */
+@media print {
+ body.reportPrintMode #reportPrintRoot{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ body.reportPrintMode #reportPrintRoot #paper{transform:none!important;zoom:var(--report-zoom,1)!important;
+   height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ body.reportPrintMode #reportPrintRoot #paper .reportBlock{break-inside:auto!important;page-break-inside:auto!important}
+ body.reportPrintMode #reportPrintRoot #paper .reportEval{break-before:auto!important;page-break-before:auto!important}
+ body.reportPrintMode #reportPrintRoot #paper .reportFooter{break-before:auto!important;page-break-before:auto!important}
+}
 </style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
 <section class="panel" id="officeSharingPanel" hidden style="display:none!important">
 <div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
@@ -600,12 +616,34 @@ async function printReportExactlyAsPreview(){
   root.appendChild(probe);
   const pageHeight=probe.getBoundingClientRect().height;
   probe.remove();
-  const measured=copy.getBoundingClientRect().height;
-  const ratio=Math.min(1,(pageHeight-18)/Math.max(1,measured));
-  const onePage=ratio>=0.70;
-  const scale=onePage?Math.min(1,ratio*0.985):1;
-  root.style.setProperty("--report-scale",String(scale));
-  root.style.setProperty("--report-visual-height",onePage?Math.ceil(measured*scale+4)+"px":"auto");
+  const pageWidth=root.getBoundingClientRect().width;
+  const measured=copy.scrollHeight;
+  // CSS transform scaled only pixels, not print layout: it generated the
+  // enormous blank page section reported by customers. CSS zoom scales
+  // the *layout box* as well, so the next section follows immediately.
+  const ratio=Math.min(1,(pageHeight-24)/Math.max(1,measured));
+  const onePage=ratio>=0.64;
+  const scale=onePage?Math.min(1,ratio*0.93):1;
+  root.style.setProperty("--report-zoom",String(scale));
+  // Keep full A4 width *after* zoom instead of shrinking into one corner.
+  if(scale<1){
+   const expanded=Math.floor(pageWidth/scale);
+   copy.style.setProperty("width",expanded+"px","important");
+   copy.style.setProperty("max-width",expanded+"px","important");
+  }
+  root.style.removeProperty("--report-visual-height");
+  root.style.removeProperty("--report-scale");
+  // Verify the real layout height after zoom/width adjustment. If it still
+  // cannot fit, use natural multi-page flow instead of clipping or hiding.
+  if(onePage){
+   await new Promise(resolve=>requestAnimationFrame(resolve));
+   const visualHeight=copy.getBoundingClientRect().height*scale;
+   if(visualHeight>pageHeight-6){
+    root.style.setProperty("--report-zoom","1");
+    copy.style.removeProperty("width");
+    copy.style.removeProperty("max-width");
+   }
+  }
   // For very long reports prefer a legible extra page over cropping or unreadably tiny text.
   const onAfter=()=>{window.removeEventListener("afterprint",onAfter);clean()};
   window.addEventListener("afterprint",onAfter,{once:true});
