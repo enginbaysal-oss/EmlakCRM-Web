@@ -204,6 +204,18 @@ body.recording-clean .captionEditor{display:none!important}
 #flightPauseFloating[hidden],body.recording-clean #flightPauseFloating{display:none!important}
 @media(max-width:700px){#flightPauseFloating{top:66px;right:10px;padding:9px 12px}}
 @media(max-width:700px){.captionEditor{inset:57px 8px auto 8px;width:auto;max-height:calc(100vh - 70px);padding:12px}#droneSubtitle{bottom:11%;width:calc(100vw - 24px)}.droneTitleBox{padding:12px 15px}}
+/* Last recorded drone video player. Never visible in the recorded screen. */
+#lastVideoModal[hidden]{display:none!important}
+#lastVideoModal{position:fixed;z-index:1000;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px}
+.lastVideoBox{background:#0b2336;color:#e3f5fb;border:1px solid #4da4b0;border-radius:17px;width:min(860px,100%);max-height:92vh;overflow:auto;padding:16px;box-shadow:0 28px 70px #000b}
+.lastVideoHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.lastVideoHeader h2{font-size:20px;margin:0}
+#lastVideoPlayer{width:100%;max-height:64vh;display:block;background:#050e16;border-radius:10px}
+#lastVideoInfo{font-size:12px;overflow-wrap:anywhere;color:#b4d7e3;margin:10px 0}
+.lastVideoActions{display:flex;flex-wrap:wrap;gap:9px}
+.lastVideoActions button{flex:1;min-width:145px}
+body.recording-clean #lastVideoModal{display:none!important}
+@media(max-width:600px){.lastVideoBox{padding:12px}.lastVideoActions button{min-width:100%}}
 </style>
 </head>
 <body>
@@ -232,9 +244,12 @@ body.recording-clean .captionEditor{display:none!important}
 <button id="pause" type="button" disabled>⏸ Duraklat</button>
 <button id="reset" type="button" disabled>↺ Kamerayı sıfırla</button>
 <button id="record" type="button">● Video kaydet</button>
+<button id="lastVideoWatch" type="button" disabled>▶ Son Videoyu İzle</button>
+<button id="lastVideoWhatsapp" type="button" disabled>🟢 WhatsApp'tan Gönder</button>
 <button id="editCaptions" type="button">✎ Video yazılarını düzenle</button>
 <button id="stopRecord" class="danger wide" type="button" hidden>■ Kaydı bitir ve videoyu indir</button>
 </div>
+<p class="note">🎞 Son çekilen video yalnızca bu cihazda, giriş yaptığınız EmlakCRM hesabına özel saklanır. Telefonunuz destekliyorsa WhatsApp'a dosya olarak paylaşılır; bilgisayarda video indirilip WhatsApp Web'de ataç ile eklenir.</p>
 <div class="rangeLabel"><label for="pitch">Kamera açısı</label><output id="pitchOutput">75°</output></div>
 <input type="range" id="pitch" min="30" max="80" value="75">
 <div class="rangeLabel"><label for="duration">Tur süresi</label><output id="durationOutput">60 sn</output></div>
@@ -248,6 +263,17 @@ body.recording-clean .captionEditor{display:none!important}
 <p class="captionTip">İstersen ana başlık ve kısa açıklama ekle. Alt bant, çekim sırasında haritanın üzerinde görünür ve video kaydına girer. Önizleme ile yazıyı kontrol edebilirsin.</p>
 </aside>
 
+<div id="lastVideoModal" hidden role="dialog" aria-modal="true" aria-label="Son drone çekimi önizleme">
+ <div class="lastVideoBox">
+  <div class="lastVideoHeader"><h2>🎞 Son Çekilen Video</h2><button id="lastVideoClose" type="button">✕ Kapat</button></div>
+  <video id="lastVideoPlayer" controls playsinline preload="metadata" aria-label="Son drone videosu"></video>
+  <p id="lastVideoInfo"></p>
+  <div class="lastVideoActions">
+   <button id="lastVideoSave" type="button">⬇ Videoyu İndir</button>
+   <button id="lastVideoSendAgain" type="button">🟢 WhatsApp'tan Gönder</button>
+  </div>
+ </div>
+</div>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -947,7 +973,10 @@ async function startRecording(){
    if(chunks.length){
     const blob=new Blob(chunks,{type:recorder.mimeType||"video/webm"});
     const url=URL.createObjectURL(blob),link=document.createElement("a");
-    link.href=url;link.download="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+(recorder.mimeType?.startsWith("video/mp4")?".mp4":".webm");
+    const filename="EmlakCRM-Drone-Cekim-"+new Date().toISOString().replace(/[:.]/g,"-")+(recorder.mimeType?.startsWith("video/mp4")?".mp4":".webm");
+    link.href=url;link.download=filename;
+    // Keep the existing download behavior; also retain the last video privately per account.
+    window.emlakcrmDroneVideo?.remember(blob,filename);
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
     status(recorder.mimeType?.startsWith("video/mp4")?"MP4 video indirildi; menuler videoya girmedi.":"Tarayiciniz dogrudan MP4 kaydini desteklemiyor. WebM video indirildi; MP4 icin donusturme gerekiyor.");
@@ -1135,5 +1164,6 @@ function loadMapSdk(){
 useParcel(exampleParcel,"Örnek parsel — Manisa (temsili)");
 loadMapSdk();
 </script>
+<script src="./drone-last-video.js?v=20261109a"></script>
 </body>
 </html>
