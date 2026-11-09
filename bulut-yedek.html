@@ -19,7 +19,7 @@ button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
 <a class="back" href="./index.html#account">← Hesap ve Yedekleme</a>
 <p class="muted" style="margin:4px 0 12px">Bu sayfa giriş yapmış olduğunuz EmlakCRM hesabına bağlıdır. Başka bir tarayıcıda açtıysanız önce orada da giriş yapmanız gerekir.</p>
 <h1>☁️ Güvenli Bulut Yedekleri</h1>
-<p class="notice">EmlakCRM hesabın açıkken müşteri ve portföy kayıtların buluta <strong>ayrı sürümler olarak</strong> yedeklenir. Bu sayfa hiçbir kaydı kendiliğinden geri yüklemez.</p>
+<p class="notice">EmlakCRM hesabın açıkken müşterilerin, kendi portföylerin ve <strong>Çekilen Portföyler</strong> listen buluta <strong>ayrı sürümler olarak</strong> yedeklenir. Bu sayfa hiçbir kaydı kendiliğinden geri yüklemez.</p>
 <p class="warn">Başka cihazdaki boş kayıtlar eski yedeği silmez. Geri yükleme seçerek ve <strong>mevcut kayıtları koruyarak</strong> yapılır. Yalnızca giriş yaptığın kendi hesabının yedeklerine erişebilirsin.</p>
 <p id="status" role="status" class="notice">Hesap doğrulanıyor…</p>
 <section id="history" hidden>
@@ -27,8 +27,9 @@ button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
 <label class="confirm"><input type="checkbox" id="confirmLocal"><span>Mevcut cihaz yedeğimi indirdim ve güvenli yerde sakladım.</span></label>
 <h2>Portföy yedeklerim</h2><div class="collection" id="portfolios"></div>
 <h2>Alıcı / Satıcı / Diğer Müşteri yedeklerim</h2><div class="collection" id="clients"></div>
+<h2>🔗 Çekilen Portföy yedeklerim</h2><div class="collection" id="external_portfolios"></div>
 <section id="preview" hidden><h2 id="previewTitle">Bu yedeğin içeriği</h2><p id="previewSource" class="warn"></p><p class="muted">Yalnızca sana ait olduğundan emin olduğun kayıtları işaretle. Deneme kayıtlarını seçme. Müşteri telefonları burada gösterilmez.</p><div class="collection" id="previewRows"></div><p id="previewCount" class="muted">Henüz seçim yok.</p><div class="bar"><button type="button" id="restoreSelected" disabled>Seçilenleri Kendi Hesabıma Ekle</button></div></section><p id="result" role="status"></p>
-<p class="muted">Bu özellik yalnızca CRM müşteri kayıtları ve Portföy Yönetimi kayıtlarını kapsar. PDF İmzala arşivi, Emlak Asistanı şablonları, ajanda ve görsel boyutu sınırını aşan kayıtlar bu yedeklere otomatik dâhil edilmez. Eski sürümler silinmez.</p>
+<p class="muted">Bu özellik CRM müşteri kayıtlarını, Portföy Yönetimi kayıtlarını ve Çekilen Portföyler listesini kapsar. PDF İmzala arşivi, Emlak Asistanı şablonları, ajanda ve görsel boyutu sınırını aşan kayıtlar bu yedeklere otomatik dâhil edilmez. Eski sürümler silinmez.</p>
 </section></main>
 <script>
 "use strict";
@@ -37,7 +38,7 @@ const $=id=>document.getElementById(id);
 const parse=x=>{try{return JSON.parse(x)}catch{return null}};
 const isObject=x=>x!==null&&typeof x==="object"&&!Array.isArray(x);
 const clean=x=>String(x??"").trim().toLocaleLowerCase("tr-TR").replace(/\s+/g," ");
-const keys=id=>({clients:"emlakcrm_demo_v1__owner_"+id,portfolios:"emlakcrm_portfoy_rapor_v1__owner_"+id});
+const keys=id=>({clients:"emlakcrm_demo_v1__owner_"+id,portfolios:"emlakcrm_portfoy_rapor_v1__owner_"+id,external_portfolios:"emlakcrm_external_portfolios_v1__owner_"+id});
 let account=null,versions=[],downloaded=false,processing=false,preview=null;
 function message(str,kind="notice"){$("status").className=kind;$("status").textContent=str}
 function currentSession(){return parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"))}
@@ -87,7 +88,7 @@ function download(name,value){
 async function loadHistory(){
  versions=await dataRequest("select=id,kind,item_count,created_at,exported_at,source&order=created_at.desc&limit=100");
  preview=null;$("preview").hidden=true;
- for(const kind of ["portfolios","clients"]){
+ for(const kind of ["portfolios","clients","external_portfolios"]){
   const container=$(kind);container.replaceChildren();
   const rows=versions.filter(x=>x.kind===kind).slice(0,20);
   if(!rows.length){const p=document.createElement("p");p.className="muted";p.style.padding="0 12px";p.textContent="Henüz bulut yedeği yok. Ana uygulamada hesabın açıkken dolu kayıtlar otomatik yedeklenecek.";container.appendChild(p);continue}
@@ -95,7 +96,7 @@ async function loadHistory(){
    const row=document.createElement("div");row.className="row";
    const label=document.createElement("div"),head=document.createElement("strong"),info=document.createElement("small");
    head.textContent=new Date(v.created_at).toLocaleString("tr-TR");
-   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":v.source==="manual_file"?" · YÜKLENEN DOSYA YEDEĞİ":" · Otomatik tarayıcı yedeği");
+   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":kind==="external_portfolios"?" çekilen portföy":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":v.source==="manual_file"?" · YÜKLENEN DOSYA YEDEĞİ":" · Otomatik tarayıcı yedeği");
    if(v.source==="manual_file"&&v.exported_at)info.textContent+=" · Dosya tarihi: "+new Date(v.exported_at).toLocaleString("tr-TR");
    if(v.source==="legacy_cloud"||v.source==="manual_file")info.className="legacy-label";
    label.append(head,info);
@@ -120,7 +121,7 @@ async function showPreview(version){
   const entry=rows[0];
   if(entry.payload.length>10000)throw Error("Bu sürümde çok sayıda kayıt var. Destek ile kontrollü kurtarma yapılmalı.");
   preview={version,source:entry.source};
-  $("previewTitle").textContent=(version.kind==="portfolios"?"Portföy":"Müşteri")+" yedeğindeki kayıtlar ("+entry.payload.length+")";
+  $("previewTitle").textContent=(version.kind==="clients"?"Müşteri":version.kind==="external_portfolios"?"Çekilen Portföy":"Portföy")+" yedeğindeki kayıtlar ("+entry.payload.length+")";
   $("previewSource").textContent=entry.source==="legacy_cloud"
    ?"Eski bulut arşivi: Buradaki kayıtlar önceki sistemden alınmıştır. Deneme kayıtları olabilir; bugünkü bilgisayar yedeğinle aynı olduğunu varsayma."
    :entry.source==="manual_file"
@@ -132,8 +133,8 @@ async function showPreview(version){
    const label=document.createElement("label");label.className="preview-row";
    const input=document.createElement("input");input.type="checkbox";input.dataset.index=String(i);input.onchange=updatePreviewSelection;
    const contents=document.createElement("div"),head=document.createElement("strong"),detail=document.createElement("small");
-   head.textContent=String(version.kind==="portfolios"?(x?.title||x?.name||"Başlıksız portföy"):(x?.name||"İsimsiz müşteri")).slice(0,180);
-   detail.textContent=String(version.kind==="portfolios"?(x?.location||x?.kind||"Konum belirtilmedi"):(x?.type||"Müşteri")).slice(0,150);
+   head.textContent=String(version.kind==="clients"?(x?.name||"İsimsiz müşteri"):(x?.title||x?.name||"Başlıksız portföy")).slice(0,180);
+   detail.textContent=String(version.kind==="clients"?(x?.type||"Müşteri"):(x?.location||x?.kind||"Konum belirtilmedi")).slice(0,150);
    contents.append(head,detail);label.append(input,contents);root.append(label);
   });
   $("restoreSelected").onclick=()=>void restore(version);
@@ -143,6 +144,23 @@ async function showPreview(version){
  }catch(e){$("result").className="bad";$("result").textContent=String(e.message||e)}
 }
 function merge(kind,current,incoming){
+ if(kind==="external_portfolios"){
+  // Imported listings do not necessarily have IDs. Match the original listing URL
+  // plus title, exactly as the importer itself does. Do not replace existing entries.
+  const out=current.slice();let added=0,duplicates=0;
+  const ident=x=>String(x?.url||"")+"|"+String(x?.title||"");
+  const known=new Set(out.filter(isObject).map(ident));
+  for(const item of incoming){
+   if(!isObject(item)||(!String(item.title||"").trim()&&!String(item.url||"").trim())){
+    duplicates++;continue;
+   }
+   const key=ident(item);
+   if(known.has(key)){duplicates++;continue}
+   out.push(item);known.add(key);added++;
+  }
+  return {data:out,added,duplicates};
+ }
+
  const idSet=new Set(current.filter(x=>isObject(x)&&x.id!=null).map(x=>String(x.id)));
  const out=current.slice();
  let added=0,duplicates=0;
@@ -171,12 +189,25 @@ async function restore(version){
   if(!Array.isArray(rows)||rows.length!==1||rows[0].kind!==version.kind||!Array.isArray(rows[0].payload))throw Error("Yedek doğrulanamadı.");
   const item=rows[0],type=version.kind;
   const key=keys(auth.uid)[type],arrayKey=type==="clients"?"clients":"portfolios";
-  const {raw,parsed}=localData(key,arrayKey),joined=merge(type,parsed[arrayKey],item.payload.filter((_,i)=>chosen.has(i)));
+  if(!key)throw Error("Tanımlanmayan veri türü: güvenli geri yükleme durduruldu.");
+  let raw,parsed,current;
+  if(type==="external_portfolios"){
+   raw=localStorage.getItem(key);
+   parsed=raw===null?[]:parse(raw);
+   if(!Array.isArray(parsed))throw Error("Bu cihazın çekilen portföy listesi okunamadı; üzerine yazılmayacak.");
+   current=parsed;
+  }else{
+   ({raw,parsed}=localData(key,arrayKey));
+   current=parsed[arrayKey];
+  }
+  const joined=merge(type,current,item.payload.filter((_,i)=>chosen.has(i)));
+  if(type==="external_portfolios"&&joined.data.length>1000)
+   throw Error("Çekilen portföy listesi 1.000 kayıt sınırını aşıyor; mevcut veriler değiştirilmedi.");
   if(!joined.added){$("result").className="notice";$("result").textContent="Yeni kayıt bulunmadı. "+joined.duplicates+" kayıt zaten mevcut veya çakışıyor.";return}
-  if(!confirm(joined.added+" "+(type==="clients"?"müşteri":"portföy")+" yalnızca sizin bu cihazdaki hesabınıza eklensin mi? Mevcut kayıtlar silinmeyecek."))return;
+  if(!confirm(joined.added+" "+(type==="clients"?"müşteri":type==="external_portfolios"?"çekilen portföy":"portföy")+" yalnızca sizin bu cihazdaki hesabınıza eklensin mi? Mevcut kayıtlar silinmeyecek."))return;
   const second=await identity();if(second.uid!==auth.uid)throw Error("Hesap değişti.");
   if(localStorage.getItem(key)!==raw)throw Error("Bu sırada yerel kayıtlar değişti. Yeniden deneyin.");
-  const updated=JSON.stringify({...parsed,[arrayKey]:joined.data});
+  const updated=JSON.stringify(type==="external_portfolios"?joined.data:{...parsed,[arrayKey]:joined.data});
   localStorage.setItem(key,updated);
   $("result").className="good";
   $("result").textContent=joined.added+" kayıt geri eklendi; "+joined.duplicates+" mükerrer/çakışan kayıt atlandı. Ana uygulamayı açarak kontrol edin.";
@@ -190,7 +221,13 @@ $("downloadLocal").addEventListener("click",()=>{
   const k=keys(account.uid);
   download("EmlakCRM_BulutGeriYukleme_Oncesi_"+new Date().toISOString().slice(0,10)+".json",{
    format:"EmlakCRM-Restore-Preflight",user_id:account.uid,created_at:new Date().toISOString(),
-   crm:localData(k.clients,"clients").parsed,portfolio:localData(k.portfolios,"portfolios").parsed
+   crm:localData(k.clients,"clients").parsed,portfolio:localData(k.portfolios,"portfolios").parsed,
+   external_portfolios:(()=>{
+    const raw=localStorage.getItem(k.external_portfolios);
+    const data=raw===null?[]:parse(raw);
+    if(!Array.isArray(data))throw Error("Çekilen portföy listesi okunamadı; önce kendi cihaz yedeğinizi kontrol edin.");
+    return data;
+   })()
   });
   downloaded=true;updatePreviewSelection();$("result").className="notice";$("result").textContent="Mevcut cihaz yedeği indirildi. Dosyanın İndirilenler klasöründe olduğundan emin olun.";
  }catch(e){$("result").className="bad";$("result").textContent=e.message}
