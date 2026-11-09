@@ -423,6 +423,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <select id="externalCityFilter" aria-label="İl"><option value="">Tüm iller</option></select>
 <select id="externalDistrictFilter" aria-label="İlçe"><option value="">Tüm ilçeler</option></select>
 <select id="externalNeighborhoodFilter" aria-label="Mahalle"><option value="">Tüm mahalleler</option></select>
+<select id="externalConsultantFilter" aria-label="Danışman seç"><option value="">Tüm danışmanlar</option></select>
 <select id="externalKindFilter" aria-label="Satılık kiralık"><option value="">Satılık / Kiralık (Tümü)</option><option value="satılık">Satılık</option><option value="kiralık">Kiralık</option></select>
 <select id="externalSort" aria-label="Portföy sıralaması"><option value="default">Sıralama: Varsayılan</option><option value="priceAsc">Fiyat: Artan</option><option value="priceDesc">Fiyat: Azalan</option><option value="dateDesc">Tarih: Yeniden eskiye</option><option value="dateAsc">Tarih: Eskiden yeniye</option></select>
 <button type="button" class="light" id="externalResetFilters">Filtreleri Temizle</button></div>
@@ -1148,6 +1149,17 @@ function externalFillFilters(records){
  fill(ids[1],parts.filter(x=>!city||x[0]===city).map(x=>x[1]),values[1],"Tüm ilçeler");
  const district=document.getElementById(ids[1]).value;
  fill(ids[2],parts.filter(x=>(!city||x[0]===city)&&(!district||x[1]===district)).map(x=>x[2]),values[2],"Tüm mahalleler");
+ // Danışman listesi çekilen gerçek kayıtlardan otomatik oluşturulur.
+ // Adı olmayan ilanlar ayrıca filtrelenebilir; mevcut seçim korunur.
+ const consultantSelect=document.getElementById("externalConsultantFilter");
+ const previouslySelected=consultantSelect.value;
+ const consultants=[...new Set(records.map(p=>String(p.consultant||"").trim()).filter(Boolean))]
+  .sort((a,b)=>a.localeCompare(b,"tr",{sensitivity:"base"}));
+ consultantSelect.replaceChildren(new Option("Tüm danışmanlar",""));
+ for(const name of consultants)consultantSelect.add(new Option(name,name));
+ if(records.some(p=>!String(p.consultant||"").trim()))consultantSelect.add(new Option("Danışmanı belirtilmeyenler","__missing_consultant__"));
+ consultantSelect.value=[...consultantSelect.options].some(opt=>opt.value===previouslySelected)?previouslySelected:"";
+
 }
 function externalDescriptionPhone(value){
  const description=Array.isArray(value)?(value.find(x=>x?.languageId===1)||value[0]):value;
@@ -1162,9 +1174,11 @@ function externalDraw(){
  const records=externalRead(),root=document.getElementById("externalPortfolioResults");
  externalFillFilters(records);
  const city=document.getElementById("externalCityFilter").value,district=document.getElementById("externalDistrictFilter").value,neighborhood=document.getElementById("externalNeighborhoodFilter").value,kind=document.getElementById("externalKindFilter").value;
+ const consultant=document.getElementById("externalConsultantFilter").value;
  const shown=records.filter(p=>{
   const loc=externalLocationParts(p),k=String(p.kind||"").toLocaleLowerCase("tr-TR");
-  return (!city||loc[0]===city)&&(!district||loc[1]===district)&&(!neighborhood||loc[2]===neighborhood)&&(!kind||k.includes(kind));
+  const consultantName=String(p.consultant||"").trim();
+  return (!city||loc[0]===city)&&(!district||loc[1]===district)&&(!neighborhood||loc[2]===neighborhood)&&(!kind||k.includes(kind))&&(!consultant||(consultant==="__missing_consultant__"?!consultantName:consultantName===consultant));
  });
  const sort=document.getElementById("externalSort").value;
  if(sort!=="default")shown.sort((a,b)=>{
@@ -1215,8 +1229,8 @@ document.getElementById("externalPortfolioResults").addEventListener("click",eve
  db.portfolios.push(item);pid=item.id;save();pick();drawCards();
  alert("Portföylerim bölümüne kopyalandı. Mülk sahibi ve yetki sözleşmesi bilgilerini ayrıca tamamlayabilirsin.");
 });
-for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).addEventListener("change",externalDraw);
-document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalKindFilter","externalSort"])document.getElementById(id).value="";externalDraw()};
+for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalConsultantFilter","externalKindFilter","externalSort"])document.getElementById(id).addEventListener("change",externalDraw);
+document.getElementById("externalResetFilters").onclick=()=>{for(const id of ["externalCityFilter","externalDistrictFilter","externalNeighborhoodFilter","externalConsultantFilter","externalKindFilter","externalSort"])document.getElementById(id).value="";externalDraw()};
 function externalNormalize(raw,source){
  const arr=Array.isArray(raw)?raw:Array.isArray(raw?.portfolios)?raw.portfolios:Array.isArray(raw?.ilanlar)?raw.ilanlar:Array.isArray(raw?.items)?raw.items:Array.isArray(raw?.data)?raw.data:null;
  if(!arr)return null;
