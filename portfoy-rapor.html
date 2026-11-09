@@ -307,7 +307,19 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
  body.reportPrintMode #reportPrintRoot #paper .reportEval[hidden],
  body.reportPrintMode #reportPrintRoot #paper .reportFooter[hidden]{display:none!important}
 }
-</style><style>#paper .reportCover{width:100%;max-height:210px;object-fit:cover;border-radius:10px;margin:5px 0 12px;display:block}#paper .reportCover[hidden]{display:none!important}@media print{#paper .reportCover{max-height:180px;break-inside:avoid}}</style><style>#paper .movementSummary{font-size:13px;font-weight:800;color:#153b57;margin:0 0 12px}#paper .movementRow{border-left:4px solid #229c79;background:#f3f9fb;padding:10px 12px;margin:8px 0;border-radius:6px;break-inside:avoid}#paper .movementNote{white-space:pre-wrap;margin-top:5px;color:#243b4e}@media print{#paper .movementRow{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style><style>#paper .paperHead .paperTitle{width:100%;text-align:center!important;margin:6px auto 18px!important;font-size:32px;font-weight:950;letter-spacing:.5px}@media print{#paper .paperHead .paperTitle{text-align:center!important}}</style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
+</style><style>#paper .reportCover{width:100%;max-height:210px;object-fit:cover;border-radius:10px;margin:5px 0 12px;display:block}#paper .reportCover[hidden]{display:none!important}@media print{#paper .reportCover{max-height:180px;break-inside:avoid}}</style><style>#paper .movementSummary{font-size:13px;font-weight:800;color:#153b57;margin:0 0 12px}#paper .movementRow{border-left:4px solid #229c79;background:#f3f9fb;padding:10px 12px;margin:8px 0;border-radius:6px;break-inside:avoid}#paper .movementNote{white-space:pre-wrap;margin-top:5px;color:#243b4e}@media print{#paper .movementRow{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style><style>#paper .paperHead .paperTitle{width:100%;text-align:center!important;margin:6px auto 18px!important;font-size:32px;font-weight:950;letter-spacing:.5px}@media print{#paper .paperHead .paperTitle{text-align:center!important}}</style><style>
+/* Last print override: guaranteed A4 printable width/height for the isolated report. */
+@page{size:A4;margin:8mm}
+@media print{
+ body.reportPrintMode #reportPrintRoot,
+ body.reportPrintMode #reportPrintRoot #paper{width:194mm!important;max-width:194mm!important}
+ body.reportPrintMode #reportPrintRoot #paper.reportPrintView{display:block!important}
+ body.reportPrintMode #reportPrintRoot #paper .reportCover:not([hidden]){display:block!important}
+ body.reportPrintMode #reportPrintRoot #paper .reportCards:empty{display:none!important}
+}
+#paper .reportCard .favoriteMetric{margin-top:5px}
+#paper .reportCard .favoriteMetric strong{font-size:19px;line-height:1.2}
+</style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
 <section class="panel" id="officeSharingPanel" hidden style="display:none!important">
 <div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
 <p class="hint">Portföyün önce bu bilgisayara kaydedilir. Onaylı ofis hesabınla giriş yaptıysan seçili ofise de paylaşılır. Eski kayıtları "Ofiste Paylaş" ile aktarabilirsin.</p>
