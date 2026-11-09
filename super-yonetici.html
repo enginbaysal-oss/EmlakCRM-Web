@@ -45,7 +45,19 @@
 <header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
-<div id="dashboard" class="hidden">
+<div id="dashboard" class="hidden"><section class="card" id="announcementAdmin" style="margin:16px 0">
+<h2>📣 Ana Sayfa Duyuruları</h2>
+<p class="muted">Yayımlanan duyurular kullanıcıların ana sayfasında görünür. Kişiye özel hedefleme için kullanıcı UUID değerlerini virgülle ayırın.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<label style="grid-column:1/-1">Başlık <input id="announcementTitle" maxlength="120" placeholder="Örn. Yeni danışman filtresi" style="width:100%;padding:11px"></label>
+<label style="grid-column:1/-1">Duyuru metni <textarea id="announcementBody" maxlength="2000" rows="4" style="width:100%;padding:11px;border:1px solid #cad7e3;border-radius:8px" placeholder="Kullanıcıların göreceği duyuru"></textarea></label>
+<label>Hedef kitle<select id="announcementAudience" style="width:100%;padding:10px"><option value="all">Tüm kullanıcılar</option><option value="selected">Seçili kullanıcılar</option></select></label>
+<label>Bitiş tarihi (isteğe bağlı)<input id="announcementEnds" type="datetime-local" style="width:100%;padding:10px"></label>
+<label id="announcementTargetsWrap" style="grid-column:1/-1" hidden>Kullanıcı kimlikleri (UUID, virgülle ayrılmış)<textarea id="announcementTargets" rows="2" style="width:100%;padding:10px" placeholder="Kullanıcı UUID"></textarea></label>
+</div>
+<div class="toolbar"><button type="button" id="announcementPublish">📣 Duyuruyu Yayımla</button><button type="button" id="announcementRefresh">Yenile</button><span id="announcementAdminStatus" class="muted" role="status"></span></div>
+<div id="announcementAdminList"></div>
+</section>
 <div id="approvalAlert" class="approval-alert" role="status" aria-live="polite" hidden>
  <span id="approvalAlertText">İlyada 3 onay talebi bekliyor.</span>
  <button type="button" id="approvalJump">Taleplere Git</button>
@@ -508,6 +520,59 @@ async function loadLegalDeliveryStatus(){
   provider.textContent="Önce süper yönetici hesabınızla giriş yapın.";
  }finally{btn.disabled=false}
 }
+
+const announcementEndpoint=endpoint+"/rest/v1/emlakcrm_announcements";
+const announcementHeaders=token=>({apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"});
+$("announcementAudience").onchange=()=>{$("announcementTargetsWrap").hidden=$("announcementAudience").value!=="selected"};
+async function announcementFetch(url,options={}){
+ const token=await verifiedToken();
+ const res=await fetch(url,{...options,headers:{...announcementHeaders(token),...(options.headers||{})}});
+ if(!res.ok){let error={};try{error=await res.json()}catch{}throw Error(error.message||"Duyuru işlemi başarısız ("+res.status+").")}
+ return res.status===204?null:res.json();
+}
+async function loadAdminAnnouncements(){
+ const root=$("announcementAdminList"),status=$("announcementAdminStatus");
+ try{
+  const rows=await announcementFetch(announcementEndpoint+"?select=id,title,body,audience,is_active,starts_at,ends_at,created_at&order=created_at.desc&limit=60");
+  root.replaceChildren();
+  if(!rows.length){root.textContent="Henüz duyuru yayımlanmadı.";return}
+  for(const row of rows){
+   const div=document.createElement("div");
+   div.style.cssText="padding:11px 0;border-top:1px solid #dfe8f1;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap";
+   const label=document.createElement("div");
+   const strong=document.createElement("strong");strong.textContent=row.title;
+   const p=document.createElement("p");p.textContent=row.body;p.style.margin="4px 0";
+   const small=document.createElement("small");small.textContent=(row.is_active?"Yayında":"Yayından kaldırıldı")+" · "+(row.audience==="all"?"Herkese":"Seçili kullanıcılara")+" · "+new Date(row.created_at).toLocaleString("tr-TR");
+   label.append(strong,p,small);
+   const btn=document.createElement("button");btn.type="button";btn.textContent=row.is_active?"Yayından Kaldır":"Yeniden Yayımla";
+   btn.onclick=async()=>{btn.disabled=true;try{await announcementFetch(announcementEndpoint+"?id=eq."+encodeURIComponent(row.id),{method:"PATCH",body:JSON.stringify({is_active:!row.is_active})});await loadAdminAnnouncements()}catch(e){status.textContent=e.message}finally{btn.disabled=false}};
+   div.append(label,btn);root.appendChild(div);
+  }
+  status.textContent=rows.length+" duyuru listelendi.";
+ }catch(e){status.textContent="Duyurular yüklenemedi: "+e.message}
+}
+$("announcementRefresh").onclick=loadAdminAnnouncements;
+$("announcementPublish").onclick=async()=>{
+ const btn=$("announcementPublish"),status=$("announcementAdminStatus");
+ const title=$("announcementTitle").value.trim(),body=$("announcementBody").value.trim(),audience=$("announcementAudience").value;
+ if(!title||!body){status.textContent="Başlık ve metin zorunlu.";return}
+ const ids=$("announcementTargets").value.split(/[\s,;]+/).filter(Boolean);
+ if(audience==="selected"&&(!ids.length||ids.some(id=>!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)))){status.textContent="Seçili kullanıcılar için geçerli UUID girin.";return}
+ const rawEnds=$("announcementEnds").value;const ends=rawEnds?new Date(rawEnds).toISOString():null;
+ if(ends&&new Date(ends)<=new Date()){status.textContent="Bitiş tarihi gelecekte olmalıdır.";return}
+ btn.disabled=true;status.textContent="Yayımlanıyor…";
+ try{
+  const token=await verifiedToken();
+  const userRes=await fetch(endpoint+"/auth/v1/user",{headers:announcementHeaders(token)});
+  if(!userRes.ok)throw Error("Hesap doğrulanamadı.");
+  const user=await userRes.json();
+  await announcementFetch(announcementEndpoint,{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({title,body,audience,target_user_ids:audience==="selected"?ids:[],ends_at:ends,created_by:user.id})});
+  $("announcementTitle").value="";$("announcementBody").value="";$("announcementTargets").value="";
+  status.textContent="Duyuru yayımlandı.";await loadAdminAnnouncements();
+ }catch(e){status.textContent="Yayımlanamadı: "+e.message}
+ finally{btn.disabled=false}
+};
+
 async function verifiedToken(){
  let saved;try{saved=JSON.parse(sessionStorage.getItem(sessionKey)||localStorage.getItem(rememberedKey)||"null")}catch{}
  if(!saved?.access_token)throw Error("Oturum bulunamadı. Önce Ayarlar üzerinden giriş yapın.");
@@ -528,7 +593,7 @@ async function load(){
   const res=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_subscription_overview",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:"{}"});
   if(!res.ok){const err=await res.json().catch(()=>({}));if([401,403].includes(res.status)||err.code==="42501")throw Error("Bu ekran yalnızca yetkili süper yöneticiler içindir.");throw Error(err.message||"Veriler alınamadı ("+res.status+").")}
   const payload=await res.json();if(!Array.isArray(payload.users))throw Error("Veri biçimi beklenenden farklı.");
-  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();void shopierProductCreationCheck();void loadLegalDeliveryStatus();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
+  userRows=payload.users;$("gate").classList.add("hidden");$("dashboard").classList.remove("hidden");render();void loadDiscounts();void remaxCheck();void shopierCheck();void loadOfficeShopierProduct();void shopierProductCreationCheck();void loadLegalDeliveryStatus();void loadAdminAnnouncements();$("updated").textContent="Son güncelleme: "+fmt(payload.generated_at);
  }catch(err){userRows=[];showGate(err.message);$("error").textContent=err.message}
  finally{$("refresh").disabled=false}
 }
