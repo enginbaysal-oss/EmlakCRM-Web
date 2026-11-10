@@ -549,6 +549,22 @@ let crmLastSavedRaw=null,crmDataSaveBlocked=false,crmLoadError="";
 try{
  crmLastSavedRaw=localStorage.getItem(key);
  data=crmLastSavedRaw?JSON.parse(crmLastSavedRaw):{clients:[],tasks:[]};
+ // Safely migrate the legacy shape {clients:[...]} where the empty agenda
+ // field was omitted. Never discard records: archive the original first.
+ if(data&&typeof data==="object"&&!Array.isArray(data)&&
+    Array.isArray(data.clients)&&data.tasks===undefined&&crmLastSavedRaw!==null){
+   const accountId=window.emlakcrmAccountDataScope?.currentUserId();
+   if(!accountId)throw Error("Hesap dogrulanamadi. Yerel veri degistirilmedi.");
+   const archiveKey="emlakcrm_crm_schema_before_repair_v1__owner_"+accountId;
+   if(localStorage.getItem(archiveKey)===null)
+     localStorage.setItem(archiveKey,crmLastSavedRaw);
+   if(localStorage.getItem(key)!==crmLastSavedRaw)
+     throw Error("CRM kaydi bu sirada degisti; onarim durduruldu.");
+   data={...data,tasks:[]};
+   const normalized=JSON.stringify(data);
+   localStorage.setItem(key,normalized);
+   crmLastSavedRaw=normalized;
+ }
  if(!data||typeof data!=="object"||Array.isArray(data)||!Array.isArray(data.clients)||!Array.isArray(data.tasks))
   throw Error("Yerel CRM kaydi beklenen bicimde degil.");
 }catch(e){
@@ -598,6 +614,15 @@ function commitCrmChange(change){
 }
 $("crmSafetyExport").addEventListener("click",()=>$("crmFullExport").click());
 $("crmReloadCurrent").addEventListener("click",()=>location.reload());
+window.addEventListener("pageshow",event=>{
+ // The back-forward cache may keep an old warning after the recovery page
+ // successfully rewrites local storage. Reload only if the data is valid now.
+ if(!event.persisted||!crmDataSaveBlocked)return;
+ try{
+   const saved=JSON.parse(localStorage.getItem(key)||"null");
+   if(saved&&Array.isArray(saved.clients)&&Array.isArray(saved.tasks))location.reload();
+ }catch(_){}
+});
 window.addEventListener("storage",event=>{
  if(event.key===key&&event.newValue!==crmLastSavedRaw){
   crmDataSaveBlocked=true;
