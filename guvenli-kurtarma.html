@@ -23,7 +23,7 @@ a{color:#12638c}li{margin:7px 0}
 <button type="button" id="download" class="secondary" disabled>1. Mevcut cihazın güvenlik yedeğini indir</button>
 <button type="button" id="restore" disabled>2. Portföy ve müşterileri kurtar</button>
 <p><small>Doğrulama tamamlanmadan veya cihaz yedeği indirilmeden kurtarma yapılamaz. İşlem mevcut geçerli kayıtlarla birleştirir; varsa okunamayan ham kaydı ayrı korur.</small></p>
-<p><a href="./index.html?mobile=restored-20261110#account">EmlakCRM ana sayfasına dön</a></p>
+<p><a id="homeLink" href="./index.html?mobile=restored-20261110#account">EmlakCRM ana sayfasına dön</a></p>
 </section></main>
 <script>
 "use strict";
@@ -58,10 +58,23 @@ function preserveSnapshot(){
 }
 function parseCurrent(raw,kind){
  const parsed=raw===null?null:safeJson(raw);
- const field=kind==="clients"?"clients":"portfolios";
- if(object(parsed)&&Array.isArray(parsed[field]))return {value:parsed,damaged:false};
- return {value:kind==="clients"?{clients:[],tasks:[],offices:[],members:[]}:
-   {portfolios:[],advisor:{},drafts:{},siteCatalog:[]},damaged:raw!==null};
+ if(kind==="clients"){
+   // CRM requires BOTH clients and tasks arrays. The prior recovery code checked
+   // clients only and could re-save malformed data, leaving the yellow warning.
+   if(object(parsed)){
+     const valid=Array.isArray(parsed.clients)&&Array.isArray(parsed.tasks);
+     return {value:{...parsed,
+       clients:Array.isArray(parsed.clients)?parsed.clients:[],
+       tasks:Array.isArray(parsed.tasks)?parsed.tasks:[],
+       offices:Array.isArray(parsed.offices)?parsed.offices:[],
+       members:Array.isArray(parsed.members)?parsed.members:[]},
+       damaged:!valid};
+   }
+   return {value:{clients:[],tasks:[],offices:[],members:[]},damaged:raw!==null};
+ }
+ if(object(parsed)&&Array.isArray(parsed.portfolios))
+   return {value:parsed,damaged:false};
+ return {value:{portfolios:[],advisor:{},drafts:{},siteCatalog:[]},damaged:raw!==null};
 }
 function joinById(current,items){
  const out=current.slice(),ids=new Set(out.filter(object).map(x=>String(x.id||"")));
@@ -83,7 +96,7 @@ async function load(){
    throw Error("Bu kurtarma yalnızca engin.baysal@remax-ilyada.com hesabına aittir. Aktif hesap: "+(user?.email||"belirsiz"));
  const active=localStorage.getItem("emlakcrm_active_account_v1");
  if(active&&active!==user.id)throw Error("Tarayıcıda farklı hesap aktif. Ana uygulamadan doğru hesapla giriş yapın.");
- const qs="select=kind,item_count,payload,created_at,source&source=eq.manual_file&order=created_at.desc&limit=30";
+ const qs="select=kind,item_count,payload,created_at,source&user_id=eq."+encodeURIComponent(user.id)+"&source=eq.manual_file&order=created_at.desc&limit=30";
  const versions=await get(BASE+"/rest/v1/emlakcrm_user_backups?"+qs);
  records={};
  for(const kind of ["portfolios","clients"]){
@@ -125,7 +138,9 @@ $("restore").onclick=async()=>{
      throw Error("Cihaz kayıtları değişti. Yeniden deneyin.");
    originals={clients:now.raw_clients,portfolios:now.raw_portfolios};
    rawKey="emlakcrm_recovery_original_v1__owner_"+user.id;
-   if(localStorage.getItem(rawKey)!==null)throw Error("Önceki güvenlik kopyası mevcut. Üzerine yazma yapılmayacak.");
+   // Preserve the first original forever. A retry gets a new protected snapshot.
+   if(localStorage.getItem(rawKey)!==null)
+     rawKey="emlakcrm_recovery_retry_before_"+Date.now()+"__owner_"+user.id;
    localStorage.setItem(rawKey,JSON.stringify(now));
    const rawCrm=JSON.stringify({...crm.value,clients:clients.out});
    const rawPort=JSON.stringify({...port.value,portfolios:portfolios.out});
@@ -140,7 +155,9 @@ $("restore").onclick=async()=>{
      throw e;
    }
    status("Kurtarma tamamlandı: "+clients.added+" müşteri, "+portfolios.added+
-     " portföy eklendi. Eski ham kayıtlar ayrıca saklandı. Ana EmlakCRM sayfasını yeniden açarak kontrol edin.",false,true);
+     " portföy eklendi. CRM müşteri/ajanda kayıt biçimi de doğrulandı. Eski ham kayıtlar ayrıca saklandı. Aşağıdaki EmlakCRM'yi Aç bağlantısına basın.",false,true);
+   const home=document.getElementById("homeLink");
+   if(home){home.href="./index.html?recovered="+Date.now()+"#customers";home.textContent="✅ EmlakCRM'yi Yeniden Aç ve Kayıtları Kontrol Et";}
    $("restore").disabled=true;
  }catch(e){status("Kurtarma durduruldu: "+String(e?.message||e),true)}
  finally{busy=false}
