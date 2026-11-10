@@ -400,6 +400,7 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <div id="crmDataSafety" role="alert" aria-live="assertive" hidden>
  <span id="crmDataSafetyMessage">Bu sekmede kayit catismasi algilandi.</span>
  <button id="crmSafetyExport" type="button">Bu sekmenin yedeğini indir</button>
+ <a id="crmRecoveryLink" href="./guvenli-kurtarma.html?v=20261110-2" style="display:inline-flex;align-items:center;text-decoration:none;padding:10px 14px;border-radius:10px;background:#176e57;color:#fff;font-size:13px;font-weight:750">Bulut Yedeğinden Güvenle Kurtar</a>
  <button id="crmReloadCurrent" type="button">Güncel kayıtları aç</button>
 </div>
 <header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1 class="emlakcrm-brand-inline"><img class="emlakcrm-brand-logo" src="assets/emlakcrm-logo.svg" alt="EmlakCRM logosu">EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><span id="crmHomeSessionLamp" role="status" aria-live="polite" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#fff"><span id="crmHomeSessionDot" style="width:10px;height:10px;border-radius:50%;background:#aeb8c3;display:inline-block"></span><span id="crmHomeSessionText">Kontrol ediliyor</span></span><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
@@ -603,7 +604,10 @@ window.addEventListener("storage",event=>{
   showCrmDataSafety("CRM veya Ajanda kayitlari baska bir sekmede degisti. Bu sekmenin eski verilerle kaydetmesine izin verilmiyor. Once yedek alin, sonra sayfayi yenileyin.");
  }
 });
-if(crmDataSaveBlocked)showCrmDataSafety("Bu tarayicidaki CRM verisi okunamadi ("+crmLoadError+"). Uzerine yazma engellendi. Verilerinizi kontrol edin.");
+if(crmDataSaveBlocked){
+ showCrmDataSafety("Bu tarayicidaki CRM verisi okunamadi ("+crmLoadError+"). Kayitlar korunuyor. Yukaridaki Bulut Yedeginden Guvenle Kurtar secenegini kullanin.");
+ $("crmReloadCurrent").hidden=true;
+}
 $("openAuth").onclick=()=>{location.hash="account";showScreen("account");$("crmInlineEmail").focus()};const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let editingClientId=null;let historyClientId=null;
 const idGen=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"demo_"+Date.now()+"_"+Math.random().toString(36).slice(2);
