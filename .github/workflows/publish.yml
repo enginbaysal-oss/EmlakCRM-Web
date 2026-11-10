@@ -39,6 +39,11 @@ jobs:
                       raise SystemExit("Mapbox token placeholder missing")
                   content = content.replace(marker, 'const MAPBOX_PUBLIC_TOKEN="' + token + '";')
               (dest / src.name).write_text(content, encoding="utf-8")
+          # Publish public PWA and client-side scripts used by mobile and backup features.
+          # Keep the allowlist narrow: never publish private files or JSON backups.
+          for pattern in ("*.js", "*.css", "*.webmanifest"):
+              for src in Path(".").glob(pattern):
+                  shutil.copy2(src, dest / src.name)
           # Publish static image assets used by legal and payment sections.
           assets = Path("assets")
           if assets.is_dir():
