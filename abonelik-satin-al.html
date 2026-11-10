@@ -182,11 +182,13 @@ function render(){
   paymentData?.price_kurus===amount*100&&!pending&&!paymentData?.already_active;
  byId("pay").disabled=!logged||!ready||!byId("approve").checked;
  byId("pay").textContent=!logged?"Önce Giriş Yap":pending?"Ofis Onayı Bekleniyor":
-  paymentData?.already_active?"Aboneliğiniz Aktif":ready?"Shopier ile Güvenli Ödeme":"Ödeme Şimdilik Kapalı";
+  paymentData?.already_active?"Aboneliğiniz Aktif":ready?"Shopier ile Güvenli Ödeme":
+  paymentData===null?"Ödeme Uygunluğu Kontrol Ediliyor":"Ödeme Kullanılamıyor";
  byId("checkoutNotice").textContent=!logged?"Ödeme için oturum açın.":pending?"Ofis onayını bekleyin.":
   paymentData?.already_active?"Aboneliğiniz zaten aktif. Yeniden ödeme yapmayın.":
-  ready?"Ödeme Shopier'de tamamlanır. EmlakCRM e-postanızı aynı girin.":
-  "Shopier otomatik abonelik doğrulaması test edilene kadar ödeme kapalı.";
+  ready?"Shopier ödemeleri açıktır. Satın alma koşullarını işaretleyince güvenli ödeme düğmesi etkinleşir.":
+  paymentData===null?"Hesap ve ödeme uygunluğu doğrulanıyor. Hata varsa aşağıdaki açıklamaya bakın.":
+  paymentData?.activation_enabled!==true?"Ödeme aktivasyonu yönetim sistemi tarafından durdurulmuş.":"Bu hesap için ödeme şu anda kullanılamıyor; kayıtlı abonelik veya ofis onayı durumunu kontrol edin.";
  byId("buyerEmail").textContent=paymentData?.required_buyer_email
   ?"Shopier'de kullanmanız gereken e-posta: "+paymentData.required_buyer_email:"";
 }
