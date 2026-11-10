@@ -3,7 +3,7 @@
   "short_name": "EmlakCRM",
   "description": "EmlakCRM: Müşteriler, portföyler, ajanda, belge ve gayrimenkul yönetim araçları.",
   "id": "/EmlakCRM-Web/",
-  "start_url": "/EmlakCRM-Web/index.html",
+  "start_url": "/EmlakCRM-Web/index.html?app=restored-20261110",
   "scope": "/EmlakCRM-Web/",
   "display": "standalone",
   "background_color": "#f2f6fb",
