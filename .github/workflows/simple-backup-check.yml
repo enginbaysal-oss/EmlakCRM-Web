@@ -1,0 +1,38 @@
+name: Test simple date-only cloud backup restore
+on:
+  push:
+    branches:
+      - feature/sade-bulut-yedek-tarih-20261111
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Validate all restore point and non-destructive merge tests
+        run: deno test --allow-read=index.html,bulut-yedek.html,emlakcrm-cloud-backup.js tests/bulut-yedek-sade.test.ts
+      - name: Typecheck browser recovery modules
+        run: deno check bulut-yedek-core.js bulut-yedek-sade.js
+      - name: Check original upload pipeline and payment/auth code unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          if ! git diff --quiet origin/main -- emlakcrm-cloud-backup.js; then
+            echo 'Existing cloud backup pipeline was modified'; exit 1
+          fi
+          if ! git diff --quiet origin/main -- supabase/functions; then
+            echo 'Payment/auth functions were modified'; exit 1
+          fi
+          if ! git diff --quiet origin/main -- android; then
+            echo 'Android code changed'; exit 1
+          fi
+          echo "BACKUP_ENGINE_UNCHANGED"
+          echo "PAYMENT_ANDROID_UNCHANGED"
