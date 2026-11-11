@@ -1543,7 +1543,9 @@ $("cloudOfficeList").onclick=async event=>{
   $("cloudOfficeStatus").textContent="“"+officeName+"” silindi. Şimdi yeni ofis oluşturabilir veya bir ofise katılabilirsin.";
  }catch(err){$("cloudOfficeStatus").textContent="Ofis silinemedi: "+err.message;del.disabled=false}
 };
-const CRM_AUTH_RETURN_URL="https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
+const CRM_AUTH_RETURN_URL=location.origin==="https://emlkcrm.com.tr"
+ ?new URL("./index.html",location.href).href
+ :"https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
 let crmAuthMode="login";
 function crmShowRecoveryRequest(message=""){
  crmRecoveryToken=null;
