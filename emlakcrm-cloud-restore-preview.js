@@ -16,6 +16,16 @@ const KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const validToken=v=>typeof v==="string"&&v.length>16&&v.length<8192&&/^[a-zA-Z0-9._~-]+$/.test(v);
 const fail=message=>{throw new Error(message)};
+/**
+ * @param {{
+ *  session?: {access_token?: string}|null,
+ *  expectedAccountId?: string,
+ *  activeAccountId?: string|null,
+ *  fetcher?: (input: RequestInfo|URL, init?: RequestInit) => Promise<Response>,
+ *  baseUrl?: string,
+ *  publishableKey?: string
+ * }} [options]
+ */
 export async function readCloudBackupOverview({
  session, expectedAccountId, activeAccountId=null,
  fetcher=fetch, baseUrl=API, publishableKey=KEY
