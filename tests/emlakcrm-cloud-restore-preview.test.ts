@@ -2,12 +2,13 @@ import {BACKUP_KINDS,readCloudBackupOverview} from "../emlakcrm-cloud-restore-pr
 const USER="00aa00bb-11cc-22dd-33ee-44ff55667788";
 const TOKEN="valid-token-for-tests-not-a-real-secret";
 const url="https://tffvwxskvjuxoekwgdef.supabase.co";
-const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}});
+const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}});
 function mockFetch(requests:Array<{url:string,options:any}>,user=USER){
- return async (url:string,options:any)=>{
-  requests.push({url,options});
-  if(url.endsWith("/auth/v1/user"))return json({id:user});
-  const kind=new URL(url).searchParams.get("kind")?.replace("eq.","");
+ return async (url:RequestInfo|URL,options?:RequestInit)=>{
+  const textUrl=String(url);
+  requests.push({url:textUrl,options:options||{}});
+  if(textUrl.endsWith("/auth/v1/user"))return json({id:user});
+  const kind=new URL(textUrl).searchParams.get("kind")?.replace("eq.","");
   if(kind==="clients")return json([{kind,item_count:2,created_at:"2026-11-11T09:00:00Z"}]);
   if(kind==="portfolios")return json([{kind,item_count:14,created_at:"2026-11-11T09:02:00Z"}]);
   return json([]);
@@ -33,14 +34,14 @@ Deno.test("only account-scoped backup metadata is requested, never payload or wr
  }
 });
 Deno.test("rejects missing session and mismatched active account before network",async()=>{
- const fetcher=()=>{throw Error("should not call network")};
+ const fetcher=async (_input:RequestInfo|URL,_init?:RequestInit):Promise<Response>=>{throw Error("should not call network")};
  for(const props of [
   {session:null,expectedAccountId:USER},
   {session:{access_token:TOKEN},expectedAccountId:"invalid"},
   {session:{access_token:TOKEN},expectedAccountId:USER,activeAccountId:"another-user"}
  ]){
   let failed=false;
-  try{await readCloudBackupOverview({...props,fetcher})}catch{failed=true}
+  try{await readCloudBackupOverview({...props,fetcher} as Parameters<typeof readCloudBackupOverview>[0])}catch{failed=true}
   expect(failed,"fail-closed");
  }
 });
