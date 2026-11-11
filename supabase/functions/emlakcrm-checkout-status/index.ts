@@ -1,8 +1,9 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {cors,reply,loggedInUser,validUuid,db} from "../_shared/emlakcrm-payments.ts";
 import {subscriptionIsActive} from "../_shared/emlakcrm-subscription-state.ts";
 import {orderByUser,reconcile} from "../_shared/emlakcrm-checkout-finalize.ts";
-Deno.serve(async(req:Request)=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="GET")return reply(405,{error:"method_not_allowed"});
  try{
@@ -35,4 +36,5 @@ Deno.serve(async(req:Request)=>{
   if(e instanceof Error&&e.message==="invalid_user_session")return reply(401,{error:"login_required"});
   return reply(503,{error:"status_temporarily_unavailable"});
  }
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));

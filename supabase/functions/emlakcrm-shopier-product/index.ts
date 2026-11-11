@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 /** Shopier 500 TRY hidden digital product creation. Superadmin only.
  * Never opens subscriptions or changes the existing 750 TRY product.
@@ -92,7 +93,7 @@ async function discoverPrivateOfficeProduct(){
  if(matches.size!==1)throw Error("multiple_matching_products_manual_review");
  return [...matches.keys()][0];
 }
-Deno.serve(async(req:Request)=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(!["GET","POST","PUT"].includes(req.method))return respond(405,{error:"method_not_allowed"});
  try{
@@ -149,4 +150,5 @@ Deno.serve(async(req:Request)=>{
   return respond(503,{error:"product_setup_failed",
    reason:/^(?:shopier_product_http_\d+|provider_key_missing|provider_product_id_missing|provider_product_attributes_not_verified|provider_retrieval_mismatch|provider_product_id_invalid)$/.test(reason)?reason:"server_or_provider_error"});
  }
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));
