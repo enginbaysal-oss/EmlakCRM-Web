@@ -75,7 +75,7 @@ async function load(){
   select.disabled=!points.length;
   $("restore").disabled=!points.length;
   if(!points.length){
-   status("Tüm kayıt türlerini içeren bir tarih bulunamadı. Önce ana EmlakCRM'de 'Buluta Yedekle' düğmesine basın.","warn");
+   status("Bu hesap için bulut yedeği bulunamadı. Önce ana EmlakCRM'de 'Buluta Yedekle' düğmesine basın.","warn");
   }else{
    status("Yedekler hazır. Sadece tarih ve saati seçin, ardından tamamını geri yükleyin.","good");
   }
@@ -114,7 +114,7 @@ async function restoreAll(){
  const point=points.find(p=>String(p.minute)===$("date").value);
  if(!point||!account){issue("Önce tarih ve saat seçin.");return;}
  busy=true;$("restore").disabled=true;$("reload").disabled=true;
- $("result").textContent="";status("Üç yedek doğrulanıyor; mevcut kayıtlar korunacak…");
+ $("result").textContent="";status("Seçilen yedekler doğrulanıyor; mevcut kayıtlar korunacak…");
  try{
   const auth=await identify();
   if(auth.uid!==account.uid)throw Error("Hesap değişti.");
@@ -122,7 +122,7 @@ async function restoreAll(){
   // Fetch and check ALL THREE categories before any local writes.
   for(const kind of KINDS){
    const version=point.snapshots[kind];
-   if(!version)throw Error("Bu tarih için "+kind+" yedeği eksik.");
+   if(!version)continue; // Bu kategoride yedek yok; mevcut verileri olduğu gibi koru.
    const qs=new URLSearchParams({
     select:"id,kind,item_count,payload",
     user_id:"eq."+auth.uid,
@@ -152,7 +152,8 @@ async function restoreAll(){
   const second=await identify();
   if(second.uid!==auth.uid)throw Error("Hesap değişti; hiçbir kayıt eklenmedi.");
   const next={};const keyNames={};
-  for(const kind of KINDS){
+  const availableKinds=KINDS.filter(kind=>point.snapshots[kind]);
+  for(const kind of availableKinds){
    keyNames[kind]=KEY_PREFIX[kind]+auth.uid;
    if(localStorage.getItem(keyNames[kind])!==local.raw[kind])
     throw Error("İşlem sırasında cihaz kayıtları değişti. Yeniden deneyin.");
@@ -160,7 +161,7 @@ async function restoreAll(){
   }
   const written=[];
   try{
-   for(const kind of KINDS){
+   for(const kind of availableKinds){
     localStorage.setItem(keyNames[kind],next[kind]);
     written.push(kind);
     if(localStorage.getItem(keyNames[kind])!==next[kind])throw Error("Kaydedilen veri doğrulanamadı.");
