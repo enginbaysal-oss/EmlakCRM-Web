@@ -1,238 +1,39 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EmlakCRM | Güvenli Bulut Yedekleri</title>
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>EmlakCRM | Buluttan Geri Yükle</title>
 <style>
-:root{font:15px/1.5 system-ui,Segoe UI,sans-serif;color:#183c52;background:#f0f6fb}
-*{box-sizing:border-box}body{margin:0;padding:12px}main{max-width:830px;margin:12px auto;background:#fff;border-radius:15px;padding:24px;box-shadow:0 8px 22px #143e5819}
-h1{font-size:24px;margin:0}h2{font-size:19px}p{line-height:1.55}.muted{color:#5c7282}
-.notice{background:#eef6fa;border-left:4px solid #1b7893;border-radius:9px;padding:12px}
-.warn{background:#fff4e6;border-left:4px solid #dd8826;border-radius:9px;padding:12px}
-.good{background:#e7f6ed;border-left:4px solid #0d815c;border-radius:9px;padding:12px}
-.bad{background:#fff0ee;border-left:4px solid #bf3b3b;border-radius:9px;padding:12px}
-.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:15px 0}
-button,.back{background:#ef8926;border:0;border-radius:10px;padding:11px 15px;font:750 14px system-ui;color:#193749;cursor:pointer;text-decoration:none;display:inline-block}
-button:disabled{opacity:.6;cursor:not-allowed}.back{background:#e8f1f6}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #dde6ed}
-.row:last-child{border:0}.row strong{display:block}.row small{color:#66798b}.collection{border:1px solid #dbe6ee;border-radius:12px;margin:12px 0;overflow:hidden}
-.preview-row{display:flex;align-items:flex-start;gap:10px;padding:11px;border-bottom:1px solid #dce6ee;cursor:pointer}.preview-row input{width:19px;height:19px;margin:3px 0 0;accent-color:#138768}.preview-row strong{display:block}.preview-row small{display:block;color:#6a7d8c}.legacy-label{color:#9e5516;font-weight:700}#history[hidden],#preview[hidden]{display:none!important}.confirm{display:flex;align-items:flex-start;gap:10px;margin:16px 0}.confirm input{width:19px;height:19px;flex:none}
-@media(max-width:600px){main{padding:17px}.row{align-items:flex-start;flex-direction:column}.row button{width:100%}}
-</style></head><body><main>
-<a class="back" href="./index.html#account">← Hesap ve Yedekleme</a>
-<p class="muted" style="margin:4px 0 12px">Bu sayfa giriş yapmış olduğunuz EmlakCRM hesabına bağlıdır. Başka bir tarayıcıda açtıysanız önce orada da giriş yapmanız gerekir.</p>
-<h1>☁️ Güvenli Bulut Yedekleri</h1>
-<p class="notice">EmlakCRM hesabın açıkken müşterilerin, kendi portföylerin ve <strong>Çekilen Portföyler</strong> listen buluta <strong>ayrı sürümler olarak</strong> yedeklenir. Bu sayfa hiçbir kaydı kendiliğinden geri yüklemez.</p>
-<p class="warn">Başka cihazdaki boş kayıtlar eski yedeği silmez. Geri yükleme seçerek ve <strong>mevcut kayıtları koruyarak</strong> yapılır. Yalnızca giriş yaptığın kendi hesabının yedeklerine erişebilirsin.</p>
-<p id="status" role="status" class="notice">Hesap doğrulanıyor…</p>
+:root{font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;color:#193b50;background:#edf5fa}
+*{box-sizing:border-box}body{margin:0;padding:17px;background:linear-gradient(150deg,#edf5fa,#fafcfe);min-height:100vh}
+main{max-width:660px;margin:12px auto;background:white;border:1px solid #d8e5ed;border-radius:17px;padding:27px;box-shadow:0 13px 35px #143e5918}
+h1{font-size:27px;margin:13px 0 12px;line-height:1.2}p{color:#536b7e}
+.back{display:inline-flex;align-items:center;color:#1b6281;background:#e9f2f7;border-radius:10px;padding:11px 14px;font-weight:800;text-decoration:none}
+label{font-weight:800;display:block;margin:17px 0 8px}
+select{display:block;width:100%;min-height:53px;padding:13px;border:1px solid #aac6d7;background:#fcfeff;border-radius:10px;font:inherit;color:#143b52}
+button{font:inherit;font-weight:800;cursor:pointer;border:0;border-radius:11px;min-height:51px;padding:12px 16px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.primary{width:100%;background:#15745a;color:white;font-size:17px;margin:17px 0 5px}
+.minor{background:#e9f2f7;color:#1e5673;font-size:13px;min-height:38px}
+.notice,.warn,.good,.bad{margin:16px 0;padding:13px 15px;background:#eaf4f9;border-left:4px solid #2a849d;border-radius:9px;line-height:1.55;overflow-wrap:anywhere}
+.good{background:#e8f7ec;border-color:#2b915f}.bad{background:#ffefeb;border-color:#bf4236}.warn{background:#fff4e5;border-color:#d88d28}
+#history[hidden]{display:none!important}
+#detail{display:block;margin:9px 0;color:#566e81;font-size:14px}
+#result:empty{display:none}
+.foot{font-size:13px;color:#647c8c;border-top:1px solid #e2eaf0;padding-top:15px;margin-top:22px}
+@media(max-width:540px){body{padding:10px}main{padding:22px 17px}h1{font-size:24px}}
+</style></head>
+<body><main>
+<a class="back" href="./index.html#account">← EmlakCRM'ye Dön</a>
+<h1>☁️ Buluttan Geri Yükle</h1>
+<p>Buluta kaydedilmiş müşteri, portföy ve çekilen portföy kayıtlarını <strong>tek seferde</strong> geri getirebilirsiniz.</p>
+<div class="warn"><strong>Mevcut kayıtlarınız silinmez.</strong> Sistem eksik kayıtları ekler, aynı kayıtları ikinci kez oluşturmaz. İşleme başlamadan önce cihazınızın güvenlik yedeğini indirmeye çalışır.</div>
+<p id="status" class="notice" role="status" aria-live="polite">Hesabınız doğrulanıyor…</p>
 <section id="history" hidden>
-<div class="bar"><button type="button" id="reload">Yedekleri Yenile</button><button type="button" id="downloadLocal">⬇ Önce Mevcut Cihaz Yedeğini İndir</button></div>
-<label class="confirm"><input type="checkbox" id="confirmLocal"><span>Mevcut cihaz yedeğimi indirdim ve güvenli yerde sakladım.</span></label>
-<h2>Portföy yedeklerim</h2><div class="collection" id="portfolios"></div>
-<h2>Alıcı / Satıcı / Diğer Müşteri yedeklerim</h2><div class="collection" id="clients"></div>
-<h2>🔗 Çekilen Portföy yedeklerim</h2><div class="collection" id="external_portfolios"></div>
-<section id="preview" hidden><h2 id="previewTitle">Bu yedeğin içeriği</h2><p id="previewSource" class="warn"></p><p class="muted">Yalnızca sana ait olduğundan emin olduğun kayıtları işaretle. Deneme kayıtlarını seçme. Müşteri telefonları burada gösterilmez.</p><div class="collection" id="previewRows"></div><p id="previewCount" class="muted">Henüz seçim yok.</p><div class="bar"><button type="button" id="restoreSelected" disabled>Seçilenleri Kendi Hesabıma Ekle</button></div></section><p id="result" role="status"></p>
-<p class="muted">Bu özellik CRM müşteri kayıtlarını, Portföy Yönetimi kayıtlarını ve Çekilen Portföyler listesini kapsar. PDF İmzala arşivi, Emlak Asistanı şablonları, ajanda ve görsel boyutu sınırını aşan kayıtlar bu yedeklere otomatik dâhil edilmez. Eski sürümler silinmez.</p>
-</section></main>
-<script>
-"use strict";
-const ENDPOINT="https://tffvwxskvjuxoekwgdef.supabase.co",APIKEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-const $=id=>document.getElementById(id);
-const parse=x=>{try{return JSON.parse(x)}catch{return null}};
-const isObject=x=>x!==null&&typeof x==="object"&&!Array.isArray(x);
-const clean=x=>String(x??"").trim().toLocaleLowerCase("tr-TR").replace(/\s+/g," ");
-const keys=id=>({clients:"emlakcrm_demo_v1__owner_"+id,portfolios:"emlakcrm_portfoy_rapor_v1__owner_"+id,external_portfolios:"emlakcrm_external_portfolios_v1__owner_"+id});
-let account=null,versions=[],downloaded=false,processing=false,preview=null;
-function message(str,kind="notice"){$("status").className=kind;$("status").textContent=str}
-function currentSession(){return parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"))}
-async function identity(){
- const saved=currentSession();
- if(!saved?.access_token)throw Error("Önce EmlakCRM hesabınıza giriş yapın.");
- const h={apikey:APIKEY,Authorization:"Bearer "+saved.access_token};
- const r=await fetch(ENDPOINT+"/auth/v1/user",{headers:h,cache:"no-store"});
- if(!r.ok)throw Error("Oturum geçersiz. Yeniden giriş yapın.");
- const user=await r.json();
- if(!user?.id||! /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id))
-  throw Error("Hesap kimliği doğrulanamadı. Ana EmlakCRM üzerinden yeniden giriş yapın.");
- // Auth server is authoritative; never silently adopt a DIFFERENT active account.
- const activeKey="emlakcrm_active_account_v1";
- const active=localStorage.getItem(activeKey);
- if(active&&active!==user.id)
-  throw Error("Bu tarayıcıda başka hesap aktif görünüyor. Kayıtlarınız korunuyor. Ana EmlakCRM'de çıkış yapıp kendi hesabınıza yeniden giriş yapın; sonra bu sayfayı aynı tarayıcıdan açın.");
- // A new mobile tab may carry the remembered, server-verified session but no active-account marker.
- // Restore only that missing marker; never read common legacy records or another owner's keys.
- if(!active){
-  if(localStorage.getItem(activeKey)!==null)
-   throw Error("Bu sırada aktif hesap değişti. EmlakCRM'den yeniden giriş yapın.");
-  localStorage.setItem(activeKey,user.id);
- }
- if(localStorage.getItem(activeKey)!==user.id)
-  throw Error("Hesap kontrolü tamamlanamadı. Ana uygulamadan yeniden giriş yapın.");
- return {uid:user.id,headers:h};
-}
-async function dataRequest(path){
- const auth=await identity();if(!account||auth.uid!==account.uid)throw Error("Aktif hesap değişti.");
- const r=await fetch(ENDPOINT+"/rest/v1/emlakcrm_user_backups?"+path,{headers:auth.headers,cache:"no-store"});
- if(!r.ok)throw Error("Bulut yedeğine erişilemiyor ("+r.status+").");
- return r.json();
-}
-function localData(k,arrayKey){
- const raw=localStorage.getItem(k);
- if(raw===null)return {raw:null,parsed:{[arrayKey]:[]}};
- const parsed=parse(raw);
- if(!isObject(parsed)||!Array.isArray(parsed[arrayKey]))throw Error("Mevcut "+arrayKey+" verisi okunamadı. Üzerine yazma engellendi.");
- return {raw,parsed};
-}
-function download(name,value){
- const blob=new Blob([JSON.stringify(value)],{type:"application/json;charset=utf-8"});
- const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;
- document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-}
-async function loadHistory(){
- versions=await dataRequest("select=id,kind,item_count,created_at,exported_at,source&order=created_at.desc&limit=100");
- preview=null;$("preview").hidden=true;
- for(const kind of ["portfolios","clients","external_portfolios"]){
-  const container=$(kind);container.replaceChildren();
-  const rows=versions.filter(x=>x.kind===kind).slice(0,20);
-  if(!rows.length){const p=document.createElement("p");p.className="muted";p.style.padding="0 12px";p.textContent="Henüz bulut yedeği yok. Ana uygulamada hesabın açıkken dolu kayıtlar otomatik yedeklenecek.";container.appendChild(p);continue}
-  for(const v of rows){
-   const row=document.createElement("div");row.className="row";
-   const label=document.createElement("div"),head=document.createElement("strong"),info=document.createElement("small");
-   head.textContent=new Date(v.created_at).toLocaleString("tr-TR");
-   info.textContent=v.item_count+(kind==="clients"?" müşteri kaydı":kind==="external_portfolios"?" çekilen portföy":" portföy")+(v.source==="legacy_cloud"?" · ESKİ BULUT KAYDI":v.source==="manual_file"?" · YÜKLENEN DOSYA YEDEĞİ":" · Otomatik tarayıcı yedeği");
-   if(v.source==="manual_file"&&v.exported_at)info.textContent+=" · Dosya tarihi: "+new Date(v.exported_at).toLocaleString("tr-TR");
-   if(v.source==="legacy_cloud"||v.source==="manual_file")info.className="legacy-label";
-   label.append(head,info);
-   const button=document.createElement("button");button.type="button";button.textContent="Kayıtları Gör ve Seç";
-   button.onclick=()=>void showPreview(v);
-   row.append(label,button);container.append(row);
-  }
- }
- message("Yedek geçmişi yüklendi. Eski kayıtları silmeden birleştirerek geri alabilirsiniz.","good");
-}
-function updatePreviewSelection(){
- const count=document.querySelectorAll('#previewRows input[type="checkbox"]:checked').length;
- $("previewCount").textContent=count+" kayıt seçildi.";
- $("restoreSelected").disabled=!count||!preview||!downloaded||!$("confirmLocal").checked||processing;
-}
-async function showPreview(version){
- $("result").className="notice";$("result").textContent="Yedek kayıtları yükleniyor…";
- try{
-  const auth=await identity();if(!account||auth.uid!==account.uid)throw Error("Aktif hesap değişti.");
-  const rows=await dataRequest("select=id,kind,item_count,payload,source&user_id=eq."+encodeURIComponent(auth.uid)+"&id=eq."+encodeURIComponent(version.id)+"&limit=1");
-  if(!Array.isArray(rows)||rows.length!==1||rows[0].kind!==version.kind||!Array.isArray(rows[0].payload))throw Error("Yedek bulunamadı veya hesabınıza ait değil.");
-  const entry=rows[0];
-  if(entry.payload.length>10000)throw Error("Bu sürümde çok sayıda kayıt var. Destek ile kontrollü kurtarma yapılmalı.");
-  preview={version,source:entry.source};
-  $("previewTitle").textContent=(version.kind==="clients"?"Müşteri":version.kind==="external_portfolios"?"Çekilen Portföy":"Portföy")+" yedeğindeki kayıtlar ("+entry.payload.length+")";
-  $("previewSource").textContent=entry.source==="legacy_cloud"
-   ?"Eski bulut arşivi: Buradaki kayıtlar önceki sistemden alınmıştır. Deneme kayıtları olabilir; bugünkü bilgisayar yedeğinle aynı olduğunu varsayma."
-   :entry.source==="manual_file"
-   ?"Bu sürüm, senin yüklediğin EmlakCRM tam yedek dosyasından alındı. Bulut hesabında güvenli bir kopya olarak saklanıyor; mevcut kayıtların kendiliğinden değiştirilmedi. Geri yüklemek istersen yalnızca gerekli kayıtları seç."
-   :"Bu kayıtlar EmlakCRM'deki kişisel tarayıcı yedeklerinden alınmıştır. Yalnızca ihtiyacın olanları işaretle.";
-  $("previewSource").className=entry.source==="legacy_cloud"?"warn":"notice";
-  const root=$("previewRows");root.replaceChildren();
-  entry.payload.forEach((x,i)=>{
-   const label=document.createElement("label");label.className="preview-row";
-   const input=document.createElement("input");input.type="checkbox";input.dataset.index=String(i);input.onchange=updatePreviewSelection;
-   const contents=document.createElement("div"),head=document.createElement("strong"),detail=document.createElement("small");
-   head.textContent=String(version.kind==="clients"?(x?.name||"İsimsiz müşteri"):(x?.title||x?.name||"Başlıksız portföy")).slice(0,180);
-   detail.textContent=String(version.kind==="clients"?(x?.type||"Müşteri"):(x?.location||x?.kind||"Konum belirtilmedi")).slice(0,150);
-   contents.append(head,detail);label.append(input,contents);root.append(label);
-  });
-  $("restoreSelected").onclick=()=>void restore(version);
-  $("preview").hidden=false;updatePreviewSelection();
-  $("preview").scrollIntoView({behavior:"smooth",block:"start"});
-  $("result").textContent="";
- }catch(e){$("result").className="bad";$("result").textContent=String(e.message||e)}
-}
-function merge(kind,current,incoming){
- if(kind==="external_portfolios"){
-  // Imported listings do not necessarily have IDs. Match the original listing URL
-  // plus title, exactly as the importer itself does. Do not replace existing entries.
-  const out=current.slice();let added=0,duplicates=0;
-  const ident=x=>String(x?.url||"")+"|"+String(x?.title||"");
-  const known=new Set(out.filter(isObject).map(ident));
-  for(const item of incoming){
-   if(!isObject(item)||(!String(item.title||"").trim()&&!String(item.url||"").trim())){
-    duplicates++;continue;
-   }
-   const key=ident(item);
-   if(known.has(key)){duplicates++;continue}
-   out.push(item);known.add(key);added++;
-  }
-  return {data:out,added,duplicates};
- }
-
- const idSet=new Set(current.filter(x=>isObject(x)&&x.id!=null).map(x=>String(x.id)));
- const out=current.slice();
- let added=0,duplicates=0;
- for(const item of incoming){
-  if(!isObject(item)||item.id==null||!String(item.id).trim()){duplicates++;continue}
-  const ident=String(item.id);
-  if(idSet.has(ident)){duplicates++;continue}
-  const same=kind==="clients"
-   ?out.some(x=>clean(x?.name)===clean(item.name)&&clean(x?.phone)===clean(item.phone)&&!!clean(item.phone))
-   :out.some(x=>String(x?.listingUrl||"")!==""&&x.listingUrl===item.listingUrl||clean(x?.title)===clean(item.title)&&clean(x?.location)===clean(item.location));
-  if(same){duplicates++;continue}
-  out.push(item);idSet.add(ident);added++;
- }
- return {data:out,added,duplicates};
-}
-async function restore(version){
- if(processing)return;
- processing=true;$("result").className="notice";$("result").textContent="Yedek kontrol ediliyor…";
- try{
-  if(!downloaded||!$("confirmLocal").checked)throw Error("Önce mevcut cihaz yedeğini indirip onaylamalısınız.");
-  if(!preview||preview.version.id!==version.id)throw Error("Önce yedek içeriğini açıp kayıt seçmelisiniz.");
-  const chosen=new Set([...document.querySelectorAll('#previewRows input[type="checkbox"]:checked')].map(x=>Number(x.dataset.index)));
-  if(!chosen.size)throw Error("En az bir kayıt seçmelisiniz.");
-  const auth=await identity();if(auth.uid!==account.uid)throw Error("Hesap değişti.");
-  const rows=await dataRequest("select=id,kind,item_count,payload&user_id=eq."+encodeURIComponent(auth.uid)+"&id=eq."+encodeURIComponent(version.id)+"&limit=1");
-  if(!Array.isArray(rows)||rows.length!==1||rows[0].kind!==version.kind||!Array.isArray(rows[0].payload))throw Error("Yedek doğrulanamadı.");
-  const item=rows[0],type=version.kind;
-  const key=keys(auth.uid)[type],arrayKey=type==="clients"?"clients":"portfolios";
-  if(!key)throw Error("Tanımlanmayan veri türü: güvenli geri yükleme durduruldu.");
-  let raw,parsed,current;
-  if(type==="external_portfolios"){
-   raw=localStorage.getItem(key);
-   parsed=raw===null?[]:parse(raw);
-   if(!Array.isArray(parsed))throw Error("Bu cihazın çekilen portföy listesi okunamadı; üzerine yazılmayacak.");
-   current=parsed;
-  }else{
-   ({raw,parsed}=localData(key,arrayKey));
-   current=parsed[arrayKey];
-  }
-  const joined=merge(type,current,item.payload.filter((_,i)=>chosen.has(i)));
-  if(type==="external_portfolios"&&joined.data.length>1000)
-   throw Error("Çekilen portföy listesi 1.000 kayıt sınırını aşıyor; mevcut veriler değiştirilmedi.");
-  if(!joined.added){$("result").className="notice";$("result").textContent="Yeni kayıt bulunmadı. "+joined.duplicates+" kayıt zaten mevcut veya çakışıyor.";return}
-  if(!confirm(joined.added+" "+(type==="clients"?"müşteri":type==="external_portfolios"?"çekilen portföy":"portföy")+" yalnızca sizin bu cihazdaki hesabınıza eklensin mi? Mevcut kayıtlar silinmeyecek."))return;
-  const second=await identity();if(second.uid!==auth.uid)throw Error("Hesap değişti.");
-  if(localStorage.getItem(key)!==raw)throw Error("Bu sırada yerel kayıtlar değişti. Yeniden deneyin.");
-  const updated=JSON.stringify(type==="external_portfolios"?joined.data:{...parsed,[arrayKey]:joined.data});
-  localStorage.setItem(key,updated);
-  $("result").className="good";
-  $("result").textContent=joined.added+" kayıt geri eklendi; "+joined.duplicates+" mükerrer/çakışan kayıt atlandı. Ana uygulamayı açarak kontrol edin.";
-  preview=null;$("preview").hidden=true;
- }catch(e){$("result").className="bad";$("result").textContent="Geri yükleme tamamlanamadı: "+String(e.message||e)}
- finally{processing=false;updatePreviewSelection()}
-}
-$("downloadLocal").addEventListener("click",()=>{
- if(!account)return;
- try{
-  const k=keys(account.uid);
-  download("EmlakCRM_BulutGeriYukleme_Oncesi_"+new Date().toISOString().slice(0,10)+".json",{
-   format:"EmlakCRM-Restore-Preflight",user_id:account.uid,created_at:new Date().toISOString(),
-   crm:localData(k.clients,"clients").parsed,portfolio:localData(k.portfolios,"portfolios").parsed,
-   external_portfolios:(()=>{
-    const raw=localStorage.getItem(k.external_portfolios);
-    const data=raw===null?[]:parse(raw);
-    if(!Array.isArray(data))throw Error("Çekilen portföy listesi okunamadı; önce kendi cihaz yedeğinizi kontrol edin.");
-    return data;
-   })()
-  });
-  downloaded=true;updatePreviewSelection();$("result").className="notice";$("result").textContent="Mevcut cihaz yedeği indirildi. Dosyanın İndirilenler klasöründe olduğundan emin olun.";
- }catch(e){$("result").className="bad";$("result").textContent=e.message}
-});
-$("confirmLocal").addEventListener("change",updatePreviewSelection);
-$("reload").addEventListener("click",()=>{void loadHistory().catch(e=>message(e.message,"bad"))});
-(async()=>{try{account=await identity();$("history").hidden=false;await loadHistory()}catch(e){message(String(e.message||e),"bad");const link=document.createElement("a");link.className="back";link.href="./index.html#account";link.textContent="EmlakCRM'de hesabıma giriş yap";$("status").append(document.createTextNode(" "),link)}})();
-</script></body></html>
+<label for="date">Yedek tarihi ve saati</label>
+<select id="date" aria-label="Geri yüklemek istediğiniz yedek tarihini seçin"></select>
+<small id="detail"></small>
+<button id="restore" type="button" class="primary" disabled>☁️ Tamamını Geri Yükle</button>
+<div style="text-align:right;margin-top:13px"><button id="reload" type="button" class="minor">↻ Tarihleri Yenile</button></div>
+<p id="result" role="status" aria-live="polite"></p>
+</section>
+<p class="foot">Seçtiğiniz tarih ve saate kadar kaydedilmiş, her veri türünün en son bulut sürümü kullanılır. Mevcut kayıtlar korunarak eksikler eklenir. PDF arşivi, drone videoları ve diğer cihaz-özel dosyalar bu bulut yedeklerine dahil değildir.</p>
+</main><script type="module" src="./bulut-yedek-sade.js"></script></body></html>
