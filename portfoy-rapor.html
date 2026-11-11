@@ -553,6 +553,25 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
   #portfolioCards .pActionDrawer{display:none!important}
 }
 
+
+/* Office portfolio cards: clear individual boundaries without affecting data or actions. */
+#officeCloudSharedList > .officeCloudCard{
+  border:2px solid #a5c2d5!important;
+  border-left:5px solid #3684a7!important;
+  border-radius:12px!important;
+  background:linear-gradient(180deg,#ffffff,#f3f8fc)!important;
+  box-shadow:0 3px 9px rgba(30,75,108,.13)!important;
+  padding:13px 15px!important;
+  margin:12px 0!important;
+  overflow-wrap:anywhere;
+}
+#officeCloudSharedList > .officeCloudCard strong{
+  color:#173d5a!important;
+  font-size:15px!important;
+  line-height:1.35;
+}
+#officeCloudSharedList > .officeCloudCard .hint{line-height:1.45}
+#officeCloudSharedList > .officeCloudCard a:focus-visible{outline:3px solid #ffba50;outline-offset:2px}
 </style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
 <section class="panel" id="officeSharingPanel" hidden style="display:none!important">
 <div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
