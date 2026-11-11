@@ -11,7 +11,7 @@ const prefixes={clients:"emlakcrm_demo_v1__owner_",portfolios:"emlakcrm_portfoy_
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
-const isActive=()=>location.origin===MIGRATION_ORIGIN&&location.pathname.startsWith("/app/");
+const isActive=()=>typeof location!=="undefined"&&location.origin===MIGRATION_ORIGIN&&location.pathname.startsWith("/app/");
 let running=false;
 
 function label(message,severity="notice"){
@@ -63,6 +63,14 @@ function ownLocal(uid,storage){
   raw[kind]=storage.getItem(prefixes[kind]+uid);
   data[kind]=raw[kind]===null?null:parse(raw[kind]);
   if(raw[kind]!==null&&data[kind]===null)throw Error("Bu cihazın "+kind+" verisi okunamadı, üzerine yazılmayacak.");
+  // Older manually restored customer objects may lack the empty agenda arrays.
+  // Repair only their in-memory shape, never destroy the original raw record.
+  if(kind==="clients"&&obj(data[kind])&&Array.isArray(data[kind].clients)){
+   data[kind]={...data[kind],
+    tasks:Array.isArray(data[kind].tasks)?data[kind].tasks:[],
+    offices:Array.isArray(data[kind].offices)?data[kind].offices:[],
+    members:Array.isArray(data[kind].members)?data[kind].members:[]};
+  }
  }
  return {raw,data};
 }
