@@ -21,7 +21,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Test strict allowed origins
-        run: deno test tests/emlakcrm-domain-origin.test.ts
+        run: deno test tests/emlakcrm-domain-origin.test.ts tests/emlakcrm-cloud-restore-preview.test.ts
       - name: Typecheck updated Edge Functions
         run: |
           deno check supabase/functions/emlakcrm-shopier-checkout/index.ts supabase/functions/emlakcrm-shopier-health/index.ts supabase/functions/emlakcrm-shopier-product/index.ts supabase/functions/emlakcrm-shopier-setup/index.ts supabase/functions/emlakcrm-shopier-coupon/index.ts supabase/functions/emlakcrm-checkout-start/index.ts supabase/functions/emlakcrm-checkout-status/index.ts
