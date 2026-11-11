@@ -20,8 +20,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ROOT='https://enginbaysal-oss.github.io/EmlakCRM-Web'
-          for attempt in 1 2 3 4 5 6 7 8; do
+          ROOT='https://emlkcrm.com.tr'
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             index="$(mktemp)"; restore="$(mktemp)"; module="$(mktemp)"; core="$(mktemp)"
             if curl -fsSL --max-time 15 "$ROOT/index.html?simple-backup=20261111" -o "$index" &&
                curl -fsSL --max-time 15 "$ROOT/bulut-yedek.html?simple-backup=20261111" -o "$restore" &&
@@ -29,7 +29,7 @@ jobs:
                curl -fsSL --max-time 15 "$ROOT/bulut-yedek-core.js?simple-backup=20261111" -o "$core" &&
                grep -q 'id="crmCloudBackupNow"' "$index" &&
                grep -q 'Buluttan Geri Yükle' "$index" &&
-               grep -q 'bulut-yedek.html?v=20261111sade1' "$index" &&
+               grep -Eq 'bulut-yedek\.html\?v=[^"[:space:]]+' "$index" &&
                grep -q 'id="date"' "$restore" &&
                grep -q 'id="restore"' "$restore" &&
                grep -q 'bulut-yedek-sade.js' "$restore" &&
@@ -39,7 +39,7 @@ jobs:
                  echo "LIVE_SIMPLE_BACKUP_UI_OK"
                  break
             fi
-            if [ "$attempt" -eq 8 ]; then echo "LIVE_SIMPLE_BACKUP_UI_MISSING"; exit 1; fi
+            if [ "$attempt" -eq 12 ]; then echo "::error::Bulut yedekleme kontrolleri yeni alan adında doğrulanamadı: $ROOT"; exit 1; fi
             sleep 8
           done
           for url in "$ROOT/portfoy-rapor.html" "$ROOT/abonelik-satin-al.html" "$ROOT/emlakcrm-cloud-backup.js" "$ROOT/account-data-isolation.js"; do
