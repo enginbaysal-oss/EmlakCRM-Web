@@ -39,6 +39,12 @@ jobs:
                       raise SystemExit("Mapbox token placeholder missing")
                   content = content.replace(marker, 'const MAPBOX_PUBLIC_TOKEN="' + token + '";')
               (dest / src.name).write_text(content, encoding="utf-8")
+          # Support previously installed PWAs with the pre-domain /EmlakCRM-Web/ start path.
+          legacy = Path("legacy-mobile/EmlakCRM-Web/index.html")
+          if legacy.is_file():
+              legacy_dest = dest / "EmlakCRM-Web"
+              legacy_dest.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(legacy, legacy_dest / "index.html")
           # Publish public PWA and client-side scripts used by mobile and backup features.
           # Keep the allowlist narrow: never publish private files or JSON backups.
           for pattern in ("*.js", "*.css", "*.webmanifest"):
