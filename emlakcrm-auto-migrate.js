@@ -82,12 +82,15 @@ export async function syncOnce(deps={fetch:globalThis.fetch,sessionStorage:globa
  const marker=parse(oldMarker);
  if(oldMarker!==null&&!obj(marker))throw Error("Eski aktarım işareti okunamadı; kayıtlar değiştirilmeyecek.");
  const completed={...(marker||{})};
- const backup={},missing=[],newKinds=[];
+ const backup={},missing=[],newKinds=[],versions={};
  for(const kind of KINDS){
-  if(completed[kind]===true){backup[kind]=[];continue}
+  // A category is complete only through the exact snapshot ID last imported.
+  // More recent snapshots from the original domain may contain new records.
   const row=await getLatest(kind,auth,deps);
   if(!row){backup[kind]=[];missing.push(kind);continue}
+  if(completed[kind]===row.id){backup[kind]=[];continue}
   backup[kind]=row.payload;
+  versions[kind]=row.id;
   newKinds.push(kind);
  }
  if(!newKinds.length)return {status:missing.length?"waiting_cloud":"already_migrated",added:0,missing};
@@ -107,7 +110,7 @@ export async function syncOnce(deps={fetch:globalThis.fetch,sessionStorage:globa
    written.push(kind);
    if(deps.localStorage.getItem(keys[kind])!==value)throw Error("Cihaz kaydı doğrulanamadı.");
   }
-  for(const kind of newKinds)completed[kind]=true;
+  for(const kind of newKinds)completed[kind]=versions[kind];
   deps.localStorage.setItem(markerKey,JSON.stringify(completed));
  }catch(e){
   for(const kind of written.reverse()){
