@@ -1,0 +1,35 @@
+name: Verify automatic account domain migration
+on:
+  push:
+    branches: [feature/auto-account-migration-20261111]
+  pull_request:
+    paths:
+      - 'emlakcrm-auto-migrate.js'
+      - 'emlakcrm-cloud-backup.js'
+      - 'tests/emlakcrm-auto-migration.test.js'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test account isolation, partial cloud backups, rollback and missing records
+        run: deno test --allow-read=index.html,portfoy-rapor.html,emlakcrm-cloud-backup.js tests/emlakcrm-auto-migration.test.js tests/bulut-yedek-sade.test.ts
+      - name: Typecheck migration modules
+        run: deno check emlakcrm-auto-migrate.js bulut-yedek-core.js
+      - name: Confirm Shopier, Android, subscription and Supabase deployments untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          for target in 'supabase/' 'android/' 'abonelik-satin-al.html' 'sifre-yenile.html' 'account-data-isolation.js'; do
+            if ! git diff --quiet origin/main -- "$target"; then
+              echo "UNEXPECTED_CHANGED_AREA: $target"; exit 1
+            fi
+          done
+          echo 'PAYMENTS_ANDROID_AUTH_AND_DATABASE_UNCHANGED'
