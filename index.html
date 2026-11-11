@@ -416,6 +416,67 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 @media(prefers-reduced-motion:reduce){
  .tools .tool,button,.screenNav nav a,.crm-links a{transition:none!important}
 }
+
+/* 2026-11-12: Sade, hafif gölgeli ana sayfa butonları; tıklama davranışı değişmez. */
+body[data-screen="home"] #homeView .tools .tool{
+  border:1px solid #bfd2e2!important;
+  border-radius:14px!important;
+  background-image:linear-gradient(180deg,rgba(255,255,255,.52),rgba(255,255,255,.06))!important;
+  box-shadow:0 3px 9px rgba(24,67,101,.15),inset 0 1px 0 rgba(255,255,255,.75)!important;
+  transform:none!important;
+  transition:box-shadow .16s ease,filter .16s ease,border-color .16s ease!important;
+}
+body[data-screen="home"] #homeView .tools .tool:hover{
+  border-color:#8ab3ce!important;
+  box-shadow:0 5px 13px rgba(24,67,101,.18),inset 0 1px 0 rgba(255,255,255,.82)!important;
+  transform:none!important;
+}
+body[data-screen="home"] #homeView .tools .tool:active{
+  filter:brightness(.985);
+  box-shadow:0 1px 4px rgba(24,67,101,.12),inset 0 1px 2px rgba(24,67,101,.08)!important;
+  transform:none!important;
+}
+body[data-screen="home"] #homeView .tools .tool .tool-icon{
+  box-shadow:0 2px 5px rgba(24,67,101,.10),inset 0 1px 0 rgba(255,255,255,.82)!important;
+}
+body[data-screen="home"] #homeView .homeQuickActions button{
+  border-radius:10px!important;
+  border:1px solid rgba(21,88,119,.18)!important;
+  box-shadow:0 3px 7px rgba(24,67,101,.14),inset 0 1px 0 rgba(255,255,255,.35)!important;
+  transform:none!important;
+}
+body[data-screen="home"] #homeView .homeQuickActions button:hover{
+  box-shadow:0 4px 9px rgba(24,67,101,.17)!important;
+  transform:none!important;
+}
+body[data-screen="home"] #homeView .homeQuickActions button:active{
+  box-shadow:0 1px 3px rgba(24,67,101,.13)!important;
+  transform:none!important;
+}
+/* Office listing: each listing (including its link) belongs to one bordered card. */
+#cloudSharedPortfolioList > .officeSharedCard{
+  border:2px solid #a5c2d5!important;
+  border-left:5px solid #3684a7!important;
+  border-radius:12px!important;
+  padding:13px 15px!important;
+  margin:12px 0!important;
+  background:linear-gradient(180deg,#fff,#f3f8fc)!important;
+  box-shadow:0 3px 9px rgba(30,75,108,.13)!important;
+  overflow-wrap:anywhere;
+}
+#cloudSharedPortfolioList > .officeSharedCard strong{
+  font-size:15px!important;
+  line-height:1.35!important;
+  color:#173d5a!important;
+}
+#cloudSharedPortfolioList > .officeSharedCard .mini{line-height:1.45}
+#cloudSharedPortfolioList > .officeSharedCard a:focus-visible{
+  outline:3px solid #ffba50;
+  outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-screen="home"] #homeView .tools .tool{transition:none!important}
+}
 </style></head><body>
 <div id="crmDataSafety" role="alert" aria-live="assertive" hidden>
  <span id="crmDataSafetyMessage">Bu sekmede kayit catismasi algilandi.</span>
