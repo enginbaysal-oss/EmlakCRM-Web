@@ -1,4 +1,4 @@
-name: Build EmlakCRM APK
+name: Build EmlakCRM Yeni APK
 on:
   push:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Build debug APK
+      - name: Build separate-install migration APK
         run: |
           cd android
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -28,8 +28,8 @@ jobs:
           "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
           wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
-          /tmp/gradle-8.9/bin/gradle --no-daemon assembleDebug
+          /tmp/gradle-8.9/bin/gradle --no-daemon -PmigrationBuild=true assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: EmlakCRM-APK
+          name: EmlakCRM-Yeni-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
