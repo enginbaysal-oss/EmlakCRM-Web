@@ -9,15 +9,20 @@ export function buildRestorePoints(rows){
  const filtered=rows.filter(row=>row&&KINDS.includes(row.kind)&&validDate(row.created_at)&&typeof row.id==="string"&&
     Number.isSafeInteger(row.item_count)&&row.item_count>=0);
  filtered.sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
- const latest=new Map(),seen=new Set(),points=[];
+ const seen=new Set(),points=[];
  for(const row of filtered){
-  if(!latest.has(row.kind))latest.set(row.kind,row);
-  if(latest.size!==KINDS.length)continue;
-  const minute=Math.floor(Date.parse(row.created_at)/60000);
+  const cutoff=Date.parse(row.created_at);
+  const minute=Math.floor(cutoff/60000);
   if(seen.has(minute))continue;
   seen.add(minute);
-  // Every recovery point has one backup of each kind at or before its date.
-  const snapshots=Object.fromEntries(KINDS.map(kind=>[kind,latest.get(kind)]));
+  const snapshots={};
+  for(const kind of KINDS){
+   // Each kind uses its own most recent snapshot not later than the selected time.
+   const latest=filtered.find(v=>v.kind===kind&&Date.parse(v.created_at)<=cutoff);
+   if(!latest)break;
+   snapshots[kind]=latest;
+  }
+  if(Object.keys(snapshots).length!==KINDS.length)continue;
   points.push({
    date:row.created_at,
    minute,
