@@ -1,0 +1,45 @@
+name: Verify emlkcrm.com.tr DNS and TLS (read-only)
+on:
+  push:
+    paths:
+      - ".github/workflows/domain-diagnostics.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query public DNS (no changes)
+        shell: bash
+        run: |
+          set +e
+          echo '=== DNS: public resolvers ==='
+          for host in emlkcrm.com.tr www.emlkcrm.com.tr; do
+            echo "-- $host --"
+            for type in A AAAA CNAME NS CAA; do
+              echo "# $type via 1.1.1.1"
+              dig @1.1.1.1 +time=3 +tries=1 +short "$host" "$type"
+            done
+          done
+          echo '=== DNS: alternate resolver ==='
+          for type in A AAAA NS; do
+            echo "# emlkcrm.com.tr $type via 8.8.8.8"
+            dig @8.8.8.8 +time=3 +tries=1 +short emlkcrm.com.tr "$type"
+          done
+          echo '=== NS delegation ==='
+          dig +trace +time=3 +tries=1 emlkcrm.com.tr NS | tail -45
+      - name: Inspect TLS and HTTP response (no changes)
+        shell: bash
+        run: |
+          set +e
+          echo '=== TLS SAN / issuer / validity ==='
+          for host in emlkcrm.com.tr www.emlkcrm.com.tr; do
+            echo "-- $host --"
+            echo | timeout 12 openssl s_client -connect "$host:443" -servername "$host" -showcerts 2>/dev/null | openssl x509 -noout -subject -issuer -dates -ext subjectAltName 2>&1 | head -24
+            echo '# HTTPS response, ignore certificate only for diagnosis'
+            curl --insecure --silent --show-error --head --location --max-time 12 "https://$host/" | head -20
+          done
+          echo '=== Existing canonical GitHub Pages URL ==='
+          curl --silent --show-error --head --max-time 12 'https://enginbaysal-oss.github.io/EmlakCRM-Web/' | head -15
