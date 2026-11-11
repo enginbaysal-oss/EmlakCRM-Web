@@ -66,7 +66,7 @@ Deno.test("cross-account responses fail closed before reading another user's dat
 });
 Deno.test("existing tasks and metadata preserved; duplicate records not repeated",async()=>{
  const crm={clients:[{id:"c1",name:"A",phone:"1"}],tasks:[{id:"t1",clientId:"c1"}],offices:[{id:"o1"}],members:[]};
- const h=harness({local:{"emlakcrm_demo_v1__owner_"+UID:JSON.stringify(crm)},payloads:{
+ const h=harness({local:{["emlakcrm_demo_v1__owner_"+UID]:JSON.stringify(crm)},payloads:{
   clients:[{id:"c1",name:"A",phone:"1"},{id:"c2",name:"B"}]
  }});
  const result=await syncOnce(h.deps);
@@ -75,7 +75,7 @@ Deno.test("existing tasks and metadata preserved; duplicate records not repeated
  ok(stored.clients.length===2&&stored.tasks.length===1&&stored.offices.length===1,"metadata preserved");
 });
 Deno.test("legacy CRM customer object lacking empty arrays is normalized without deleting records",async()=>{
- const h=harness({local:{"emlakcrm_demo_v1__owner_"+UID:JSON.stringify({clients:[{id:"old",name:"Stored"}]})},payloads:{clients:[{id:"c2",name:"New"}]}});
+ const h=harness({local:{["emlakcrm_demo_v1__owner_"+UID]:JSON.stringify({clients:[{id:"old",name:"Stored"}]})},payloads:{clients:[{id:"c2",name:"New"}]}});
  await syncOnce(h.deps);
  const stored=JSON.parse(h.localStorage.getItem("emlakcrm_demo_v1__owner_"+UID));
  ok(stored.clients.length===2&&Array.isArray(stored.tasks),"missing arrays normalized safely");
@@ -83,7 +83,7 @@ Deno.test("legacy CRM customer object lacking empty arrays is normalized without
 Deno.test("any failed local write rolls back all previously changed categories",async()=>{
  const oldClients=JSON.stringify({clients:[{id:"old",name:"Old"}],tasks:[]});
  const h=harness({blocked:"emlakcrm_portfoy_rapor_v1__owner_"+UID,
- local:{"emlakcrm_demo_v1__owner_"+UID:oldClients},
+ local:{["emlakcrm_demo_v1__owner_"+UID]:oldClients},
  payloads:{
   clients:[{id:"new",name:"New"}],
   portfolios:[{id:"p1",title:"Parcel"}]
