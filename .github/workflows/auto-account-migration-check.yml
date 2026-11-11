@@ -19,7 +19,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Test account isolation, partial cloud backups, rollback and missing records
-        run: deno test --allow-read=index.html,portfoy-rapor.html,emlakcrm-cloud-backup.js tests/emlakcrm-auto-migration.test.js tests/bulut-yedek-sade.test.ts
+        run: deno test --allow-read=index.html,portfoy-rapor.html,emlakcrm-cloud-backup.js,bulut-yedek.html tests/emlakcrm-auto-migration.test.js tests/bulut-yedek-sade.test.ts
       - name: Typecheck migration modules
         run: deno check emlakcrm-auto-migrate.js bulut-yedek-core.js
       - name: Confirm Shopier, Android, subscription and Supabase deployments untouched
