@@ -9,7 +9,7 @@ function memory(initial={},blocked=""){
  setItem:(k,v)=>{if(k===blocked)throw Error("quota exceeded");map.set(k,v)},
  removeItem:k=>map.delete(k)};
 }
-function harness({payloads={},local={},remoteUser=UID,blocked=""}={}){
+function harness({payloads={},local={},remoteUser=UID,blocked="",revisions={}}={}){
  const localStorage=memory(local,blocked),sessionStorage=memory({"emlakcrm_auth_session_v1":JSON.stringify({access_token:"test-access-token"})});
  const requests=[];
  const deps={localStorage,sessionStorage,scope:{currentUserId:()=>UID},
@@ -20,10 +20,10 @@ function harness({payloads={},local={},remoteUser=UID,blocked=""}={}){
    const kind=qs.get("kind")?.replace(/^eq\./,"");
    if(!qs.get("user_id")?.endsWith(UID))return {ok:false,status:403};
    const items=payloads[kind];
-   return {ok:true,json:async()=>items?[{id:kind+"-v1",kind,item_count:items.length,payload:items}]:[]};
+   return {ok:true,json:async()=>items?[{id:kind+"-v"+(revisions[kind]??1),kind,item_count:items.length,payload:items}]:[]};
   }
  };
- return {deps,localStorage,requests,payloads};
+ return {deps,localStorage,requests,payloads,revisions};
 }
 Deno.test("existing cloud categories restore automatically; empty new browser is valid",async()=>{
  const h=harness({payloads:{
@@ -50,6 +50,18 @@ Deno.test("partial account moves available groups, then later missing backup wit
  const second=await syncOnce(h.deps);
  ok(second.status==="migrated"&&second.added===2,"newly available categories moved");
  ok(JSON.parse(h.localStorage.getItem("emlakcrm_portfoy_rapor_v1__owner_"+UID)).portfolios.length===1,"original stays");
+});
+Deno.test("newer cloud snapshot from original browser adds later new records automatically",async()=>{
+ const h=harness({payloads:{clients:[{id:"c1",name:"Old"}]}});
+ const a=await syncOnce(h.deps);
+ ok(a.added===1,"first snapshot imported");
+ h.payloads.clients=[{id:"c1",name:"Old"},{id:"c2",name:"New"}];
+ h.revisions.clients=2;
+ const b=await syncOnce(h.deps);
+ ok(b.added===1,"newer version imports only new client");
+ ok(JSON.parse(h.localStorage.getItem("emlakcrm_demo_v1__owner_"+UID)).clients.length===2,"both clients retained");
+ const c=await syncOnce(h.deps);
+ ok(c.added===0,"same latest version not imported repeatedly");
 });
 Deno.test("no cloud backup does not create an empty dataset or migration marker",async()=>{
  const h=harness();
