@@ -48,6 +48,9 @@ jobs:
           assets = Path("assets")
           if assets.is_dir():
               shutil.copytree(assets, dest / "assets", dirs_exist_ok=True)
+          cname = Path("CNAME")
+          if cname.is_file():
+              shutil.copy2(cname, dest / "CNAME")
           (dest / ".nojekyll").touch()
           PY
       - uses: actions/configure-pages@v5
