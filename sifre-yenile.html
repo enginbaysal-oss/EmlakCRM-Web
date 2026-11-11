@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>EmlakCRM | Şifremi Yenile</title>
+<style>
+:root{font:16px/1.5 system-ui,Segoe UI,Arial,sans-serif;color:#163751;background:#edf4fa}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(150deg,#edf6fc,#f8fbff)}
+header{background:#113957;color:white;padding:23px 16px}
+header>div{max-width:560px;margin:auto;font-size:23px;font-weight:800}
+main{max-width:594px;padding:22px 16px 48px;margin:20px auto}
+.card{background:white;border:1px solid #d8e5ee;border-radius:16px;padding:23px;box-shadow:0 10px 28px #12345517}
+h1{font-size:24px;margin:0 0 8px}h2{font-size:19px;margin:6px 0}
+p{margin:12px 0;color:#506880}
+label{display:block;font-weight:650;margin:14px 0 5px}
+input{font:inherit;width:100%;border:1px solid #afc4d5;background:#f9fcff;border-radius:9px;padding:12px}
+button{display:block;width:100%;padding:14px;border:0;border-radius:10px;margin:17px 0 10px;background:#e98220;color:#1c2c3e;font:inherit;font-weight:800;cursor:pointer}
+button:disabled{opacity:.65;cursor:default}
+a{color:#146a89;font-weight:650}
+#feedback{white-space:pre-line;overflow-wrap:anywhere;padding:12px;border-radius:9px;background:#eaf3fa;color:#1a4862}
+#feedback:empty{display:none}
+#feedback.error{background:#fff0ea;color:#a32824}
+#feedback.success{background:#e7f6ed;color:#17623b}
+[hidden]{display:none!important}
+small{color:#60798e}
+</style>
+</head>
+<body>
+<header><div>EmlakCRM · Hesap Güvenliği</div></header>
+<main>
+<div class="card">
+<h1>Şifre Yenileme</h1>
+<p>Bu ekran yalnızca EmlakCRM giriş şifrenizi yeniler. Portföylerinizi, müşterilerinizi ve aboneliğinizi değiştirmez.</p>
+<div id="feedback" role="status" aria-live="polite"></div>
+<section id="requestSection" hidden>
+ <h2>Yeni bağlantı gönder</h2>
+ <p>Giriş yaptığınız e-posta adresine yeni bir şifre bağlantısı isteyin. Gmail'deki <strong>en son</strong> “Reset your password” mesajını kullanın.</p>
+ <form id="requestForm">
+  <label for="email">E-posta adresi</label>
+  <input id="email" type="email" autocomplete="email" required placeholder="EmlakCRM hesabınızın e-postası">
+  <button id="requestButton" type="submit">Şifre Sıfırlama Bağlantısı Gönder</button>
+ </form>
+</section>
+<section id="changeSection" hidden>
+ <h2>Yeni şifrenizi belirleyin</h2>
+ <p id="emailLabel"></p>
+ <form id="changeForm">
+  <label for="password">Yeni şifre (en az 8 karakter)</label>
+  <input id="password" type="password" autocomplete="new-password" minlength="8" required>
+  <label for="confirm">Yeni şifre tekrar</label>
+  <input id="confirm" type="password" autocomplete="new-password" minlength="8" required>
+  <button id="changeButton" type="submit">Yeni Şifreyi Kaydet</button>
+ </form>
+</section>
+<section id="completed" hidden>
+ <h2>Şifreniz güncellendi</h2>
+ <p>Bilgisayarda ve Android uygulamasında yeni şifrenizle giriş yapabilirsiniz.</p>
+</section>
+<p><a href="./index.html#account">EmlakCRM giriş ekranına dön</a></p>
+<small>Güvenlik: Şifre yenileme bağlantısı tek kullanımlıktır. Bu sayfa şifrenizi tarayıcıda saklamaz.</small>
+</div>
+</main>
+<script>
+"use strict";
+const API="https://tffvwxskvjuxoekwgdef.supabase.co";
+const PUBLIC_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const RETURN_URL="https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
+const $=id=>document.getElementById(id);
+let recoveryToken=null;
+const show=(text,kind="")=>{const el=$("feedback");el.textContent=text;el.className=kind;};
+const requestMode=(message="",kind="")=>{
+ recoveryToken=null;
+ $("requestSection").hidden=false;
+ $("changeSection").hidden=true;
+ $("completed").hidden=true;
+ show(message,kind);
+};
+async function responseJson(r){
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(String(j.error_description||j.msg||j.message||j.error||"Sunucu hatası ("+r.status+")"));
+ return j;
+}
+async function parseLink(){
+ const frag=new URLSearchParams(location.hash.slice(1));
+ const query=new URLSearchParams(location.search);
+ const type=frag.get("type")||query.get("type");
+ const access=frag.get("access_token");
+ const hash=query.get("token_hash");
+ const code=query.get("code");
+ const error=frag.get("error_description")||query.get("error_description")||frag.get("error")||query.get("error")||"";
+ const hasRecovery=type==="recovery"||Boolean(access||hash||code);
+ if(location.hash||location.search)history.replaceState(null,"",location.pathname);
+ if(error){requestMode("Bu şifre bağlantısı geçersiz veya süresi dolmuş olabilir. Yeni bağlantı isteyin. ("+error.slice(0,130)+")","error");return;}
+ if(!hasRecovery){requestMode();return;}
+ show("E-posta bağlantısı doğrulanıyor…");
+ try{
+  let token=access;
+  if(!token&&hash){
+   const v=await fetch(API+"/auth/v1/verify",{method:"POST",headers:{apikey:PUBLIC_KEY,"Content-Type":"application/json"},body:JSON.stringify({type:"recovery",token_hash:hash}),cache:"no-store"});
+   token=(await responseJson(v)).access_token;
+  }
+  if(!token&&code)throw Error("Bu bağlantı farklı bir oturum için oluşturuldu. Yeni bağlantı isteyin.");
+  if(!token)throw Error("Bağlantıda geçerli doğrulama bilgisi bulunamadı.");
+  const r=await fetch(API+"/auth/v1/user",{headers:{apikey:PUBLIC_KEY,Authorization:"Bearer "+token},cache:"no-store"});
+  const u=await responseJson(r);
+  if(typeof u.id!=="string"||!u.email)throw Error("Kullanıcı kimliği doğrulanamadı.");
+  recoveryToken=token;
+  $("emailLabel").textContent="Hesap: "+u.email;
+  $("requestSection").hidden=true;
+  $("changeSection").hidden=false;
+  $("completed").hidden=true;
+  show("E-posta bağlantısı doğrulandı. Yeni şifrenizi belirleyebilirsiniz.","success");
+ }catch(e){requestMode("Bağlantı doğrulanamadı: "+String(e.message||e)+". Yeni bağlantı isteyin.","error");}
+}
+$("requestForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const email=$("email").value.trim(),button=$("requestButton");
+ if(!$("email").checkValidity())return;
+ button.disabled=true;show("Şifre sıfırlama e-postası isteniyor…");
+ try{
+  const url=API+"/auth/v1/recover?redirect_to="+encodeURIComponent(RETURN_URL);
+  const r=await fetch(url,{method:"POST",headers:{apikey:PUBLIC_KEY,"Content-Type":"application/json"},body:JSON.stringify({email}),cache:"no-store"});
+  await responseJson(r);
+  show("Şifre yenileme bağlantısı talep edildi. Gmail'de yalnızca EN SON gelen 'Reset your password' mesajını açın. Eski mesajlardaki bağlantıları kullanmayın.","success");
+ }catch(e){
+  const msg=String(e.message||e);
+  show(/rate.limit|55 seconds|429|after 55 seconds/i.test(msg)?"Çok sık bağlantı istendi. E-posta gönderim sınırı devrede; kısa bir süre sonra yeniden deneyin.":msg,"error");
+ }finally{button.disabled=false}
+});
+$("changeForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const password=$("password").value,confirmation=$("confirm").value,button=$("changeButton");
+ if(!recoveryToken){requestMode("Bağlantı doğrulaması sona erdi. Yeni bir bağlantı isteyin.","error");return;}
+ if(password!==confirmation){show("İki şifre birbiriyle eşleşmiyor.","error");return;}
+ if(password.length<8){show("Şifreniz en az 8 karakter olmalı.","error");return;}
+ button.disabled=true;show("Yeni şifreniz kaydediliyor…");
+ try{
+  const r=await fetch(API+"/auth/v1/user",{
+   method:"PUT",headers:{apikey:PUBLIC_KEY,Authorization:"Bearer "+recoveryToken,"Content-Type":"application/json"},
+   body:JSON.stringify({password}),cache:"no-store"
+  });
+  await responseJson(r);
+  recoveryToken=null;
+  $("password").value="";$("confirm").value="";
+  $("changeSection").hidden=true;$("requestSection").hidden=true;$("completed").hidden=false;
+  show("Şifreniz güncellendi. Yeni şifrenizle uygulamaya giriş yapabilirsiniz.","success");
+ }catch(e){show("Şifre kaydedilemedi: "+String(e.message||e),"error")}
+ finally{button.disabled=false}
+});
+void parseLink();
+</script>
+</body></html>
