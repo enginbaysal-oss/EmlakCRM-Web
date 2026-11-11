@@ -1,4 +1,4 @@
-import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js";
+import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js?v=20261111fix2";
 const API="https://tffvwxskvjuxoekwgdef.supabase.co";
 const KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const $=id=>document.getElementById(id);
@@ -77,7 +77,7 @@ async function load(){
   if(!points.length){
    status("Bu hesap için bulut yedeği bulunamadı. Önce ana EmlakCRM'de 'Buluta Yedekle' düğmesine basın.","warn");
   }else{
-   status("Yedekler hazır. Sadece tarih ve saati seçin, ardından tamamını geri yükleyin.","good");
+   status("Bulut sunucusundan "+records.length+" yedek sürümü kontrol edildi. Son yedek: "+new Date(points[0].date).toLocaleString("tr-TR")+".","good");
   }
   updateSelection();
  }catch(e){
