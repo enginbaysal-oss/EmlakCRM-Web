@@ -60,8 +60,18 @@ async function upload(kind,force=false){
    let extra="";try{const detail=await r.json();extra=String(detail?.message||detail?.hint||"").slice(0,130)}catch(_){}
    throw Error("Sunucu yedeği kabul etmedi ("+r.status+"). "+extra);
   }
+  // Server-side verification distinguishes an existing identical snapshot from a new one.
+  const qs=new URLSearchParams({select:"item_count,created_at",user_id:"eq."+auth.uid,
+   kind:"eq."+kind,fingerprint:"eq."+fingerprint,order:"created_at.desc",limit:"1"});
+  const check=await fetch(PROJECT+"/rest/v1/emlakcrm_user_backups?"+qs,{
+   headers:auth.headers,cache:"no-store"
+  });
+  if(!check.ok)throw Error("Yedek gönderildi ancak sunucuda doğrulanamadı ("+check.status+").");
+  const rows=await check.json();
+  if(!Array.isArray(rows)||rows.length!==1||rows[0].item_count!==items.length)
+   throw Error("Sunucu yedeği henüz doğrulanamadı. Mevcut kayıtlar korundu.");
   lastRaw.set(k,raw);attempts.set(kind,0);
-  return {kind,status:"success",count:items.length};
+  return {kind,status:"verified",count:items.length,createdAt:rows[0].created_at};
  }catch(e){
   const n=attempts.get(kind)||0;attempts.set(kind,n+1);
   if(!force&&n<3)setTimeout(()=>schedule(kind,2000),30000);
@@ -90,7 +100,7 @@ window.addEventListener("storage",event=>{if(event.storageArea===localStorage&&e
 function resultLabel(result){
  const label=result.kind==="clients"?"Müşteri":result.kind==="external_portfolios"?"Çekilen Portföy":"Portföy";
  switch(result.status){
-  case "success":return "✓ "+label+": "+result.count+" kayıt güvenli buluta kaydedildi.";
+  case "verified":return "✓ "+label+": "+result.count+" kayıt bulutta doğrulandı (yedek tarihi: "+new Date(result.createdAt).toLocaleString("tr-TR")+"). Aynı içerik yeniden yedek oluşturmaz.";
   case "empty":return label+": Bu cihazda yedeklenecek kayıt bulunamadı.";
   case "unchanged":return label+": Son kayıtlarla aynı; tekrar yedeklemeye gerek yok.";
   case "auth":return label+": Hesap doğrulanamadı. Uygulamada kendi hesabınızla yeniden giriş yapın.";
