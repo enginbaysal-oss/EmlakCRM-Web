@@ -572,6 +572,40 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 }
 #officeCloudSharedList > .officeCloudCard .hint{line-height:1.45}
 #officeCloudSharedList > .officeCloudCard a:focus-visible{outline:3px solid #ffba50;outline-offset:2px}
+
+/* 2026-11-12: Visible frame for the actual imported/office-source portfolio list.
+   The old office sharing panel is hidden; these articles render in Çekilen Portföyler. */
+#externalPortfolioResults > article.externalPortfolioFrame{
+  box-sizing:border-box!important;
+  border:2px solid #24739f!important;
+  border-left:6px solid #0c547f!important;
+  border-radius:13px!important;
+  background:linear-gradient(180deg,#ffffff 0%,#f4f9fd 100%)!important;
+  box-shadow:0 4px 12px rgba(19,67,103,.20)!important;
+  margin:3px 0 7px!important;
+  padding:12px 13px!important;
+}
+#externalPortfolioResults > article.externalPortfolioFrame strong{
+  line-height:1.4;
+}
+#externalPortfolioResults > article.externalPortfolioFrame:focus-within{
+  border-color:#126c9b!important;
+  box-shadow:0 0 0 2px rgba(18,108,155,.14),0 4px 12px rgba(19,67,103,.20)!important;
+}
+@media(max-width:600px){
+  #externalPortfolioResults > article.externalPortfolioFrame{
+    padding:10px!important;
+    border-left-width:5px!important;
+    margin-bottom:8px!important;
+  }
+}
+/* Keep both legacy office listing widgets equally distinct if enabled. */
+#officeCloudSharedList > .officeCloudCard{
+  border:2px solid #24739f!important;
+  border-left:6px solid #0c547f!important;
+  background:linear-gradient(180deg,#fff,#f4f9fd)!important;
+  box-shadow:0 4px 12px rgba(19,67,103,.20)!important;
+}
 </style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
 <section class="panel" id="officeSharingPanel" hidden style="display:none!important">
 <div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
@@ -1372,7 +1406,7 @@ function externalDraw(){
   const safe=u=>{try{const x=new URL(u);return ["http:","https:"].includes(x.protocol)?x.href:""}catch{return ""}};
   const link=safe(p.url),image=safe(p.image);const phone=externalPhone(p.phone);const wa=phone?"https://wa.me/"+phone.replace(/^0/,"90"):null;
   const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
-  return '<article style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:flex-start;gap:12px;padding:10px;flex-wrap:wrap">'+
+  return '<article class="externalPortfolioFrame" style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:flex-start;gap:12px;padding:10px;flex-wrap:wrap">'+
    (image?'<div class="externalPhotoArea"><img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:160px;max-width:38vw;aspect-ratio:4/3;object-fit:cover;border-radius:8px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div hidden style="padding:12px;background:#fff3e6;color:#78420d">Fotoğraf adresi bulundu ancak resim yüklenemedi. <a href="'+externalEsc(image)+'" target="_blank" rel="noopener noreferrer">Fotoğraf bağlantısını aç</a></div></div>':'<div style="padding:12px;background:#f1f5f9;color:#475569">Kaynak veride fotoğraf adresi bulunamadı.</div>')+
    '<div style="display:flex;flex-direction:column;gap:7px;flex:1;min-width:190px">'+
    (tags?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+tags+'</div>':'')+
