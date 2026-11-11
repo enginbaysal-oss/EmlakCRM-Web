@@ -394,6 +394,145 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
   object-fit:cover!important;margin:0!important;
  }
 }
+
+/* 2026-11-12: Portföy kartları — görünür, kabartmalı işlem/paylaşım kontrolleri.
+   Yalnızca kart içindeki düğmeleri etkiler; kayıtlar, bağlantılar ve olaylar korunur. */
+#portfolioCards .pActionDrawer{
+  border-top:0;
+  padding-top:2px;
+}
+#portfolioCards .pActionDrawer > summary{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px;
+  min-height:54px!important;
+  margin:8px 10px 10px!important;
+  padding:13px 16px!important;
+  border:1px solid #175986!important;
+  border-bottom:3px solid #0b4775!important;
+  border-radius:13px!important;
+  background:linear-gradient(180deg,#2685c8 0%,#11649e 100%)!important;
+  color:#fff!important;
+  font-size:16px!important;
+  font-weight:850!important;
+  letter-spacing:.1px;
+  line-height:1.3!important;
+  text-align:left;
+  box-shadow:0 5px 0 #0b4775,0 9px 16px rgba(5,58,103,.24),inset 0 1px 0 rgba(255,255,255,.36)!important;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease;
+}
+#portfolioCards .pActionDrawer > summary::after{
+  content:"▼"!important;
+  flex:0 0 auto;
+  font-size:13px;
+  opacity:.95;
+}
+#portfolioCards .pActionDrawer[open] > summary::after{content:"▲"!important}
+#portfolioCards .pActionDrawer > summary:hover{filter:brightness(1.08)}
+#portfolioCards .pActionDrawer > summary:active{
+  transform:translateY(3px);
+  box-shadow:0 2px 0 #0b4775,0 4px 8px rgba(5,58,103,.18)!important;
+}
+#portfolioCards .pActions{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+  padding:6px 10px 15px!important;
+  border-top:0!important;
+}
+#portfolioCards .pActions button,
+#portfolioCards .pActions a{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  width:100%;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:47px!important;
+  margin:0!important;
+  padding:10px 9px!important;
+  border:1px solid #9abfdc!important;
+  border-bottom:3px solid #6c9ec4!important;
+  border-radius:11px!important;
+  background:linear-gradient(180deg,#f6fbff,#d8ebfb)!important;
+  color:#174a73!important;
+  font:800 14px/1.25 system-ui,-apple-system,Segoe UI,sans-serif!important;
+  text-align:center!important;
+  text-decoration:none!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere;
+  cursor:pointer!important;
+  box-shadow:0 3px 0 #91b3cf,0 6px 10px rgba(19,72,107,.14),inset 0 1px 0 #fff!important;
+  transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;
+}
+#portfolioCards .pActions button:hover,
+#portfolioCards .pActions a:hover{
+  filter:brightness(1.045);
+  transform:translateY(-1px);
+}
+#portfolioCards .pActions button:active,
+#portfolioCards .pActions a:active{
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #91b3cf,0 2px 5px rgba(19,72,107,.17)!important;
+}
+#portfolioCards .pActions .officeCloudShareButton,
+#portfolioCards .pActions .sharePortfolioButton,
+#portfolioCards .pActions .waRenewButton{
+  background:linear-gradient(180deg,#e9ffef,#b9eacb)!important;
+  border-color:#6ab58b!important;
+  border-bottom-color:#35885b!important;
+  color:#155735!important;
+  box-shadow:0 3px 0 #69b58b,0 6px 10px rgba(24,105,62,.17),inset 0 1px 0 #fff!important;
+}
+#portfolioCards .pActions button[data-edit-p]{
+  background:linear-gradient(180deg,#fff5db,#ffd88e)!important;
+  border-color:#dfa94d!important;
+  border-bottom-color:#b37c25!important;
+  color:#764709!important;
+  font-size:18px!important;
+  box-shadow:0 3px 0 #daa954,0 6px 10px rgba(132,84,16,.14),inset 0 1px 0 #fff!important;
+}
+#portfolioCards .pActions button[data-delete-portfolio]{
+  background:linear-gradient(180deg,#fff0f0,#ffd0d0)!important;
+  border-color:#e4a1a1!important;
+  border-bottom-color:#b96666!important;
+  color:#8e2323!important;
+  box-shadow:0 3px 0 #d18b8b,0 6px 10px rgba(142,35,35,.13),inset 0 1px 0 #fff!important;
+}
+#portfolioCards .pActions .authRenewButton{
+  background:linear-gradient(180deg,#fff7df,#ffe1a0)!important;
+  border-color:#e0b560!important;
+  color:#795009!important;
+}
+#portfolioCards .pActionDrawer > summary:focus-visible,
+#portfolioCards .pActions button:focus-visible,
+#portfolioCards .pActions a:focus-visible{
+  outline:3px solid #ffb62e!important;
+  outline-offset:3px!important;
+}
+@media(min-width:800px){
+  #portfolioCards .pActions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:650px){
+  #portfolioCards .pActionDrawer > summary{font-size:15px!important;min-height:55px!important}
+  #portfolioCards .pActions button,
+  #portfolioCards .pActions a{min-height:49px!important;font-size:14px!important}
+}
+@media(max-width:350px){
+  #portfolioCards .pActions{gap:7px!important}
+  #portfolioCards .pActions button,
+  #portfolioCards .pActions a{font-size:13px!important;padding:10px 6px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #portfolioCards .pActionDrawer > summary,
+  #portfolioCards .pActions button,
+  #portfolioCards .pActions a{transition:none!important}
+}
+@media print{#portfolioCards .pActionDrawer{display:none!important}}
 </style><header><h2>Portföy Hareketleri / Haftalık Rapor</h2><a class="homeBack" href="index.html">← Ana Sayfaya Dön</a></header><main>
 <section class="panel" id="officeSharingPanel" hidden style="display:none!important">
 <div class="portfolioHeading"><h3>🏢 Ofis Portföyleri</h3><button type="button" class="light" id="officeCloudRefresh">Listeyi Yenile ↻</button></div>
@@ -942,7 +1081,7 @@ function drawCards(){
  const without=matching.length-presented;
  $("portfolioActivitySummary").textContent="📊 Görüntülenen portföyler: "+matching.length+" · Müşteriye sunulan: "+presented+" · Yerinde gösterilen: "+shown+" · Teklif bulunan: "+offers+" · Henüz sunulmayan: "+without;
  collectWorkspace();
- root.innerHTML=matching.map(p=>'<article class="pCard '+(p.id===expandedPortfolioId?'chosen':'')+'" data-portfolio-card="'+esc(p.id)+'"><div class="pContent">'+(p.cover?'<img class="pPhoto" src="'+esc(p.cover)+'" alt="Kapak fotoğrafı">':'<div class="pPhoto placeholder">🏠<small>Fotoğraf yok</small></div>')+'<div class="pDetails"><strong>'+esc(p.title)+'</strong><span>'+esc([p.kind,p.propertyType,p.rooms].filter(Boolean).join(" · "))+'</span><span>📍 '+esc(p.location||"Konum girilmedi")+'</span><span>Mülk sahibi: '+esc(p.owner||"—")+'</span><span>☎ '+(p.phone?'<a href="tel:'+esc(String(p.phone).replace(/[^0-9+]/g,""))+'">'+esc(p.phone)+'</a>'+(ownerWhatsAppNumber(p.phone)?' · <a href="https://wa.me/'+ownerWhatsAppNumber(p.phone)+'" target="_blank" rel="noopener noreferrer" aria-label="Mülk sahibine WhatsApp mesajı gönder">WhatsApp ↗</a>':''):'—')+'</span><span>Danışman: '+esc(p.consultant||db.advisor.name||"—")+(p.consultantPhone&&externalPhone(p.consultantPhone)?' · <a href="tel:'+esc(externalPhone(p.consultantPhone))+'">📞 Ara</a> · <a href="https://wa.me/90'+esc(externalPhone(p.consultantPhone).slice(1))+'" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>':'')+'</span>'+(p.listingUrl&&validListingUrl(p.listingUrl)?'<span>🔗 <a href="'+esc(p.listingUrl)+'" target="_blank" rel="noopener noreferrer">İlanı Aç ↗</a></span>':'')+authorizationBadge(p)+'</div><div class="pPrice">'+(p.price?fmt(parse(p.price))+" TL":"—")+'</div></div><details class="pActionDrawer"><summary>⚙ İşlemler ve paylaşım</summary><div class="pActions"><button type="button" class="light" data-open-tab="act" data-pid="'+esc(p.id)+'">Hareketler</button><button type="button" class="light" data-open-tab="sites" data-pid="'+esc(p.id)+'">İlan Takibi</button><button type="button" class="light" data-open-tab="report" data-pid="'+esc(p.id)+'">Rapor</button><button type="button" class="light" data-open-tab="hist" data-pid="'+esc(p.id)+'">Geçmiş</button><a class="light" href="./teklif-mektubu.html?id='+encodeURIComponent(p.id)+'" style="text-decoration:none;display:inline-flex;align-items:center">📄 Teklif Mektubu</a><button type="button" class="light" data-open-tab="advisor" data-pid="'+esc(p.id)+'">Danışman</button><button type="button" class="light" data-edit-p="'+esc(p.id)+'" aria-label="Portföyü düzenle" title="Portföyü düzenle">✎</button><button type="button" class="light" data-delete-portfolio="'+esc(p.id)+'" aria-label="Portföyü sil" title="Portföyü sil" style="background:#fff0f0;color:#a32626;border:1px solid #f1b8b8">🗑 Portföyü Sil</button><button type="button" class="officeCloudShareButton" data-cloud-share="'+esc(p.id)+'" title="Eski portföyleri de ofise eklemek için">🏢 Ofiste Paylaş</button>'+(portfolioShareUrl(p)?'<a class="sharePortfolioButton" href="'+esc(portfolioShareUrl(p))+'" target="_blank" rel="noopener noreferrer">📤 İlanı Paylaş</a>':'')+(p.authEnd&&Number.isFinite(authorizationDays(now,p.authEnd))&&authorizationDays(now,p.authEnd)<=7?'<button type="button" class="authRenewButton" data-renew-p="'+esc(p.id)+'" title="Yeni sözleşme tarihlerini girip onaylayın">↻ Yetki Yenile</button>'+(ownerRenewalWhatsApp(p)?'<a class="waRenewButton" href="'+esc(ownerRenewalWhatsApp(p))+'" target="_blank" rel="noopener noreferrer" title="Mülk sahibine yetki yenileme mesajı hazırla">💬 Yenileme Mesajı</a>':''):'')+'</div></details>'+(Array.isArray(p.authHistory)&&p.authHistory.length?'<details class="authHistory"><summary>Yetki Geçmişi ('+p.authHistory.length+')</summary><div>'+p.authHistory.slice().reverse().map(h=>'<div class="authHistoryEntry"><b>'+tr(h.authStart)+' – '+tr(h.authEnd)+'</b>'+(h.authDuration?'<span> · '+esc(h.authDuration)+' '+esc(({day:"gün",month:"ay",year:"yıl"})[h.authUnit]||h.authUnit||"")+'</span>':'')+'<small>Önceki kayıt · '+(h.changedAt?esc(new Date(h.changedAt).toLocaleString("tr-TR")):"Tarih belirtilmedi")+'</small></div>').join("")+'</div></details>':'')+'<div class="pSlot" data-slot="'+esc(p.id)+'"></div></article>').join("")||'<div class="hint">'+(db.portfolios.length?"Bu arama veya yetki durumuna uygun portföy bulunamadı.":"Henüz portföy eklenmedi.")+'</div>';
+ root.innerHTML=matching.map(p=>'<article class="pCard '+(p.id===expandedPortfolioId?'chosen':'')+'" data-portfolio-card="'+esc(p.id)+'"><div class="pContent">'+(p.cover?'<img class="pPhoto" src="'+esc(p.cover)+'" alt="Kapak fotoğrafı">':'<div class="pPhoto placeholder">🏠<small>Fotoğraf yok</small></div>')+'<div class="pDetails"><strong>'+esc(p.title)+'</strong><span>'+esc([p.kind,p.propertyType,p.rooms].filter(Boolean).join(" · "))+'</span><span>📍 '+esc(p.location||"Konum girilmedi")+'</span><span>Mülk sahibi: '+esc(p.owner||"—")+'</span><span>☎ '+(p.phone?'<a href="tel:'+esc(String(p.phone).replace(/[^0-9+]/g,""))+'">'+esc(p.phone)+'</a>'+(ownerWhatsAppNumber(p.phone)?' · <a href="https://wa.me/'+ownerWhatsAppNumber(p.phone)+'" target="_blank" rel="noopener noreferrer" aria-label="Mülk sahibine WhatsApp mesajı gönder">WhatsApp ↗</a>':''):'—')+'</span><span>Danışman: '+esc(p.consultant||db.advisor.name||"—")+(p.consultantPhone&&externalPhone(p.consultantPhone)?' · <a href="tel:'+esc(externalPhone(p.consultantPhone))+'">📞 Ara</a> · <a href="https://wa.me/90'+esc(externalPhone(p.consultantPhone).slice(1))+'" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>':'')+'</span>'+(p.listingUrl&&validListingUrl(p.listingUrl)?'<span>🔗 <a href="'+esc(p.listingUrl)+'" target="_blank" rel="noopener noreferrer">İlanı Aç ↗</a></span>':'')+authorizationBadge(p)+'</div><div class="pPrice">'+(p.price?fmt(parse(p.price))+" TL":"—")+'</div></div><details class="pActionDrawer"><summary>⚙️ İŞLEMLER &amp; 📤 PAYLAŞIM</summary><div class="pActions"><button type="button" class="light" data-open-tab="act" data-pid="'+esc(p.id)+'">Hareketler</button><button type="button" class="light" data-open-tab="sites" data-pid="'+esc(p.id)+'">İlan Takibi</button><button type="button" class="light" data-open-tab="report" data-pid="'+esc(p.id)+'">Rapor</button><button type="button" class="light" data-open-tab="hist" data-pid="'+esc(p.id)+'">Geçmiş</button><a class="light" href="./teklif-mektubu.html?id='+encodeURIComponent(p.id)+'" style="text-decoration:none;display:inline-flex;align-items:center">📄 Teklif Mektubu</a><button type="button" class="light" data-open-tab="advisor" data-pid="'+esc(p.id)+'">Danışman</button><button type="button" class="light" data-edit-p="'+esc(p.id)+'" aria-label="Portföyü düzenle" title="Portföyü düzenle">✎</button><button type="button" class="light" data-delete-portfolio="'+esc(p.id)+'" aria-label="Portföyü sil" title="Portföyü sil" style="background:#fff0f0;color:#a32626;border:1px solid #f1b8b8">🗑 Portföyü Sil</button><button type="button" class="officeCloudShareButton" data-cloud-share="'+esc(p.id)+'" title="Eski portföyleri de ofise eklemek için">🏢 Ofiste Paylaş</button>'+(portfolioShareUrl(p)?'<a class="sharePortfolioButton" href="'+esc(portfolioShareUrl(p))+'" target="_blank" rel="noopener noreferrer">📤 İlanı Paylaş</a>':'')+(p.authEnd&&Number.isFinite(authorizationDays(now,p.authEnd))&&authorizationDays(now,p.authEnd)<=7?'<button type="button" class="authRenewButton" data-renew-p="'+esc(p.id)+'" title="Yeni sözleşme tarihlerini girip onaylayın">↻ Yetki Yenile</button>'+(ownerRenewalWhatsApp(p)?'<a class="waRenewButton" href="'+esc(ownerRenewalWhatsApp(p))+'" target="_blank" rel="noopener noreferrer" title="Mülk sahibine yetki yenileme mesajı hazırla">💬 Yenileme Mesajı</a>':''):'')+'</div></details>'+(Array.isArray(p.authHistory)&&p.authHistory.length?'<details class="authHistory"><summary>Yetki Geçmişi ('+p.authHistory.length+')</summary><div>'+p.authHistory.slice().reverse().map(h=>'<div class="authHistoryEntry"><b>'+tr(h.authStart)+' – '+tr(h.authEnd)+'</b>'+(h.authDuration?'<span> · '+esc(h.authDuration)+' '+esc(({day:"gün",month:"ay",year:"yıl"})[h.authUnit]||h.authUnit||"")+'</span>':'')+'<small>Önceki kayıt · '+(h.changedAt?esc(new Date(h.changedAt).toLocaleString("tr-TR")):"Tarih belirtilmedi")+'</small></div>').join("")+'</div></details>':'')+'<div class="pSlot" data-slot="'+esc(p.id)+'"></div></article>').join("")||'<div class="hint">'+(db.portfolios.length?"Bu arama veya yetki durumuna uygun portföy bulunamadı.":"Henüz portföy eklenmedi.")+'</div>';
  if(expandedPortfolioId){
    const slot=[...root.querySelectorAll("[data-slot]")].find(el=>el.dataset.slot===expandedPortfolioId);
    if(slot)slot.appendChild(workspace);
