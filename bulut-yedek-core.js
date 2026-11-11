@@ -19,15 +19,15 @@ export function buildRestorePoints(rows){
   for(const kind of KINDS){
    // Each kind uses its own most recent snapshot not later than the selected time.
    const latest=filtered.find(v=>v.kind===kind&&Date.parse(v.created_at)<=cutoff);
-   if(!latest)break;
+   if(!latest)continue;
    snapshots[kind]=latest;
   }
-  if(Object.keys(snapshots).length!==KINDS.length)continue;
+  if(Object.keys(snapshots).length===0)continue;
   points.push({
    date:row.created_at,
    minute,
    snapshots,
-   counts:KINDS.map(kind=>snapshots[kind].item_count)
+   counts:KINDS.map(kind=>(snapshots[kind]?.item_count??0))
   });
  }
  return points;
@@ -86,9 +86,9 @@ export function mergeAll(local,backups){
  if(!obj(crm)||!Array.isArray(crm.clients)||!Array.isArray(crm.tasks)||
     !obj(portfolio)||!Array.isArray(portfolio.portfolios)||!Array.isArray(external))
   throw Error("Mevcut cihaz kayıtları okunamadı. Üzerine yazma yapılmayacak.");
- const c=mergeById(crm.clients,backups.clients,"clients");
- const p=mergeById(portfolio.portfolios,backups.portfolios,"portfolios");
- const e=mergeExternal(external,backups.external_portfolios);
+ const c=Array.isArray(backups.clients)?mergeById(crm.clients,backups.clients,"clients"):{data:crm.clients,added:0,duplicates:0};
+ const p=Array.isArray(backups.portfolios)?mergeById(portfolio.portfolios,backups.portfolios,"portfolios"):{data:portfolio.portfolios,added:0,duplicates:0};
+ const e=Array.isArray(backups.external_portfolios)?mergeExternal(external,backups.external_portfolios):{data:external,added:0,duplicates:0};
  return {
   updated:{
    clients:{...crm,clients:c.data},
