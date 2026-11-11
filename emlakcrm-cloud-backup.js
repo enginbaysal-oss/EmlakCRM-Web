@@ -126,4 +126,16 @@ document.addEventListener("click",event=>{
 });
 window.setTimeout(()=>{schedule("clients",1000);schedule("portfolios",3000);schedule("external_portfolios",5000)},5000);
 window.setInterval(()=>{schedule("clients",1000);schedule("portfolios",3500);schedule("external_portfolios",6000)},120000);
+// Once a member returns to their ORIGINAL browser, bring any unsynced local changes
+// into their own append-only cloud history without asking them to press a button.
+// Do not send empty arrays or another user's scoped data; existing upload() gates apply.
+function syncOnReturn(){
+ schedule("clients",350);
+ schedule("portfolios",900);
+ schedule("external_portfolios",1500);
+}
+window.addEventListener("focus",syncOnReturn);
+window.addEventListener("online",syncOnReturn);
+window.addEventListener("pageshow",syncOnReturn);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncOnReturn()});
 })();
