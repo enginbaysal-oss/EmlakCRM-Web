@@ -49,7 +49,11 @@ async function upload(kind,force=false){
  try{
   const auth=await verified();
   if(!auth||k!==ownKey(kind))return {kind,status:"auth"};
-  const fingerprint=await hash(payload);
+  // A deliberate button press creates a new restore point even when data is unchanged.
+  // Background backups still deduplicate identical content.
+  const fingerprint=force
+   ? await hash(payload+"\\nmanual-snapshot:"+crypto.randomUUID())
+   : await hash(payload);
   const r=await fetch(PROJECT+"/rest/v1/emlakcrm_user_backups?on_conflict=user_id,kind,fingerprint",{
    method:"POST",
    headers:{...auth.headers,"Content-Type":"application/json",Prefer:"resolution=ignore-duplicates,return=minimal"},
