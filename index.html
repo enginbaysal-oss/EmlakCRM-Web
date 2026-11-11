@@ -1656,7 +1656,7 @@ async function crmHandleSignupConfirmationCallback(){
   location.reload();
  }catch(e){$("crmInlineResult").textContent=String(e.message||e)}
 }
-// Supabase recovery callback: token stays in memory, never stored in localStorage.
+// Supabase recovery callback: the one-time token stays in memory, never in localStorage.
 let crmRecoveryToken=null;
 async function crmHandleRecoveryCallback(){
  const fragment=new URLSearchParams(location.hash.slice(1));
@@ -1665,7 +1665,21 @@ async function crmHandleRecoveryCallback(){
  const accessToken=fragment.get("access_token");
  const tokenHash=query.get("token_hash");
  const code=query.get("code");
- if(type!=="recovery"&&!tokenHash&&!code)return;
+ const errorCode=fragment.get("error_code")||query.get("error_code")||"";
+ const errorText=fragment.get("error_description")||query.get("error_description")||"";
+ const authError=Boolean(fragment.get("error")||query.get("error"));
+ // Supabase strips type=recovery when a verification link expires.
+ // Keep an actionable password-reset request instead of a dead login error.
+ const expired=authError&&(/otp_expired|otp_disabled|expired/i.test(errorCode)||
+  /email link is invalid or has expired/i.test(errorText));
+ if(type!=="recovery"&&!tokenHash&&!code&&!expired)return false;
+ history.replaceState(null,"",location.pathname+"#account");
+ await showScreen("account");
+ $("crmInlineAuth").hidden=false;
+ if(expired){
+  crmShowRecoveryRequest("Bu şifre bağlantısı geçersiz, süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı isteyip sadece en son gelen e-postayı açın.");
+  return true;
+ }
  try{
   let token=accessToken;
   if(!token&&tokenHash){
@@ -1675,18 +1689,22 @@ async function crmHandleRecoveryCallback(){
    const data=await crmAuthPost("/token?grant_type=pkce",{auth_code:code,code_verifier:sessionStorage.getItem("emlakcrm_recovery_verifier")||""});
    token=data.access_token;
   }
-  history.replaceState(null,"",location.pathname+"#account");
-  await showScreen("account");
+  if(!token)throw Error("Bu şifre bağlantısında doğrulama bilgisi yok.");
+  const auth=await fetch(crmApiBase+"/auth/v1/user",{
+   headers:{apikey:crmPublicKey,Authorization:"Bearer "+token},cache:"no-store"
+  });
+  if(!auth.ok)throw Error("Şifre yenileme bağlantısı doğrulanamadı.");
+  crmRecoveryToken=token;
+  $("crmRecoveryRequestPanel").hidden=true;
   $("crmRecoveryPanel").hidden=false;
   $("crmInlineAuthForm").hidden=true;
   $("crmInlineForgot").hidden=true;
-  if(!token)throw Error("Bağlantı geçersiz veya süresi dolmuş. Yeni bağlantı isteyin.");
-  crmRecoveryToken=token;
-  $("crmRecoveryStatus").textContent="Yeni şifrenizi belirleyebilirsiniz.";
+  $("crmInlineResend").hidden=true;
+  $("crmRecoveryStatus").textContent="Bağlantınız doğrulandı. Yeni şifrenizi iki kez yazıp Şifreyi Kaydet düğmesine basın.";
+  return true;
  }catch(e){
-  history.replaceState(null,"",location.pathname+"#account");
-  $("crmRecoveryPanel").hidden=false;
-  $("crmRecoveryStatus").textContent=String(e.message||e);
+  crmShowRecoveryRequest(String(e.message||e)+" Yeni bağlantı isteyebilirsiniz.");
+  return true;
  }
 }
 $("crmRecoveryForm").onsubmit=async event=>{
@@ -1906,8 +1924,10 @@ $("quickAddReminder").addEventListener("click",()=>quickDo("agenda","addTask"));
 $("quickDownloadBackup").addEventListener("click",()=>quickDo("account","crmFullExport"));
 window.addEventListener("hashchange",()=>showScreen(location.hash.slice(1)));
 showScreen(location.hash.slice(1));
-void crmHandleRecoveryCallback();
-void crmHandleSignupConfirmationCallback();
+void (async()=>{
+ try{if(!(await crmHandleRecoveryCallback()))await crmHandleSignupConfirmationCallback()}
+ catch(e){console.error("EmlakCRM kimlik doğrulama dönüş hatası",e.message)}
+})();
 
 </script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
