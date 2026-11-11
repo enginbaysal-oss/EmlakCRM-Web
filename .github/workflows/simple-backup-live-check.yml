@@ -1,0 +1,48 @@
+name: Verify live simplified EmlakCRM cloud backups
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'bulut-yedek.html'
+      - 'bulut-yedek-sade.js'
+      - 'bulut-yedek-core.js'
+      - '.github/workflows/simple-backup-live-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Confirm published CRM account buttons, restore pages and original modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='https://enginbaysal-oss.github.io/EmlakCRM-Web'
+          for attempt in 1 2 3 4 5 6 7 8; do
+            index="$(mktemp)"; restore="$(mktemp)"; module="$(mktemp)"; core="$(mktemp)"
+            if curl -fsSL --max-time 15 "$ROOT/index.html?simple-backup=20261111" -o "$index" &&
+               curl -fsSL --max-time 15 "$ROOT/bulut-yedek.html?simple-backup=20261111" -o "$restore" &&
+               curl -fsSL --max-time 15 "$ROOT/bulut-yedek-sade.js?simple-backup=20261111" -o "$module" &&
+               curl -fsSL --max-time 15 "$ROOT/bulut-yedek-core.js?simple-backup=20261111" -o "$core" &&
+               grep -q 'id="crmCloudBackupNow"' "$index" &&
+               grep -q 'Buluttan Geri Yükle' "$index" &&
+               grep -q 'bulut-yedek.html?v=20261111sade1' "$index" &&
+               grep -q 'id="date"' "$restore" &&
+               grep -q 'id="restore"' "$restore" &&
+               grep -q 'bulut-yedek-sade.js' "$restore" &&
+               grep -q 'mergeAll(local.data,backups)' "$module" &&
+               grep -q 'buildRestorePoints' "$core" &&
+               ! grep -q 'id="previewRows"' "$restore"; then
+                 echo "LIVE_SIMPLE_BACKUP_UI_OK"
+                 break
+            fi
+            if [ "$attempt" -eq 8 ]; then echo "LIVE_SIMPLE_BACKUP_UI_MISSING"; exit 1; fi
+            sleep 8
+          done
+          for url in "$ROOT/portfoy-rapor.html" "$ROOT/abonelik-satin-al.html" "$ROOT/emlakcrm-cloud-backup.js" "$ROOT/account-data-isolation.js"; do
+            curl -fsSL --max-time 15 "$url" -o /dev/null
+          done
+          echo "OTHER_CRM_COMPONENTS_STILL_ACCESSIBLE"
