@@ -537,13 +537,21 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <p class="mini officeFootnote">Ofiste paylaşılan ilan bilgileri onaylı danışmanlara görünür. Müşteri kayıtları ve özel portföy çalışma notları paylaşılmaz.</p>
 </section>
 <section class="card accountPanel accountBackupCenter" id="settingsBackupSection">
-<h3>💾 Yedekleme</h3>
-<p class="muted">Bu yedek yalnızca bu tarayıcıda mevcut hesap altında okunabilen müşteri, ajanda, portföy ve sunum kayıtlarını içerir. Önceki sürümün ortak yerel kayıtları ve diğer modüllerdeki tüm veriler yedeğe dahil olmayabilir.</p>
-<div class="backupActions"><button type="button" id="crmFullExport">⬇ Yedeği İndir</button><button type="button" class="secondary" id="crmFullImportButton">📂 Yedekten Geri Yükle</button></div>
+<h3>☁️ Bulut Yedekleme</h3>
+<p class="muted">Tek dokunuşla bu hesaptaki müşteri, portföy ve çekilen portföy kayıtlarını buluta kaydedin. Daha önceki yedekler korunur.</p>
+<div class="backupActions">
+<button type="button" id="crmCloudBackupNow" style="background:#16785d;color:#fff;font-weight:800">☁️ Buluta Yedekle</button>
+<a class="secondary" href="./bulut-yedek.html?v=20261111sade1" style="display:inline-flex;align-items:center;text-decoration:none;padding:12px;border:1px solid #c8dfe8;border-radius:9px;font-weight:800">🕘 Buluttan Geri Yükle</a>
+</div>
+<p class="mini" id="crmCloudBackupStatus" role="status" aria-live="polite" style="white-space:normal;line-height:1.65;overflow-wrap:anywhere">Hesabınız açıkken bulut yedekleme durumunu kontrol edebilirsiniz.</p>
+<details style="margin-top:16px;border-top:1px solid #dce9f0;padding-top:12px">
+<summary style="cursor:pointer;font-weight:750;color:#405c6e">Gelişmiş · Dosyaya yedekle / dosyadan geri yükle</summary>
+<p class="mini">İsterseniz ayrıca bu cihazdaki müşteri, ajanda, portföy ve sunum kayıtlarının dosya yedeğini indirebilirsiniz.</p>
+<div class="backupActions"><button type="button" id="crmFullExport">⬇ Dosya Yedeği İndir</button><button type="button" class="secondary" id="crmFullImportButton">📂 Dosyadan Geri Yükle</button></div>
 <input type="file" id="crmFullImportFile" accept=".json,application/json" hidden>
 <p id="crmFullBackupStatus" class="mini" role="status" aria-live="polite"></p>
-<p class="backupNotice">Dosyayı güvenli yerde sakla. PDF İmzala belgeleri, EmlakAsistan şablonları ve hesap ayrıştırması öncesindeki eski yerel kayıtlar bu dosyaya dahil değildir. Eski kayıtlara otomatik erişim verilmez.</p>
-<div class="notice" style="margin:18px 0 4px"><strong>☁️ Otomatik Güvenli Bulut Yedekleme</strong><p class="muted" style="margin:8px 0">Giriş yapılmış hesabın müşteri, portföy ve çekilen ilan kayıtları değiştikçe ayrı bir yedek sürümü oluşturulur. Boş cihaz verisi önceki bulut yedeklerini silmez.</p><p class="mini" id="crmCloudBackupStatus" role="status" aria-live="polite" style="white-space:normal;line-height:1.65;overflow-wrap:anywhere">Hesabın açıkken güvenli bulut yedeği kontrol edilir.</p><div class="backupActions"><button type="button" id="crmCloudBackupNow">☁️ Şimdi Buluta Yedekle</button><a class="secondary" href="./bulut-yedek.html?v=20261109c" style="display:inline-block;text-decoration:none;padding:12px;border-radius:9px;font-weight:750">📂 Bulut Yedeğinden Kurtar</a></div><p class="backupNotice">Yedeklerin yalnızca kendi hesabına bağlıdır. Eski sürümleri görüntüleyip seçerek geri alabilirsin. Tarayıcı verilerini temizlemeden önce bulut yedekleme durumunu kontrol et.</p></div>
+<p class="backupNotice">PDF arşivi, drone videoları ve cihaz-özel diğer dosyalar bulut yedeklerine otomatik dahil değildir. Bulut yedekleriniz yalnızca kendi hesabınıza aittir.</p>
+</details>
 </section>
 </div>
 <div class="view-screen" id="tapuView" hidden><iframe id="tapuFrame" title="TapuMatik hesaplama" style="width:100%;height:85vh;min-height:650px;border:0;background:white;border-radius:12px"></iframe></div>
