@@ -467,7 +467,14 @@ button:disabled{transform:none!important;box-shadow:none!important;filter:none!i
 <div id="crmInlineRegisterFields" hidden><label for="crmInlineName">Ad soyad</label><input type="text" id="crmInlineName" maxlength="100" autocomplete="name">
 <label for="crmInlinePasswordConfirm">Şifre tekrar</label><input type="password" id="crmInlinePasswordConfirm" minlength="8" autocomplete="new-password"></div>
 <button type="submit" id="crmInlineSubmit">Giriş Yap</button>
-</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button><button type="button" class="secondary" id="crmInlineResend" hidden>Doğrulama e-postasını yeniden gönder</button><section id="crmRecoveryPanel" class="card" hidden><h3>Yeni Şifre Belirle</h3><form id="crmRecoveryForm"><label for="crmRecoveryPassword">Yeni şifre</label><input id="crmRecoveryPassword" type="password" minlength="8" autocomplete="new-password" required><label for="crmRecoveryConfirm">Yeni şifre tekrar</label><input id="crmRecoveryConfirm" type="password" minlength="8" autocomplete="new-password" required><button type="submit" id="crmRecoverySave">Şifreyi Kaydet</button></form><p id="crmRecoveryStatus" role="status"></p></section>
+</form><button type="button" class="secondary" id="crmInlineForgot">Şifremi Unuttum</button><button type="button" class="secondary" id="crmInlineResend" hidden>Doğrulama e-postasını yeniden gönder</button>
+<section id="crmRecoveryRequestPanel" class="card" hidden>
+<h3>Şifre Sıfırlama</h3><p class="muted">Yeni şifre bağlantısını e-posta adresinize göndereceğiz. Yalnızca en son gelen mesajdaki bağlantıyı açın.</p>
+<form id="crmRecoveryRequestForm"><label for="crmRecoveryRequestEmail">E-posta</label><input type="email" id="crmRecoveryRequestEmail" autocomplete="email" required>
+<button type="submit" id="crmRecoveryRequestSubmit">Yeni Şifre Bağlantısı Gönder</button></form>
+<p id="crmRecoveryRequestStatus" role="status" aria-live="polite"></p>
+<button type="button" id="crmRecoveryBackToLogin" class="secondary">Giriş Ekranına Dön</button>
+</section><section id="crmRecoveryPanel" class="card" hidden><h3>Yeni Şifre Belirle</h3><form id="crmRecoveryForm"><label for="crmRecoveryPassword">Yeni şifre</label><input id="crmRecoveryPassword" type="password" minlength="8" autocomplete="new-password" required><label for="crmRecoveryConfirm">Yeni şifre tekrar</label><input id="crmRecoveryConfirm" type="password" minlength="8" autocomplete="new-password" required><button type="submit" id="crmRecoverySave">Şifreyi Kaydet</button></form><p id="crmRecoveryStatus" role="status"></p></section>
 <p id="crmInlineResult" class="mini" aria-live="polite" role="status"></p>
 </div>
 <button type="button" id="accountLogout" class="secondary" hidden>Çıkış Yap</button>
@@ -1519,7 +1526,30 @@ $("cloudOfficeList").onclick=async event=>{
 };
 const CRM_AUTH_RETURN_URL="https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
 let crmAuthMode="login";
+function crmShowRecoveryRequest(message=""){
+ crmRecoveryToken=null;
+ $("crmRecoveryPanel").hidden=true;
+ $("crmInlineAuthForm").hidden=true;
+ $("crmInlineForgot").hidden=true;
+ $("crmInlineResend").hidden=true;
+ $("crmRecoveryRequestPanel").hidden=false;
+ $("crmInlineAuth").hidden=false;
+ $("crmRecoveryRequestEmail").value=$("crmRecoveryRequestEmail").value.trim()||$("crmInlineEmail").value.trim();
+ $("crmRecoveryRequestStatus").textContent=message;
+ $("crmInlineResult").textContent="";
+}
+function crmBackToLogin(){
+ $("crmRecoveryRequestPanel").hidden=true;
+ $("crmRecoveryPanel").hidden=true;
+ $("crmInlineAuthForm").hidden=false;
+ $("crmInlineForgot").hidden=false;
+ crmRecoveryToken=null;
+ crmInlineMode("login");
+}
 function crmInlineMode(next){
+ $("crmRecoveryRequestPanel").hidden=true;
+ $("crmRecoveryPanel").hidden=true;
+ $("crmInlineAuthForm").hidden=false;
  crmAuthMode=next;const register=next==="register";
  $("crmInlineRegisterFields").hidden=!register;
  $("crmInlineName").required=register;
@@ -1574,13 +1604,19 @@ $("crmInlineAuthForm").onsubmit=async event=>{
  }catch(err){result.textContent="Giriş/kayıt yapılamadı: "+err.message}
  finally{btn.disabled=false}
 };
-$("crmInlineForgot").onclick=async()=>{
- const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult");
- if(!$("crmInlineEmail").checkValidity()||!email){result.textContent="Şifre yenileme için geçerli e-posta adresinizi yazın.";return}
- const btn=$("crmInlineForgot");btn.disabled=true;
- try{await crmAuthPost("/recover?redirect_to="+encodeURIComponent(CRM_AUTH_RETURN_URL),{email});result.textContent="Şifre sıfırlama e-postası talep edildi. Gelen kutunuzu kontrol edin."}
- catch(err){result.textContent=err.message}
- finally{btn.disabled=false}
+$("crmInlineForgot").onclick=()=>crmShowRecoveryRequest();
+$("crmRecoveryBackToLogin").onclick=crmBackToLogin;
+$("crmRecoveryRequestForm").onsubmit=async event=>{
+ event.preventDefault();
+ const email=$("crmRecoveryRequestEmail").value.trim();
+ const status=$("crmRecoveryRequestStatus"),button=$("crmRecoveryRequestSubmit");
+ if(!$("crmRecoveryRequestEmail").checkValidity()){status.textContent="Geçerli bir e-posta adresi yazın.";return}
+ button.disabled=true;status.textContent="Yeni şifre bağlantısı isteniyor…";
+ try{
+  await crmAuthPost("/recover?redirect_to="+encodeURIComponent(CRM_AUTH_RETURN_URL),{email});
+  status.textContent="Şifre yenileme e-postası istendi. E-posta kayıtlıysa yeni mesaj gelecektir. Yalnızca EN SON gelen 'Reset your password' mesajındaki bağlantıyı açın; eski bağlantıları kullanmayın.";
+ }catch(err){status.textContent=String(err.message||err)}
+ finally{button.disabled=false}
 };
 $("crmInlineResend").onclick=async()=>{
  const email=$("crmInlineEmail").value.trim(),result=$("crmInlineResult"),btn=$("crmInlineResend");
