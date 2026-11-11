@@ -1209,6 +1209,9 @@ window.addEventListener("storage",e=>{
 const crmApiBase="https://tffvwxskvjuxoekwgdef.supabase.co";
 let crmVerifiedUser=null;
 async function crmAuthenticatedSession(){
+ // Mobile Safari can discard tab-scoped sessionStorage after backgrounding.
+ // Restore only the opted-in remembered session and preserve account isolation.
+ if(!sessionStorage.getItem(crmAuthSessionKey))crmRestoreRememberedAuth();
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
  if(!saved?.access_token)throw Error("Önce giriş yapın.");
  let response=await fetch(crmApiBase+"/auth/v1/user",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+saved.access_token}});
