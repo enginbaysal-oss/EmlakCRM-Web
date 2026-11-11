@@ -477,6 +477,21 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 @media(prefers-reduced-motion:reduce){
   body[data-screen="home"] #homeView .tools .tool{transition:none!important}
 }
+
+/* 2026-11-12: Clear framing for office-shared portfolios if this list is shown. */
+#cloudSharedPortfolioList > .officeSharedCard{
+  box-sizing:border-box!important;
+  border:2px solid #24739f!important;
+  border-left:6px solid #0c547f!important;
+  border-radius:13px!important;
+  background:linear-gradient(180deg,#ffffff,#f4f9fd)!important;
+  box-shadow:0 4px 12px rgba(19,67,103,.20)!important;
+  padding:13px 15px!important;
+  margin:12px 0!important;
+}
+#cloudSharedPortfolioList > .officeSharedCard:focus-within{
+  box-shadow:0 0 0 2px rgba(18,108,155,.14),0 4px 12px rgba(19,67,103,.20)!important;
+}
 </style></head><body>
 <div id="crmDataSafety" role="alert" aria-live="assertive" hidden>
  <span id="crmDataSafetyMessage">Bu sekmede kayit catismasi algilandi.</span>
@@ -498,7 +513,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <div class="homeModuleHeading"><h2 id="homeModulesHeading">Uygulamalar</h2><span>7 modül • Tek ekranda</span></div>
 <div class="tools homeMainTools" aria-label="EmlakCRM ana modüller">
 <button type="button" class="tool crm" data-go="customers"><div class="tool-icon">👥</div><div class="tool-title">Müşteri Yönetimi + Ajanda</div><div class="tool-desc">Müşteriler ve hatırlatmalar</div></button>
-<a href="portfoy-rapor.html?v=20261112officeframe#portfoyler" class="tool portfolio"><div class="tool-icon">🏠</div><div class="tool-title">Portföy Yönetimi</div><div class="tool-desc">İlanlar ve yetki süreleri</div></a>
+<a href="portfoy-rapor.html?v=20261112officeframe2#portfoyler" class="tool portfolio"><div class="tool-icon">🏠</div><div class="tool-title">Portföy Yönetimi</div><div class="tool-desc">İlanlar ve yetki süreleri</div></a>
 <a href="https://enginbaysal-oss.github.io/crm/ilan-asistani.html?v=20261108r" class="tool ilan-asistani" style="background:#e9f4ed;text-decoration:none;cursor:pointer"><div class="tool-icon">🔎</div><div class="tool-title">İlan Asistanı</div><div class="tool-desc">Kişisel favori aramalar ve yeni ilanlar</div></a>
 <a href="drone-cekim.html?v=20261109j" class="tool drone"><div class="tool-icon">🚁</div><div class="tool-title">Drone Çekim</div><div class="tool-desc">Parsel ve video uçuşu</div></a>
 <button type="button" data-go="assistant" class="tool emlakasistan"><div class="tool-icon">📄</div><div class="tool-title">EmlakAsistan</div><div class="tool-desc">Belgeler ve sözleşmeler</div></button>
@@ -516,7 +531,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <section id="portfolioExpiryHome" class="portfolioExpiryNotice" hidden aria-live="polite">
   <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
   <div id="portfolioExpiryHomeItems"></div>
-  <a href="portfoy-rapor.html?v=20261112officeframe#portfoyler">Portföy Yönetimi'ne Git →</a>
+  <a href="portfoy-rapor.html?v=20261112officeframe2#portfoyler">Portföy Yönetimi'ne Git →</a>
 </section>
 </div>
 <div class="view-screen" id="accountView" hidden>
@@ -629,12 +644,12 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
  <p id="clientReminderHint" class="mini" aria-live="polite" style="margin:7px 0 0"></p>
 </div>
 <button id="saveClient" class="full">Müşteriyi kaydet</button><button id="cancelEdit" class="full secondary hide" type="button">Düzenlemeyi iptal et</button></div><hr></div><div class="client-tabs" aria-label="Müşteri türleri"><button type="button" data-client-type="Alıcı">Alıcı</button><button type="button" data-client-type="Satıcı">Satıcı</button><button type="button" data-client-type="Diğer">Diğer</button><button type="button" data-client-type="Tümü" class="selected">Tümü</button></div><div class="crm-filters"><input id="filter" placeholder="Ad, telefon veya konum ara..." aria-label="Ad, telefon veya konum ara"><select id="statusFilter" aria-label="Takip durumu filtresi"><option value="">Tüm durumlar</option><option>Yeni</option><option>İletişimde</option><option>Randevu</option><option>Yer gösterildi</option><option>Teklif aşamasında</option><option>Sonuçlandı</option><option>Pasif</option></select></div><p id="clientReminderSaved" class="mini" hidden role="status" style="padding:10px 12px;border:1px solid #a6d6ce;background:#ecfaf4;color:#175644;border-radius:10px"></p><div id="clientList"></div><div id="historyPanel" class="hide history-panel"><h3 id="historyTitle">Görüşme geçmişi</h3><div id="historyItems"></div><textarea id="historyNote" maxlength="1000" aria-label="Görüşme notu ekle" placeholder="Görüşme özeti, müşteri talebi veya sonraki adım..."></textarea><label for="historyFollowupDate" class="mini" style="display:block;margin:10px 0 5px">Sonraki görüşme tarihi (isteğe bağlı)</label><input id="historyFollowupDate" type="datetime-local" aria-label="Sonraki görüşme tarihi ve saati" style="max-width:100%;padding:9px;border:1px solid #c9d9e5;border-radius:8px"><div class="entry-actions"><button id="saveHistory">Görüşme ekle</button><button id="closeHistory" class="secondary">Kapat</button></div></div></section>
-</div><div class="view-screen" id="matchingView"><div class="bar" id="matching"><h2>🔎 Müşteriye Uygun Portföy Bul</h2></div><section class="card"><p class="mini"><b>1.</b> Yukarıdan müşteri ekleyin. <b>2.</b> <a href="portfoy-rapor.html?v=20261112officeframe#portfoyler">Portföy Yönetimi</a> bölümünden portföy ekleyin. <b>3.</b> Aşağıdan müşteriyi seçin.</p><div class="form"><select id="matchClient" aria-label="Eşleştirilecek müşteri"><option value="">Müşteri seçin</option></select><button id="refreshMatches">Uygun Portföyleri Göster</button></div><div id="matchResults"></div><div class="presentedArea"><h3>Sunulan ve Gösterilen Portföyler</h3><p class="mini">Müşteriye sunduğunuz kendi, ofisinizin veya başka ofisin portföyünü kaydedin. Sunulanlar tekrar eşleştirme önerisine çıkmaz.</p><div class="form" id="presentedForm"><input id="presentedTitle" maxlength="130" placeholder="Sunulan portföy / ilan başlığı" aria-label="Portföy başlığı"><select id="presentedSource" aria-label="Portföy kaynağı"><option>Kendi portföyüm</option><option>Ofis portföyü</option><option>Başka ofis</option></select><input id="presentedOffice" maxlength="100" placeholder="Ofis / danışman (isteğe bağlı)" aria-label="Ofis veya danışman"><input id="presentedLink" type="url" class="full" placeholder="İlan linki (isteğe bağlı)" aria-label="İlan linki"><textarea id="presentedNote" class="full" rows="2" maxlength="600" placeholder="Sunum notu / müşteri görüşü" aria-label="Sunum notu"></textarea><button type="button" id="addPresented" class="full">Sunulan Portföyü Kaydet ve Kapat</button></div><div id="presentedList"></div></div></section>
+</div><div class="view-screen" id="matchingView"><div class="bar" id="matching"><h2>🔎 Müşteriye Uygun Portföy Bul</h2></div><section class="card"><p class="mini"><b>1.</b> Yukarıdan müşteri ekleyin. <b>2.</b> <a href="portfoy-rapor.html?v=20261112officeframe2#portfoyler">Portföy Yönetimi</a> bölümünden portföy ekleyin. <b>3.</b> Aşağıdan müşteriyi seçin.</p><div class="form"><select id="matchClient" aria-label="Eşleştirilecek müşteri"><option value="">Müşteri seçin</option></select><button id="refreshMatches">Uygun Portföyleri Göster</button></div><div id="matchResults"></div><div class="presentedArea"><h3>Sunulan ve Gösterilen Portföyler</h3><p class="mini">Müşteriye sunduğunuz kendi, ofisinizin veya başka ofisin portföyünü kaydedin. Sunulanlar tekrar eşleştirme önerisine çıkmaz.</p><div class="form" id="presentedForm"><input id="presentedTitle" maxlength="130" placeholder="Sunulan portföy / ilan başlığı" aria-label="Portföy başlığı"><select id="presentedSource" aria-label="Portföy kaynağı"><option>Kendi portföyüm</option><option>Ofis portföyü</option><option>Başka ofis</option></select><input id="presentedOffice" maxlength="100" placeholder="Ofis / danışman (isteğe bağlı)" aria-label="Ofis veya danışman"><input id="presentedLink" type="url" class="full" placeholder="İlan linki (isteğe bağlı)" aria-label="İlan linki"><textarea id="presentedNote" class="full" rows="2" maxlength="600" placeholder="Sunum notu / müşteri görüşü" aria-label="Sunum notu"></textarea><button type="button" id="addPresented" class="full">Sunulan Portföyü Kaydet ve Kapat</button></div><div id="presentedList"></div></div></section>
 </div><div class="view-screen" id="agendaView"><div class="bar" id="agenda"><h2>Ajanda ve hatırlatmalar</h2><button id="addTask">+ Hatırlatma</button></div>
 <section id="portfolioExpiryAgenda" class="portfolioExpiryNotice" hidden>
 <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
 <div id="portfolioExpiryAgendaItems"></div>
-<a href="portfoy-rapor.html?v=20261112officeframe#portfoyler">Portföyleri Aç →</a>
+<a href="portfoy-rapor.html?v=20261112officeframe2#portfoyler">Portföyleri Aç →</a>
 </section>
 <section class="card"><div id="taskForm" class="hide"><div class="form"><input id="taskTitle" maxlength="120" placeholder="Hatırlatma konusu" aria-label="Hatırlatma konusu"><input id="taskDate" type="datetime-local" aria-label="Tarih saat"><select id="taskClient" class="full" aria-label="İlgili müşteri"><option value="">Genel hatırlatma (müşterisiz)</option></select><button id="saveTask" class="full">Hatırlatmayı kaydet</button><button id="cancelTaskEdit" type="button" class="secondary full hide">Vazgeç</button></div><hr></div><div class="row" style="margin:12px 0"><button type="button" class="secondary" data-task-view="all">Tümü</button><button type="button" class="secondary" data-task-view="today">Bugün</button><button type="button" class="secondary" data-task-view="late">Gecikenler</button><button type="button" class="secondary" data-task-view="upcoming">Yaklaşanlar</button><button type="button" class="secondary" data-task-view="done">Tamamlananlar</button></div><input id="taskSearch" type="search" placeholder="Hatırlatma veya müşteri ara..." aria-label="Ajandada hatırlatma ara" style="width:100%;margin:4px 0 12px"><p id="taskSummary" class="mini"></p><div id="taskList"></div></section>
 </div><p class="notice" id="demoNotice"><b>Veri güvenliği:</b> Müşteri ve ajanda kayıtları öncelikle bu tarayıcıda tutulur. Ayarlar bölümünden tam yerel yedeğinizi indirebilirsiniz. Otomatik cihaz eşitleme yoktur; tek dosyalık yedeğinizi güvenli saklayın. Ofis üyeliği yeni bireysel abonelik modelinde kullanılmaz. Müşteri verisi ortak paylaşımı ve abonelik henüz tamamlanmadı. Drone Çekim'de sanal uçuş kullanılabilir; gerçek drone veya otomatik kadastro sorgusu değildir.</p></main>
