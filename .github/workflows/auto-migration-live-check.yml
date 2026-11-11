@@ -1,0 +1,43 @@
+name: Verify live automatic migration safety
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'emlakcrm-auto-migrate.js'
+      - 'emlakcrm-cloud-backup.js'
+      - 'index.html'
+      - 'portfoy-rapor.html'
+      - '.github/workflows/auto-migration-live-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify production EmlakCRM serves the safe automatic upload script without redirecting users
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://enginbaysal-oss.github.io/EmlakCRM-Web'
+          for i in 1 2 3 4 5 6 7 8; do
+            index="$(mktemp)"; portfolio="$(mktemp)"; backup="$(mktemp)"; migration="$(mktemp)"
+            if curl -fsSL --max-time 15 "$BASE/index.html?migration=20261111a" -o "$index" &&
+               curl -fsSL --max-time 15 "$BASE/portfoy-rapor.html?migration=20261111a" -o "$portfolio" &&
+               curl -fsSL --max-time 15 "$BASE/emlakcrm-cloud-backup.js?migration=20261111a" -o "$backup" &&
+               curl -fsSL --max-time 15 "$BASE/emlakcrm-auto-migrate.js?migration=20261111a" -o "$migration" &&
+               grep -q 'emlakcrm-auto-migrate.js?v=20261111a' "$index" &&
+               grep -q 'emlakcrm-auto-migrate.js?v=20261111a' "$portfolio" &&
+               grep -q 'window.addEventListener("focus",syncOnReturn)' "$backup" &&
+               grep -q 'location.origin===MIGRATION_ORIGIN' "$migration" &&
+               grep -q 'https://emlkcrm.com.tr' "$migration"; then
+              echo 'LIVE_SAFE_AUTOMATIC_BACKUP_SCRIPTS_OK'
+              break
+            fi
+            if [ "$i" -eq 8 ]; then echo 'LIVE_MIGRATION_FILE_NOT_READY'; exit 1; fi
+            sleep 8
+          done
+          for p in bulut-yedek.html abonelik-satin-al.html sifre-yenile.html; do
+            curl -fsSL --max-time 15 "$BASE/$p" -o /dev/null
+          done
+          echo 'EXISTING_RESTORE_PAYMENT_AND_AUTH_PAGES_ONLINE'
