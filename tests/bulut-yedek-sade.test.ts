@@ -1,6 +1,6 @@
 import {buildRestorePoints,validateBackupRow,mergeAll,KINDS} from "../bulut-yedek-core.js";
-const ok=(value,message)=>{if(!value)throw Error(message)};
-const ver=(id,kind,created_at,item_count)=>({id,kind,created_at,item_count});
+const ok=(value:unknown,message:string):asserts value=>{if(!value)throw Error(message)};
+const ver=(id:string,kind:string,created_at:string,item_count:number)=>({id,kind,created_at,item_count});
 Deno.test("date-time choice uses latest EACH kind as-of selected date, never a later backup",()=>{
  const rows=[
   ver("c1","clients","2026-11-10T20:00:00Z",2),
@@ -14,7 +14,7 @@ Deno.test("date-time choice uses latest EACH kind as-of selected date, never a l
  ok(list[0].counts.join(",")==="2,14,151","newest combined counts");
  const past=list.find(p=>p.date==="2026-11-10T23:00:00Z");
  ok(past&&past.counts.join(",")==="2,14,150","historical external version");
- ok(past.snapshots.external_portfolios.id==="e0","never borrow future content");
+ ok(past?.snapshots?.external_portfolios?.id==="e0","never borrow future content");
 });
 Deno.test("missing any category disables restore",()=>{
  ok(buildRestorePoints([ver("c1","clients","2026-11-11T11:00:00Z",2)]).length===0,"all three required");
