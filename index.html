@@ -1,6 +1,25 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EmlakCRM</title>
 <script>
+/* Isolated recovery redirect: hand the email one-time token to its own page
+   BEFORE CRM account initialization. No local storage/session changes. */
+(function(){
+ "use strict";
+ const frag=new URLSearchParams(location.hash.slice(1)),query=new URLSearchParams(location.search);
+ const type=frag.get("type")||query.get("type");
+ const error=(frag.get("error_code")||query.get("error_code")||"")+" "+
+   (frag.get("error_description")||query.get("error_description")||"");
+ const valid=type==="recovery"||query.has("token_hash")||
+   (type==="recovery"&&query.has("code"));
+ const invalid=(frag.has("error")||query.has("error"))&&
+   /otp_expired|otp_disabled|email link is invalid or has expired/i.test(error);
+ if(!valid&&!invalid)return;
+ const target=new URL("./sifre-yenile.html",location.href);
+ target.search=location.search;target.hash=location.hash;
+ location.replace(target.href);
+})();
+</script>
+<script>
 /* EmlakCRM: zorunlu hesap bazlı yerel veri izolasyonu; eski ortak kayıtları silmez. */
 (function(){
  "use strict";
@@ -1604,7 +1623,7 @@ $("crmInlineAuthForm").onsubmit=async event=>{
  }catch(err){result.textContent="Giriş/kayıt yapılamadı: "+err.message}
  finally{btn.disabled=false}
 };
-$("crmInlineForgot").onclick=()=>crmShowRecoveryRequest();
+$("crmInlineForgot").onclick=()=>location.assign("./sifre-yenile.html");
 $("crmRecoveryBackToLogin").onclick=crmBackToLogin;
 $("crmRecoveryRequestForm").onsubmit=async event=>{
  event.preventDefault();
