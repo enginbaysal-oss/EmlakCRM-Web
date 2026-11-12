@@ -67,7 +67,9 @@ small{color:#60798e}
 "use strict";
 const API="https://tffvwxskvjuxoekwgdef.supabase.co";
 const PUBLIC_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
-const RETURN_URL="https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
+const RETURN_URL=location.origin==="https://emlkcrm.com.tr"
+ ?new URL("./index.html",location.href).href
+ :"https://enginbaysal-oss.github.io/EmlakCRM-Web/index.html";
 const $=id=>document.getElementById(id);
 let recoveryToken=null;
 const show=(text,kind="")=>{const el=$("feedback");el.textContent=text;el.className=kind;};
