@@ -11,7 +11,7 @@ const prefixes={clients:"emlakcrm_demo_v1__owner_",portfolios:"emlakcrm_portfoy_
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
-const isActive=()=>typeof location!=="undefined"&&location.origin===MIGRATION_ORIGIN&&location.pathname.startsWith("/app/");
+const isActive=()=>typeof location!=="undefined"&&location.origin===MIGRATION_ORIGIN&&(location.pathname==="/"||location.pathname==="/index.html"||location.pathname.startsWith("/app/"));
 let running=false;
 
 function label(message,severity="notice"){
