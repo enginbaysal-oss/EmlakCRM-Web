@@ -41,7 +41,7 @@ export async function accountAuth(deps={fetch:globalThis.fetch,sessionStorage:gl
   const verified=await globalThis.crmAuthenticatedSession();
   token=verified.token;user=verified.user;
  }else{
-  const response=await deps.fetch(API+"/auth/v1/user",{
+  const response=await deps.fetch.call(globalThis,API+"/auth/v1/user",{
    method:"GET",headers:{apikey:PUBLIC_KEY,Authorization:"Bearer "+token},
    cache:"no-store",credentials:"omit"
   });
@@ -59,7 +59,7 @@ export async function accountAuth(deps={fetch:globalThis.fetch,sessionStorage:gl
 }
 async function getLatest(kind,auth,deps){
  const q=new URLSearchParams({select:"id,kind,item_count,payload,created_at",user_id:"eq."+auth.uid,kind:"eq."+kind,order:"created_at.desc",limit:"1"});
- const response=await deps.fetch(API+"/rest/v1/emlakcrm_user_backups?"+q,{method:"GET",headers:auth.headers,cache:"no-store",credentials:"omit"});
+ const response=await deps.fetch.call(globalThis,API+"/rest/v1/emlakcrm_user_backups?"+q,{method:"GET",headers:auth.headers,cache:"no-store",credentials:"omit"});
  if(!response.ok)throw Error("Bulut yedeği okunamadı ("+response.status+").");
  const rows=await response.json();
  if(!Array.isArray(rows)||rows.length>1)throw Error("Yedek listesi hatalı.");
