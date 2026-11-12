@@ -43,7 +43,26 @@ window.__emlakcrmVerifiedAccountPromise=(async function(){
   window.__emlakcrmVerifiedAccount={id:user.id,email:String(user.email).trim().toLowerCase()};
   document.getElementById("emlakcrm-access-pending")?.remove();
   return window.__emlakcrmVerifiedAccount;
- }catch(e){location.replace(home);throw e;}
+ }catch(e){
+  // Fail closed without sending the user blindly back to the Settings screen.
+  // No private listings are rendered unless the server verifies this account.
+  window.__emlakcrmAccessDenied=true;
+  const reason=String(e?.message||e||"Hesap doğrulanamadı");
+  const showError=()=>{
+   document.getElementById("emlakcrm-access-pending")?.remove();
+   const panel=document.getElementById("emlakcrmAccessError");
+   const message=document.getElementById("emlakcrmAccessErrorMessage");
+   if(message)message.textContent=reason;
+   if(panel)panel.hidden=false;
+   const authLoading=document.getElementById("authLoading");
+   const authGate=document.getElementById("authGate");
+   if(authLoading)authLoading.hidden=true;
+   if(authGate)authGate.hidden=true;
+  };
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",showError,{once:true});
+  else showError();
+  throw e;
+ }
 })();
 </script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -165,6 +184,13 @@ main{max-width:1200px}
 </style>
 </head>
 <body>
+<section id="emlakcrmAccessError" hidden class="card" role="alert" style="max-width:540px;margin:10vh auto 30px;padding:26px">
+ <div class="eyebrow">EmlakCRM / İlan Asistanı</div>
+ <h2>İlan Asistanı oturumu doğrulanamadı</h2>
+ <p id="emlakcrmAccessErrorMessage" style="overflow-wrap:anywhere"></p>
+ <p class="small">İlan kayıtlarınız silinmedi. EmlakCRM hesabınızı kontrol edip aynı tarayıcıda yeniden açabilirsiniz.</p>
+ <a class="btn home-back-btn" href="./index.html#account">← EmlakCRM Hesabına Dön</a>
+</section>
 <section id="authLoading" hidden class="card" role="status" aria-live="polite" style="max-width:540px;margin:10vh auto 30px;padding:26px;text-align:center">
  <div class="eyebrow">EmlakCRM / İlan Asistanı</div>
  <h2 style="margin:12px 0">İlanlarınız açılıyor…</h2>
@@ -441,7 +467,7 @@ async function restoreAuth(){
   try{await restoreFromEmlakCrm();}
   catch(ssoError){reportAuth('Otomatik giriş tamamlanamadı: '+String(ssoError.message||ssoError)+'. Mevcut özel hesabınızla giriş yapabilirsiniz.');}
  }catch(e){reportAuth('Oturum kontrolü başarısız: '+String(e.message||e));}
- finally{ $('authLoading').hidden=true; if(!currentUser)$('authGate').hidden=false; }
+ finally{ $('authLoading').hidden=true; if(!currentUser&&!window.__emlakcrmAccessDenied)$('authGate').hidden=false; }
 }
 function logout(){
  const token=privateSession?.access_token;
