@@ -34,10 +34,22 @@ export async function accountAuth(deps={fetch:globalThis.fetch,sessionStorage:gl
  const saved=parse(s.getItem("emlakcrm_auth_session_v1")||l.getItem("emlakcrm_auth_remember_v1"));
  const current=scope?.currentUserId?.();
  if(!saved?.access_token||!uuid(current))return null;
- const headers={apikey:PUBLIC_KEY,Authorization:"Bearer "+saved.access_token};
- const response=await deps.fetch(API+"/auth/v1/user",{method:"GET",headers,cache:"no-store",credentials:"omit"});
- if(!response.ok)throw Error("Oturum doğrulanamadı, yeni adreste tekrar giriş yapın.");
- const user=await response.json(),uid=String(user?.id||"").toLowerCase();
+ // Use the main application's single-flight refresh in Safari; avoid attempting
+ // migration with an expired access token after the tab was suspended.
+ let token=saved.access_token,user;
+ if(typeof globalThis.crmAuthenticatedSession==="function"&&deps.fetch===globalThis.fetch){
+  const verified=await globalThis.crmAuthenticatedSession();
+  token=verified.token;user=verified.user;
+ }else{
+  const response=await deps.fetch(API+"/auth/v1/user",{
+   method:"GET",headers:{apikey:PUBLIC_KEY,Authorization:"Bearer "+token},
+   cache:"no-store",credentials:"omit"
+  });
+  if(!response.ok)throw Error("Oturum doğrulanamadı, yeni adreste tekrar giriş yapın.");
+  user=await response.json();
+ }
+ const headers={apikey:PUBLIC_KEY,Authorization:"Bearer "+token};
+ const uid=String(user?.id||"").toLowerCase();
  if(uid!==current||!uuid(uid))throw Error("Oturum ve kullanıcı hesapları uyuşmuyor.");
  const active=l.getItem("emlakcrm_active_account_v1");
  if(active&&active!==uid)throw Error("Bu cihazda farklı bir hesabın kaydı var; aktarım durduruldu.");
@@ -142,4 +154,7 @@ export async function run(){
   label("⚠️ Hesap verileri otomatik alınamadı: "+String(err?.message||err)+". Eski EmlakCRM kayıtları korunur.","error");
  }finally{running=false}
 }
-if(isActive())void run();
+if(isActive()){
+ void run();
+ window.addEventListener("emlakcrm:session-ready",()=>{void run()});
+}
