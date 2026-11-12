@@ -1284,25 +1284,55 @@ window.addEventListener("storage",e=>{
 });
 const crmApiBase="https://tffvwxskvjuxoekwgdef.supabase.co";
 let crmVerifiedUser=null;
+// A single refresh request at a time: iOS Safari fires pageshow and visibilitychange
+// together after backgrounding; rotating the same refresh token twice invalidates it.
+let crmSessionCheckInFlight=null;
 async function crmAuthenticatedSession(){
- // Mobile Safari can discard tab-scoped sessionStorage after backgrounding.
- // Restore only the opted-in remembered session and preserve account isolation.
+ if(crmSessionCheckInFlight)return crmSessionCheckInFlight;
+ const check=crmVerifyAndRefreshSession();
+ crmSessionCheckInFlight=check;
+ try{return await check}finally{if(crmSessionCheckInFlight===check)crmSessionCheckInFlight=null}
+}
+async function crmVerifyAndRefreshSession(){
+ // Rehydrate Safari's evicted tab session without crossing account boundaries.
  if(!sessionStorage.getItem(crmAuthSessionKey))crmRestoreRememberedAuth();
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
  if(!saved?.access_token)throw Error("Önce giriş yapın.");
- let response=await fetch(crmApiBase+"/auth/v1/user",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+saved.access_token}});
- if(!response.ok&&saved.refresh_token){
-  const refreshed=await fetch(crmApiBase+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:crmPublicKey,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:saved.refresh_token})});
-  if(refreshed.ok){
-   const j=await refreshed.json();
-   saved={...saved,access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000};
-   crmUpdateRememberedAuth(saved);
-   response=await fetch(crmApiBase+"/auth/v1/user",{headers:{apikey:crmPublicKey,Authorization:"Bearer "+saved.access_token}});
-  }
+ const scope=window.emlakcrmAccountDataScope;
+ const active=localStorage.getItem("emlakcrm_active_account_v1");
+ const subject=scope?.sessionSubject();
+ if(!subject||(active&&active!==subject))throw Error("Oturum hesabı doğrulanamadı. Yeniden giriş yapın.");
+ const userRequest=async token=>fetch(crmApiBase+"/auth/v1/user",{
+  headers:{apikey:crmPublicKey,Authorization:"Bearer "+token},cache:"no-store"
+ });
+ const expires=Number(saved.expires_at)||0;
+ const shouldRefresh=!!saved.refresh_token&&expires>0&&expires<Date.now()+120000;
+ async function refresh(){
+  const refreshed=await fetch(crmApiBase+"/auth/v1/token?grant_type=refresh_token",{
+   method:"POST",headers:{apikey:crmPublicKey,"Content-Type":"application/json"},
+   body:JSON.stringify({refresh_token:saved.refresh_token}),cache:"no-store"
+  });
+  if(!refreshed.ok)throw Error("Oturum yenilenemedi. Tekrar giriş gerekebilir.");
+  const j=await refreshed.json();
+  if(!j.access_token||!j.refresh_token)throw Error("Oturum yenileme bilgisi eksik.");
+  const next={...saved,access_token:j.access_token,refresh_token:j.refresh_token,
+   expires_at:Date.now()+(Number(j.expires_in)||3600)*1000};
+  // Never persist a token belonging to another account.
+  const payload=JSON.parse(atob(j.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/").padEnd(Math.ceil(j.access_token.split(".")[1].length/4)*4,"=")));
+  if(String(payload.sub||"").toLowerCase()!==subject)throw Error("Yenilenen oturumun hesabı farklı.");
+  crmUpdateRememberedAuth(next);
+  saved=next;
  }
- if(!response.ok)throw Error("Oturum süresi dolmuş; tekrar giriş yapın.");
+ if(shouldRefresh)await refresh();
+ let response=await userRequest(saved.access_token);
+ // Refresh only on authentication rejection, not on connectivity/server errors.
+ if(response.status===401&&saved.refresh_token&&!shouldRefresh){
+  await refresh();
+  response=await userRequest(saved.access_token);
+ }
+ if(!response.ok)throw Error(response.status===401?"Oturum süresi dolmuş; tekrar giriş yapın.":"Bağlantı veya sunucu hatası. Tekrar deneyin.");
  const user=await response.json();
- if(user?.id!==window.emlakcrmAccountDataScope?.currentUserId())
+ if(String(user?.id||"").toLowerCase()!==subject||user?.id!==scope?.currentUserId())
   throw Error("Başka bir hesap bu tarayıcıda aktif. Hesabı yeniden açın.");
  return {token:saved.access_token,user};
 }
