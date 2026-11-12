@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<style id="emlakcrm-access-pending">html{visibility:hidden!important}</style>
+<script>
+/* EmlakCRM abonelik ekran koruması; sunucu tarafı RLS ayrıca gereklidir. */
+window.__emlakcrmVerifiedAccountPromise=(async function(){
+ const base="https://tffvwxskvjuxoekwgdef.supabase.co",key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+ const home=new URL("./index.html#account",location.href).href;
+ try{
+  // Same-origin EmlakCRM: sessionStorage/localStorage are accessible from the current site.
+  const sessionKey="emlakcrm_auth_session_v1",rememberKey="emlakcrm_auth_remember_v1";
+  const savedRaw=sessionStorage.getItem(sessionKey)||localStorage.getItem(rememberKey);
+  const saved=JSON.parse(savedRaw||"null");
+  if(!saved?.access_token)throw Error("Oturum bulunamadı");
+  if(!sessionStorage.getItem(sessionKey))sessionStorage.setItem(sessionKey,JSON.stringify(saved));
+  let token=saved.access_token;
+  let userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+  if(!userRes.ok&&saved.refresh_token){
+   const refresh=await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:saved.refresh_token})});
+   if(refresh.ok){
+    const updated=await refresh.json();token=updated.access_token;
+    const renewed=JSON.stringify({...saved,access_token:token,refresh_token:updated.refresh_token,expires_at:Date.now()+(updated.expires_in||3600)*1000});
+    sessionStorage.setItem(sessionKey,renewed);
+    if(localStorage.getItem(rememberKey))localStorage.setItem(rememberKey,renewed);
+    userRes=await fetch(base+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+token}});
+   }
+  }
+  if(!userRes.ok)throw Error("Oturum doğrulanamadı");
+  const user=await userRes.json(),headers={apikey:key,Authorization:"Bearer "+token};
+  const admin=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
+  if(!admin.ok)throw Error("Yetki kontrolü başarısız");
+  const admins=await admin.json();let allowed=admins.some(a=>a.user_id===user.id);
+  if(!allowed){
+   const res=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
+   if(!res.ok)throw Error("Abonelik kontrolü başarısız");
+   const now=Date.now();allowed=(await res.json()).some(s=>s.status==="active"&&Date.parse(s.starts_at)<=now&&Date.parse(s.expires_at)>now);
+  }
+  if(!allowed)throw Error("Aktif abonelik yok");
+  if(!user?.id||!user?.email)throw Error("Giriş hesabı doğrulanamadı");
+  const activeAccount=localStorage.getItem("emlakcrm_active_account_v1");
+  if(activeAccount&&activeAccount!==user.id)throw Error("Tarayıcıda başka bir EmlakCRM hesabı aktif");
+  window.__emlakcrmVerifiedAccount={id:user.id,email:String(user.email).trim().toLowerCase()};
+  document.getElementById("emlakcrm-access-pending")?.remove();
+  return window.__emlakcrmVerifiedAccount;
+ }catch(e){location.replace(home);throw e;}
+})();
+</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İlan Asistanı | Emlak CRM</title>
+<style>
+:root{--bg:#f5f3ee;--ink:#1d3040;--muted:#627281;--line:#dedfdc;--bronze:#a67539;--white:#fff;--green:#287457;--red:#a43e38;--blue:#155577}
+*{box-sizing:border-box} [hidden]{display:none!important} body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+main{max-width:1280px;margin:0 auto;padding:23px 20px 62px}
+header.page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:29px;margin:2px 0 3px;font-weight:760;letter-spacing:-.03em}
+h2{font-size:19px;line-height:1.35;margin:0 0 12px}p{line-height:1.55}
+.eyebrow{color:var(--bronze);font-weight:800;letter-spacing:.08em;font-size:11px;text-transform:uppercase}
+.small{font-size:12px;color:var(--muted)}
+a{color:var(--blue)}
+button,.btn{font:inherit;border:1px solid #cbd2d3;background:var(--white);border-radius:9px;color:var(--ink);padding:9px 13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #d6a968;outline-offset:2px}
+button:hover,.btn:hover{border-color:var(--bronze)}
+.home-back-btn{background:#e56b24;color:#fff;border-color:#c75517;font-weight:700}.home-back-btn:hover{background:#ca571a;border-color:#b54b11;color:#fff}.home-back-btn:focus-visible{outline:3px solid #f3ad72;outline-offset:2px}
+button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{width:100%;border:1px solid #cbd2d3;border-radius:9px;padding:11px;background:#fff;color:var(--ink);font:inherit}
+textarea{resize:vertical;min-height:90px;line-height:1.55}
+label{display:block;font-size:12px;font-weight:700;margin:12px 0 5px}
+.card{border:1px solid var(--line);border-radius:14px;background:var(--white);padding:17px}
+.controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.controls>*{flex:1}
+.alert{padding:11px 14px;background:#f7eddd;border:1px solid #e3d2b9;border-radius:10px;margin-bottom:13px;font-size:12px;line-height:1.55}
+.feed-bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 15px;border-radius:12px;background:#fff;border:1px solid var(--line);margin-bottom:14px}
+.feed-bar>div{min-width:0}.feed-bar #feedStatus{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+.feed-bar button{flex-shrink:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:16px}
+.stat{padding:12px 15px;display:flex;align-items:center;gap:12px}
+.stat .n{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.stat .t{font-size:12px;color:var(--muted);line-height:1.3}
+.workspace{padding:20px;min-height:390px}
+.workspace-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.workspace-header h2{margin:0 0 4px}
+.tab-strip{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;white-space:nowrap;padding:1px 0 10px;margin-bottom:8px}
+.tab-strip button{flex:0 0 auto;padding:10px 15px;border-radius:11px;font-weight:650;background:#f6f7f7}
+.tab-strip button.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.tab-count{display:inline-flex;min-width:24px;padding:2px 6px;justify-content:center;background:#e5eaee;border-radius:20px;font-size:11px}
+.tab-strip button.active .tab-count{background:#405362;color:#fff}
+.filter-bar{display:grid;grid-template-columns:minmax(180px,1.7fr) minmax(160px,1fr) minmax(145px,1fr);gap:10px;margin-bottom:15px}
+.filter-bar input,.filter-bar select{height:42px}
+.list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+.item{width:100%;text-align:left;display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:11px;border:1px solid #dfe4e3;background:#fff;border-radius:13px;padding:15px;min-height:184px;box-shadow:0 2px 5px #172a3608;transition:border-color .15s,box-shadow .15s,transform .15s}
+.item:hover{border-color:#b99a72;box-shadow:0 6px 18px #172a3612;transform:translateY(-1px)}
+.item-top{display:flex;align-items:center;gap:9px;justify-content:space-between}
+.property-kind{display:inline-flex;gap:7px;align-items:center;color:#315466;font-size:11px;font-weight:750;letter-spacing:.01em}
+.item .title{font-size:15px;font-weight:750;line-height:1.42;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.price{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.015em;line-height:1.1}
+.item-bottom{display:flex;gap:10px;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid #eef0ee;font-size:12px}
+.item-bottom .view{color:#0b6174;font-weight:750}
+.meta{color:var(--muted);font-size:12px}
+.pill{display:inline-block;border-radius:30px;padding:4px 8px;background:#e9edef;color:#50616d;font-size:10px;font-weight:800;white-space:nowrap}
+.pill.good{background:#e5f2eb;color:var(--green)}
+.pill.bad{background:#fae9e7;color:var(--red)}
+.pill.warn{background:#fff0d8;color:#855d23}
+.empty{padding:60px 18px;text-align:center;color:var(--muted);border:1px dashed #cbd2d3;border-radius:12px;grid-column:1/-1}
+.data-tools{background:#fff;border:1px solid var(--line);border-radius:12px;margin-top:16px;overflow:hidden}
+.data-tools>summary{padding:13px 17px;cursor:pointer;font-weight:700}
+.data-tools-content{padding:0 17px 18px}
+.data-tools-content textarea{min-height:130px}
+.note{border-left:3px solid var(--bronze);background:#faf5ec;padding:10px 12px;margin:12px 0;font-size:12px;line-height:1.55}
+#detailBackdrop{position:fixed;inset:0;z-index:20;background:#162b3d99;display:flex;justify-content:flex-end;align-items:stretch}
+.detail-shell{width:min(600px,100vw);height:100%;background:#fff;box-shadow:-12px 0 38px #0002;display:flex;flex-direction:column}
+.detail-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--line);gap:12px}
+.detail-head h2{margin:0;font-size:17px}
+#detail{overflow-y:auto;flex:1;padding:20px 22px 55px}
+.detail-title{font-size:22px;font-weight:800;line-height:1.35;margin:6px 0 9px}
+.detail-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--muted);margin-bottom:14px}
+.message{padding:12px;background:#f5f7f8;border:1px solid #dce1e4;border-radius:9px;white-space:pre-wrap;line-height:1.5}
+hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+#toast{display:none;position:fixed;bottom:18px;right:18px;background:var(--ink);color:white;padding:12px 15px;border-radius:10px;z-index:40;max-width:360px}
+body.modal-open{overflow:hidden}
+@media(max-width:980px){.list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){main{padding:14px 12px 45px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace{padding:14px}.filter-bar{grid-template-columns:1fr 1fr}.filter-bar input{grid-column:1/-1}.list{grid-template-columns:repeat(2,minmax(0,1fr))}.item{min-height:178px}.detail-shell{width:100vw}}
+@media(max-width:480px){.list{grid-template-columns:1fr}.stat{gap:8px;padding:11px}.stat .n{font-size:23px}.page-head .controls{width:100%}.page-head .controls>*{flex:1}.item{min-height:155px}.feed-bar{align-items:flex-start}.filter-bar{grid-template-columns:1fr 1fr}.filter-bar select{font-size:12px}}
+
+/* Sade ilan listesi: tek filtre başlığı ve açıklamalı alanlar. */
+main{max-width:1200px}
+.alert{margin:0 0 10px;padding:10px 13px}
+.feed-bar{margin-bottom:10px;padding:10px 14px}
+.summary-line{display:flex;gap:16px;flex-wrap:wrap;padding:0 2px;margin:12px 0 13px;color:var(--muted);font-size:12px}
+.summary-line span+span{border-left:1px solid #d3d6d3;padding-left:16px}
+.summary-line b{color:var(--ink);font-size:15px}
+.workspace{padding:18px}
+.workspace-header{margin-bottom:14px;align-items:center}
+.workspace-header h2{font-size:20px;margin:0 0 3px}
+.workspace-header p{margin:0}
+.result-count{font-size:13px;color:#47636e;white-space:nowrap}
+.filters{padding:14px 15px 17px;background:#f8f9f8;border:1px solid #e2e5e4;border-radius:11px;margin-bottom:18px}
+.filters-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.filters-heading h3{font-size:14px;margin:0;color:#253f50}
+.reset-btn{font-size:12px;padding:6px 9px;background:#fff}
+.filter-fields{display:grid;grid-template-columns:1.6fr repeat(5,minmax(0,1fr));gap:11px;align-items:end}
+.filter-fields .field{min-width:0}
+.filter-fields label{margin:0 0 6px;color:#3d5260;font-size:12px;font-weight:750}
+.filter-fields select,.filter-fields input{height:40px;padding:8px 10px;font-size:13px}
+.list{display:flex;flex-direction:column;gap:0}
+.listing-head{display:grid;grid-template-columns:minmax(0,3.2fr) minmax(90px,.9fr) minmax(130px,1.15fr) minmax(120px,1.2fr);padding:0 15px 9px;gap:15px;color:#687783;font-size:10px;font-weight:800;letter-spacing:.04em;border-bottom:1px solid #e6e9e8}
+.list .item{display:grid;grid-template-columns:minmax(0,3.2fr) minmax(90px,.9fr) minmax(130px,1.15fr) minmax(120px,1.2fr);gap:15px;align-items:center;min-height:72px;padding:12px 15px;border:0;border-bottom:1px solid #edf0ef;border-radius:0;box-shadow:none;transform:none;background:white}
+.list .item:last-child{border-bottom:0}
+.list .item:hover{background:#f5f8f7;box-shadow:none;transform:none}
+.item .title{font-size:14px;line-height:1.4;display:block;white-space:normal;overflow-wrap:anywhere}
+.list .item .price{font-size:15px;letter-spacing:0}
+.list .item .meta{font-size:11px;margin-top:4px}
+.list .item .pill{white-space:normal;text-align:center;font-size:10px;max-width:100%;line-height:1.25}
+.list .item .type-text{font-size:12px;font-weight:650;color:#526876}
+.list .item .view{color:#246b80;font-size:12px;margin-top:4px;font-weight:700}
+.list .item .status-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.search-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.search-tag{font-size:10px;font-weight:650;line-height:1.35;color:#385d75;background:#eaf3f7;border:1px solid #d3e5ec;padding:2px 6px;border-radius:5px;max-width:100%;overflow-wrap:anywhere}
+.label-help{margin:6px 0 0;color:var(--muted);font-size:11px}
+@media(max-width:700px){.search-tags{max-width:100%}}
+@media(max-width:1050px){.filter-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.field-search{grid-column:span 2}}
+@media(max-width:700px){.filter-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.field-search{grid-column:1/-1}.listing-head{display:none}.list .item{grid-template-columns:minmax(0,1fr) auto;gap:8px;min-height:85px;padding:13px 5px}.list .item .type-cell{grid-row:2;grid-column:1}.list .item .price-cell{grid-row:1;grid-column:2;text-align:right}.list .item .status-cell{grid-row:2;grid-column:2;align-items:flex-end}.list .item .title{font-size:14px}.list .item .price{font-size:15px}}
+@media(max-width:460px){.summary-line{gap:7px 11px}.summary-line span+span{padding-left:9px}.filters{padding:12px}.workspace{padding:12px}.filters-heading h3{font-size:13px}.filter-fields{gap:10px}.filter-fields select{font-size:12px}.feed-bar strong{font-size:12px}}
+</style>
+</head>
+<body>
+<section id="authLoading" hidden class="card" role="status" aria-live="polite" style="max-width:540px;margin:10vh auto 30px;padding:26px;text-align:center">
+ <div class="eyebrow">EmlakCRM / İlan Asistanı</div>
+ <h2 style="margin:12px 0">İlanlarınız açılıyor…</h2>
+ <p class="small">Hesabınız güvenli şekilde doğrulanıyor.</p>
+</section>
+<section id="authGate" hidden class="card" style="max-width:540px;margin:10vh auto 30px;padding:26px">
+ <div class="eyebrow">EmlakCep / Kişiye Özel</div>
+ <h1>Favori İlanlara Giriş</h1>
+ <p class="small">Favori arama ve ilanlarınız sadece hesabınızla görüntülenir. E-posta adresinizle giriş yapın.</p>
+ <label for="authEmail">Hesap e-posta adresi</label>
+ <input type="email" id="authEmail" autocomplete="email" placeholder="E-posta adresiniz">
+ <label for="authPassword">Şifre (varsa)</label>
+ <input type="password" id="authPassword" autocomplete="current-password" placeholder="Hesap şifreniz">
+ <div class="controls" style="margin-top:12px"><button id="passwordLogin" type="button" class="primary">Şifreyle Giriş</button><button id="magicLogin" type="button">E-postayla Giriş Bağlantısı</button></div>
+ <label for="authCode">E-postanızda 6 haneli kod geldiyse</label>
+ <div class="controls"><input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Giriş kodu"><button id="verifyCode" type="button">Kodu Doğrula</button></div>
+ <p id="authStatus" role="status" class="small" style="margin-top:12px">Giriş yapmadan özel ilanlar görüntülenmez.</p>
+</section>
+<main id="privateMain" hidden>
+<header class="page-head"><div><div class="eyebrow">Emlak CRM / İlan Asistanı</div><h1>İlan Asistanı</h1><div class="small">Favori arama bildirimleri • İlanları görüntüleme</div></div><div class="controls"><a class="btn home-back-btn" href="./index.html">← Ana Sayfaya Dön</a><button type="button" id="logoutBtn">Oturumu Kapat</button></div></header>
+
+<section class="card" aria-label="İlan bildirim e-postası" style="margin:14px 0;padding:15px 18px">
+ <div class="eyebrow">Kişisel İlan Kaynağım</div>
+ <h2 style="margin:6px 0 9px">İlan Bildirim E-postası</h2>
+ <p class="small">Sahibinden.com favori arama bildirimlerinizin geldiği adresi yazın. Adres hesabınıza özel kaydedilir. E-posta kutusuna erişim izni verilmeden otomatik okuma başlamaz.</p>
+ <div class="controls" style="display:flex;align-items:end;flex-wrap:wrap;gap:9px">
+  <label style="flex:1;min-width:230px">Bildirimlerin geldiği e-posta<input type="email" id="listingSourceEmail" autocomplete="email" placeholder="ornek@gmail.com" maxlength="254" style="display:block;width:100%;margin-top:5px"></label>
+  <button type="button" class="primary" id="saveListingSourceEmail">Kaydet</button>
+ </div>
+ <div class="controls" style="margin-top:11px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+ <button type="button" id="connectGmailBtn" class="primary" hidden>Gmail'i Güvenli Bağla</button>
+ <button type="button" id="disconnectGmailBtn" hidden>Gmail Bağlantısını Kes</button>
+ <span id="gmailConnectionStatus" role="status" class="small">Gmail bağlantısı kontrol ediliyor…</span>
+ </div>
+ <p class="small" style="margin:7px 0">Gmail bağlamak, yalnızca sizin onayınızla e-posta okuma izni verir. Bağlantı kurulması otomatik ilan çekiminin çalıştığı anlamına gelmez.</p>
+ <p id="listingSourceStatus" class="small" role="status" style="margin:9px 0 0">E-posta kaynağı kontrol ediliyor…</p>
+</section>
+<div class="feed-bar"><div><strong>Kişiye özel favori ilanlar</strong><div id="feedStatus" role="status">Güncel ilanlar kontrol ediliyor...</div><div class="small" style="margin-top:9px;padding:10px 13px;background:#fff1f0;border:1px solid #efb4b4;border-left:4px solid #c62828;border-radius:9px;color:#8f1717;line-height:1.5"><strong style="font-size:14px;color:#b71c1c">🕥 İlanlarınız her gün saat 10.30’da (Türkiye saati) otomatik güncellenir.</strong><span style="display:block;margin-top:3px;color:#802525">Gmail hesabınızı bağlamış olmanız gerekir. İsterseniz <b>Yenile</b> ile gün içinde de kontrol edebilirsiniz.</span></div></div><button id="refreshFeedBtn" class="primary" type="button">↻ Yenile</button></div>
+<div class="summary-line" aria-label="İlan özeti">
+ <span><b id="countAll">0</b> toplam ilan</span><span><b id="countReady">0</b> mesaj hazır</span><span><b id="countPending">0</b> türü belirsiz</span>
+</div>
+<section class="card workspace" aria-label="Favori ilan listesi">
+ <div class="workspace-header"><div><h2>Favori İlanlarım</h2><p class="small">İlanları filtreleyin; incelemek istediğiniz satıra tıklayın.</p></div><div class="controls"><button id="dateToggle" type="button">Geçmişi göster</button><button id="excludedToggle" type="button">Tercih etmediklerim (0)</button><strong id="resultCount" class="result-count" aria-live="polite">0 ilan</strong></div></div>
+ <div class="filters" aria-label="İlan filtreleri">
+  <div class="filters-heading"><h3>İlan Filtreleri</h3><div class="controls" style="flex:0 0 auto"><button type="button" id="labelFileBtn" class="reset-btn">Favori Arama Etiketlerini Yükle</button><button type="button" id="resetFilters" class="reset-btn">Filtreleri Temizle</button></div></div>
+  <input type="file" id="labelFile" accept=".json,application/json" hidden aria-label="Özel favori arama etiket dosyası">
+  <p class="label-help">Arama adları yalnızca bu tarayıcıda tutulur; herkese açık ilan listesine gönderilmez. Yeni gelen ilanlar etiketsiz görünürse özel etiket dosyasını yeniden yükleyin.</p>
+  <div class="filter-fields">
+   <div class="field field-search"><label for="search">İlan Ara</label><input type="search" id="search" placeholder="İlan başlığı veya numarası"></div>
+   <div class="field"><label for="dealFilter">İlan Türü</label><select id="dealFilter">
+    <option value="all">Tümü</option><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option><option value="belirsiz">Belirsiz</option></select></div>
+   <div class="field"><label for="favoriteSearchFilter">Favori Arama Adı</label><select id="favoriteSearchFilter"><option value="all">Tüm favori aramalar</option></select></div>
+   <div class="field"><label for="propertyFilter">Gayrimenkul Türü</label><select id="propertyFilter">
+    <option value="all">Tümü</option><option value="konut">Konut</option><option value="ticari">Ticari</option><option value="diger">Diğer</option></select></div>
+   <div class="field"><label for="filter">İlan Durumu</label><select id="filter">
+    <option value="all">Tümü</option><option value="ready">Mesaj hazır</option><option value="sent">Mesaj gönderildi</option>
+    <option value="blocked">İletişim yok / engelli</option><option value="review">Türü belirsiz</option></select></div>
+   <div class="field"><label for="sort">Sıralama</label><select id="sort">
+    <option value="id-desc">İlan no: büyükten küçüğe</option><option value="price-asc">Fiyat: düşükten yükseğe</option>
+    <option value="price-desc">Fiyat: yüksekten düşüğe</option><option value="name">Başlık: A–Z</option></select></div>
+  </div>
+ </div>
+ <div class="listing-head" aria-hidden="true"><span>İLAN BİLGİSİ</span><span>İLAN TÜRÜ</span><span>FİYAT</span><span>DURUM</span></div>
+ <div id="list" class="list" aria-live="polite"></div>
+</section>
+<details class="data-tools"><summary>Diğer İşlemler (yedekleme, sesli özet, dosyadan ekleme)</summary>
+ <div class="data-tools-content">
+  <p class="small">Mesajlar otomatik gönderilmez. İlan açıklamasını kontrol edin ve emlakçıyla iletişim istemeyen kişilere yazmayın.</p>
+  <div class="controls" style="margin:10px 0"><button type="button" id="speakBtn">🔊 Özeti Oku</button><button type="button" id="exportBtn">Yedek İndir</button></div>
+  <p class="small">Normal kullanımda dosya yüklemeniz gerekmez. Otomatik aktarım çalışmadığında kullanabilirsiniz.</p>
+  <label for="importFile">İlan dosyası (.json, .txt, .eml)</label>
+  <input id="importFile" type="file" accept=".json,.txt,.eml,application/json,text/plain">
+  <div class="controls" style="margin-top:9px"><button id="importFileBtn" class="primary">İlan Dosyasını Yükle</button></div>
+
+ </div>
+</details>
+<div class="small" style="margin-top:16px">İlanlar hesabınıza özel veritabanından alınır. Tercihler bu tarayıcıda saklanır. Sahibinden.com mesajları bu uygulama tarafından okunmaz veya gönderilmez.</div>
+</main>
+<div id="detailBackdrop" hidden>
+ <section class="detail-shell" role="dialog" aria-modal="true" aria-label="İlan detayları">
+   <div class="detail-head"><h2>İlan detayı ve iletişim</h2><button id="closeDetails" type="button" aria-label="İlan detayını kapat">✕ Kapat</button></div>
+   <div id="detail"></div>
+ </section>
+</div>
+<div id="toast" role="status"></div>
+<script>
+(function(){
+'use strict';
+const KEY='engin-crm-ilan-asistani-v1';
+const SENT_KEY='engin-crm-ilan-asistani-sent-v1';
+function sentLedger(){try{return JSON.parse(localStorage.getItem(keyFor(SENT_KEY))||'{}')||{};}catch(e){return {};}}
+function rememberSent(id){const ledger=sentLedger();ledger[String(id)]=new Date().toISOString();localStorage.setItem(keyFor(SENT_KEY),JSON.stringify(ledger));}
+function applySentLedger(){const ledger=sentLedger();for(const r of rows){if(ledger[String(r.id)]&&r.status!=='excluded'){r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';}}}
+async function syncContactStatus(){if(!currentUser)return;try{const ledger=sentLedger();for(const r of rows)if(r.status==='sent')ledger[String(r.id)]=ledger[String(r.id)]||new Date().toISOString();localStorage.setItem(keyFor(SENT_KEY),JSON.stringify(ledger));const res=await apiCall('/rest/v1/crm_listing_contact_status?select=listing_id,status&limit=5000');if(!res.ok)throw new Error('HTTP '+res.status);const remote=await res.json();for(const x of remote){const r=rows.find(y=>y.id===String(x.listing_id));if(r&&x.status==='sent'&&r.status!=='excluded'){r.status='sent';r.notice='Gönderim durumu hesabınızdan yüklendi.';}if(x.status==='sent')ledger[String(x.listing_id)]=ledger[String(x.listing_id)]||new Date().toISOString();}localStorage.setItem(keyFor(SENT_KEY),JSON.stringify(ledger));const remoteIds=new Set(remote.filter(x=>x.status==='sent').map(x=>String(x.listing_id)));const missing=Object.keys(ledger).filter(id=>!remoteIds.has(id));if(missing.length){const response=await apiCall('/rest/v1/crm_listing_contact_status?on_conflict=user_id,listing_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify(missing.map(id=>({user_id:currentUser.id,listing_id:id,status:'sent'})))});if(!response.ok)throw new Error('Kayıt senkronu HTTP '+response.status);}save();}catch(e){console.warn('Gönderim durumu bulut senkronu başarısız',e);toast('Gönderim kayıtları bulutla eşitlenemedi; yerel kayıtlar korundu.');}}
+async function recordSentCloud(id){if(!currentUser)return;try{const res=await apiCall('/rest/v1/crm_listing_contact_status?on_conflict=user_id,listing_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify([{user_id:currentUser.id,listing_id:String(id),status:'sent'}])});if(!res.ok)throw new Error('HTTP '+res.status);}catch(e){console.warn('Gönderim durumu kaydedilemedi',e);toast('Gönderim yalnızca bu tarayıcıya kaydedildi; bulut bağlantısını kontrol edin.');}}
+const LEGACY_OWNER_ID='dd1c8258-2d3b-4428-aebd-5e2b9cda97ec';
+const SESSION_KEY='engin-crm-private-session-v1';
+function scopedPrivateSessionKey(){
+ const id=window.__emlakcrmVerifiedAccount?.id;
+ if(!id||!/^[0-9a-f-]{36}$/i.test(id))throw Error('EmlakCRM hesabı doğrulanmadı');
+ return SESSION_KEY+'__emlakcrm_user_'+id;
+}
+const API_BASE='https://jcjerwvibjetomqeelsy.supabase.co';
+const API_KEY='sb_publishable_tz0ZMLExOcLCDnGudSnS6A_ko8TD4Ig';
+let privateSession=null,currentUser=null;
+const keyFor=(key)=>currentUser?key+'-user-'+currentUser.id:null;
+async function apiCall(path,options={}){
+ const headers={apikey:API_KEY,'Content-Type':'application/json',...(options.headers||{})};
+ if(privateSession?.access_token)headers.Authorization='Bearer '+privateSession.access_token;
+ return fetch(API_BASE+path,{...options,headers,cache:'no-store'});
+}
+async function checkUser(){
+ if(!privateSession?.access_token)return null;
+ let res=await apiCall('/auth/v1/user');
+ if(!res.ok && privateSession?.refresh_token){
+   const r=await apiCall('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:privateSession.refresh_token})});
+   if(r.ok){privateSession=await r.json();localStorage.setItem(scopedPrivateSessionKey(),JSON.stringify(privateSession));res=await apiCall('/auth/v1/user');}
+ }
+ return res.ok?res.json():null;
+}
+function transferLegacyData(){
+ if(currentUser?.id!==LEGACY_OWNER_ID)return;
+ for(const key of [KEY,SEARCH_KEY]){
+   const source=localStorage.getItem(key),target=keyFor(key);
+   if(source&&!localStorage.getItem(target)){
+     localStorage.setItem(target,source);
+   }
+ }
+ // Do not silently delete legacy data before the user can verify the migration.
+}
+const GMAIL_CONNECT_URL='https://jcjerwvibjetomqeelsy.supabase.co/functions/v1/crm-gmail-connect';
+async function requestGmailConnect(action,method='GET'){
+ const result=await apiCall('/functions/v1/crm-gmail-connect?action='+encodeURIComponent(action),{method});
+ const body=await result.json().catch(()=>({}));
+ if(!result.ok)throw Error(body.error||'Bağlantı servisine ulaşılamadı');
+ return body;
+}
+async function refreshGmailConnection(){
+ const label=$('gmailConnectionStatus'),connect=$('connectGmailBtn'),disconnect=$('disconnectGmailBtn');
+ if(!currentUser?.id)return;
+ connect.hidden=true;disconnect.hidden=true;
+ try{
+  const status=await requestGmailConnect('status');
+  if(status.connected){
+   label.textContent='Gmail erişim izni bağlı: '+status.email+'. İlanlar her gün saat 10.30’da otomatik kontrol edilir.';
+   disconnect.hidden=false;
+  }else{
+   label.textContent=status.configured?'Gmail bağlı değil. Bağlamak için Google üzerinden izin verin.':'Gmail bağlantısı için Google Cloud uygulama ayarları bekleniyor.';
+   connect.hidden=!status.configured;
+  }
+ }catch(error){label.textContent='Gmail bağlantısı kontrol edilemedi: '+String(error.message||error);}
+}
+async function startGmailConnect(){
+ const button=$('connectGmailBtn'),label=$('gmailConnectionStatus');
+ button.disabled=true;label.textContent='Google izin bağlantısı hazırlanıyor…';
+ try{const response=await requestGmailConnect('start','POST');if(!response.authorization_url||!response.authorization_url.startsWith('https://accounts.google.com/'))throw Error('Google bağlantısı geçersiz');location.assign(response.authorization_url)}
+ catch(error){label.textContent='Gmail bağlanamadı: '+String(error.message||error);button.disabled=false}
+}
+async function disconnectGmail(){
+ if(!confirm('Gmail okuma bağlantısını kaldırmak istiyor musunuz?'))return;
+ try{await requestGmailConnect('disconnect','POST');await refreshGmailConnection()}
+ catch(error){$('gmailConnectionStatus').textContent='Bağlantı kesilemedi: '+String(error.message||error)}
+}
+async function loadListingSourceEmail(){
+ const field=$('listingSourceEmail'),status=$('listingSourceStatus');
+ if(!currentUser?.id)return;
+ status.textContent='Kayıtlı bildirim adresi kontrol ediliyor…';
+ try{
+  const response=await apiCall('/rest/v1/crm_listing_mail_sources?select=notification_email,connection_status&user_id=eq.'+encodeURIComponent(currentUser.id)+'&limit=1');
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const rows=await response.json(),saved=rows?.[0];
+  field.value=saved?.notification_email||'';
+  status.textContent=saved?.notification_email?'Adres kayıtlı. E-posta okuma bağlantısı henüz etkin değil.':'Henüz bildirim e-postası tanımlanmadı.';
+ }catch(error){status.textContent='Adres yüklenemedi: '+String(error.message||error);}
+}
+async function saveListingSourceEmail(){
+ const field=$('listingSourceEmail'),status=$('listingSourceStatus'),button=$('saveListingSourceEmail');
+ const email=field.value.trim().toLowerCase();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)||email.length>254){status.textContent='Geçerli bir e-posta adresi yazın.';return;}
+ if(!currentUser?.id||!privateSession?.access_token){status.textContent='Önce EmlakCRM hesabınıza giriş yapın.';return;}
+ button.disabled=true;status.textContent='Kaydediliyor…';
+ try{
+  const response=await apiCall('/rest/v1/crm_listing_mail_sources?on_conflict=user_id',{
+   method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+   body:JSON.stringify({user_id:currentUser.id,notification_email:email,connection_status:'not_connected'})
+  });
+  if(!response.ok)throw Error('HTTP '+response.status);
+  status.textContent='Adres hesabınıza kaydedildi. Posta kutusuna erişim henüz bağlanmadı; bu alan tek başına otomatik ilan çekmez.';await refreshGmailConnection();
+ }catch(error){status.textContent='Kaydedilemedi: '+String(error.message||error);}
+ finally{button.disabled=false;}
+}
+async function enterPrivate(){
+ const account=await window.__emlakcrmVerifiedAccountPromise;
+ if(!account?.id||!account.email)throw Error('EmlakCRM oturumu doğrulanamadı');
+ const user=await checkUser();
+ if(!user){privateSession=null;localStorage.removeItem(scopedPrivateSessionKey());$('authStatus').textContent='Oturum doğrulanamadı. Giriş yapın.';return false;}
+ if(String(user.email||'').trim().toLowerCase()!==account.email){
+  privateSession=null;currentUser=null;rows=[];searchLabels={};
+  localStorage.removeItem(scopedPrivateSessionKey());
+  $('privateMain').hidden=true;$('authGate').hidden=false;
+  $('authStatus').textContent='Bu İlan Asistanı oturumu başka bir hesaba ait. EmlakCRM ile aynı e-posta adresini kullanın. Önceki kayıtlar korunuyor.';
+  return false;
+ }
+ currentUser=user;transferLegacyData();
+ rows=[];searchLabels={};load();applySentLedger();fillSearchFilter();
+ $('authLoading').hidden=true;$('authGate').hidden=true;$('privateMain').hidden=false;
+ render();await loadListingSourceEmail();await refreshGmailConnection();await refreshFeed();await syncContactStatus();return true;
+}
+function reportAuth(s){$('authStatus').textContent=s;}
+async function signInPassword(){
+ const email=$('authEmail').value.trim(),password=$('authPassword').value;
+ if(!email||!password){reportAuth('E-posta ve şifre girin. Şifreniz yoksa e-posta bağlantısını kullanın.');return;}
+ reportAuth('Giriş doğrulanıyor...');
+ try{
+  const res=await apiCall('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.msg||data.error_description||data.message||'Giriş yapılamadı.');
+  privateSession=data;localStorage.setItem(scopedPrivateSessionKey(),JSON.stringify(privateSession));
+  await enterPrivate();
+ }catch(e){reportAuth('Giriş başarısız: '+String(e.message||e));}
+}
+async function sendSignInLink(){
+ const email=$('authEmail').value.trim();
+ if(!email){reportAuth('Önce hesabınızın e-posta adresini yazın.');return;}
+ reportAuth('Giriş bağlantısı isteniyor...');
+ try{
+  const redirect=location.origin+location.pathname;
+  const res=await apiCall('/auth/v1/otp?redirect_to='+encodeURIComponent(redirect),{method:'POST',body:JSON.stringify({email,create_user:false})});
+  if(!res.ok){const data=await res.json();throw new Error(data.msg||data.message||data.error_description||'İşlem başarısız');}
+  reportAuth('E-posta hesabınızı kontrol edin. Bağlantıya tıklayın veya gelen kodu buraya girin.');
+ }catch(e){reportAuth('Giriş bağlantısı gönderilemedi: '+String(e.message||e));}
+}
+async function verifyEmailCode(){
+ const email=$('authEmail').value.trim(),token=$('authCode').value.trim();
+ if(!email||!token){reportAuth('E-posta adresinizi ve kodu girin.');return;}
+ try{
+  const res=await apiCall('/auth/v1/verify',{method:'POST',body:JSON.stringify({email,token,type:'email'})});
+  const data=await res.json();if(!res.ok)throw new Error(data.msg||data.message||'Kod geçerli değil');
+  privateSession=data;localStorage.setItem(scopedPrivateSessionKey(),JSON.stringify(privateSession));
+  await enterPrivate();
+ }catch(e){reportAuth('Kod doğrulanamadı: '+String(e.message||e));}
+}
+async function restoreFromEmlakCrm(){
+ const crm=JSON.parse(sessionStorage.getItem('emlakcrm_auth_session_v1')||localStorage.getItem('emlakcrm_auth_remember_v1')||'null');
+ if(!crm?.access_token)throw Error('EmlakCRM oturumu bulunamadı');
+ const bridge=await fetch('https://jcjerwvibjetomqeelsy.supabase.co/functions/v1/emlakcrm-ilan-sso',{
+  method:'POST',headers:{apikey:API_KEY,Authorization:'Bearer '+crm.access_token,'Content-Type':'application/json'},body:'{}',cache:'no-store'
+ });
+ const result=await bridge.json().catch(()=>({}));
+ if(!bridge.ok||!result.token_hash)throw Error(result.error||'Tek giriş servisi yanıt vermedi');
+ const verified=await apiCall('/auth/v1/verify',{method:'POST',body:JSON.stringify({token_hash:result.token_hash,type:'magiclink'})});
+ const session=await verified.json().catch(()=>({}));
+ if(!verified.ok||!session.access_token||!session.refresh_token)throw Error(session.msg||session.error_description||'İlan Asistanı hesabı açılamadı');
+ privateSession=session;
+ localStorage.setItem(scopedPrivateSessionKey(),JSON.stringify(privateSession));
+ return enterPrivate();
+}
+async function restoreAuth(){
+ try{
+  await window.__emlakcrmVerifiedAccountPromise;
+  const gmailParam=new URLSearchParams(location.search).get('gmail_status');
+  if(gmailParam){history.replaceState(null,'',location.pathname);if(gmailParam==='connected')console.info('Gmail bağlantı izni kaydedildi');else console.info('Gmail bağlantı durumu:',gmailParam);}
+  const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+  if(hash.get('access_token')&&hash.get('refresh_token')){
+    privateSession={access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')};
+    localStorage.setItem(scopedPrivateSessionKey(),JSON.stringify(privateSession));
+    history.replaceState(null,'',location.pathname+location.search);
+  } else if(hash.get('error_description')){
+    reportAuth('E-posta bağlantısı geçersiz veya süresi dolmuş: '+hash.get('error_description'));
+    history.replaceState(null,'',location.pathname+location.search);
+  } else privateSession=JSON.parse(localStorage.getItem(scopedPrivateSessionKey())||'null');
+  if(privateSession){if(await enterPrivate())return;}
+  reportAuth('EmlakCRM ile otomatik giriş yapılıyor...');
+  try{await restoreFromEmlakCrm();}
+  catch(ssoError){reportAuth('Otomatik giriş tamamlanamadı: '+String(ssoError.message||ssoError)+'. Mevcut özel hesabınızla giriş yapabilirsiniz.');}
+ }catch(e){reportAuth('Oturum kontrolü başarısız: '+String(e.message||e));}
+ finally{ $('authLoading').hidden=true; if(!currentUser)$('authGate').hidden=false; }
+}
+function logout(){
+ const token=privateSession?.access_token;
+ if(token)apiCall('/auth/v1/logout',{method:'POST'}).catch(()=>{});
+ privateSession=null;currentUser=null;rows=[];searchLabels={};selected=null;detailOpen=false;
+ localStorage.removeItem(scopedPrivateSessionKey());
+ $('privateMain').hidden=true;$('detailBackdrop').hidden=true;$('authGate').hidden=false;
+ reportAuth('Oturum kapatıldı. Başka bir hesaba ait ilanlar görünmez.');
+}
+const SEARCH_KEY='engin-crm-favori-arama-etiketleri-v1';
+let searchLabels={};
+function validSearchLabel(s){return String(s||'').trim().slice(0,100);}
+function searchNames(id){return Array.isArray(searchLabels[String(id)])?searchLabels[String(id)]:[];}
+function addSearchName(id,name){
+ id=String(id);name=validSearchLabel(name);
+ if(!/^\d{8,12}$/.test(id)||!name)return false;
+ const a=searchNames(id);
+ if(a.includes(name))return false;
+ searchLabels[id]=[...a,name].slice(0,15);
+ return true;
+}
+function loadSearchLabels(){
+ try{
+   const data=JSON.parse(localStorage.getItem(keyFor(SEARCH_KEY))||'{}');
+   if(data && typeof data==='object' && !Array.isArray(data))
+     for(const [id,labels] of Object.entries(data))
+       if(Array.isArray(labels))for(const name of labels)addSearchName(id,name);
+ }catch(e){console.warn('Favorite search labels could not be loaded',e);}
+}
+function fillSearchFilter(){
+ const select=document.getElementById('favoriteSearchFilter');if(!select)return;
+ const previous=select.value||'all';
+ const names=[...new Set(Object.values(searchLabels).flat())].sort((a,b)=>a.localeCompare(b,'tr'));
+ select.innerHTML='<option value="all">Tüm favori aramalar</option>'+names.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+'<option value="__none__">Etiketsiz ilanlar</option>';
+ select.value=names.includes(previous)||previous==='__none__'?previous:'all';
+}
+function saveSearchLabels(){
+ try{localStorage.setItem(keyFor(SEARCH_KEY),JSON.stringify(searchLabels));}
+ catch(e){toast('Favori arama etiketleri kaydedilemedi. Tarayıcı depolamasını kontrol edin.');}
+ fillSearchFilter();render();
+}
+function importSearchNames(data){
+ if(!data||!Array.isArray(data.favoriteSearchLabels))throw new Error('Geçerli favori arama etiketleri bulunamadı.');
+ if(data.favoriteSearchLabels.length>2000)throw new Error('Etiket dosyası çok büyük.');
+ let tagged=0,links=0;
+ for(const entry of data.favoriteSearchLabels){
+   if(!entry||!/^\d{8,12}$/.test(String(entry.id))||!Array.isArray(entry.labels))continue;
+   for(const name of entry.labels.slice(0,15)){if(addSearchName(entry.id,name)){tagged++;}}
+   links++;
+ }
+ if(tagged)saveSearchLabels();else fillSearchFilter();
+ return {tagged,links};
+}
+const SALE='Merhabalar, ben Remax Manisa Ofisinden Engin BAYSAL, mülkünüzün satışına yönelik olarak bizimle çalışmak ister misiniz?';
+const RENT='Merhabalar, ben Remax Manisa Ofisinden Engin BAYSAL, mülkünüzün kiralanmasına yönelik olarak bizimle çalışmak ister misiniz?';
+const REPLY_POSITIVE='Teşekkür ederim 😊 Müsait olduğunuzda kısa bir telefon görüşmesi yapalım, detayları konuşalım.\n\nEngin BAYSAL';
+const REPLY_LATER='Anlıyorum, teşekkür ederim. 😊 İleride ihtiyaç olursa memnuniyetle yardımcı olurum. Bu süreçte size hayırlı müşteriler diliyorum, İyi günler...';
+const CLOSE='Anladım, kararınıza saygı duyuyorum. Bu süreçte size hayırlı müşteriler diliyorum, İyi günler...';
+let rows=[],selected=null;
+const $=id=>document.getElementById(id);
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function normalize(s){return String(s||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/\s+/g,' ').trim();}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3400);}
+function load(){loadSearchLabels();try{const x=JSON.parse(localStorage.getItem(keyFor(KEY))||'[]');rows=Array.isArray(x)?x.filter(r=>r&&/^\d{8,12}$/.test(r.id)):[];for(const r of rows){if(r.status==='review' && !String(r.description||'').trim() && ['satilik','kiralik'].includes(r.type)){if(agencyAdvertiser(r.title)){r.status='blocked';r.notice='İlan başlığında emlak ofisi ibaresi var.';}else{r.status='ready';r.notice='İlan türüne göre mesaj hazır; açıklama incelenmedi.';}}}}catch(e){rows=[];toast('Kayıtlar okunamadı. Yedeğiniz varsa koruyun.');}}
+function save(){try{applySentLedger();localStorage.setItem(keyFor(KEY),JSON.stringify(rows));}catch(e){toast('Yerel depolama dolu veya kapalı. Yedek alınız.');} render();}
+function targetUrl(link){
+  try{
+    let u=new URL(link);
+    if(u.hostname==='pro.sahibinden.com'){const returnUrl=u.searchParams.get('return_url');if(!returnUrl)return null;u=new URL(returnUrl);}
+    if(u.protocol!=='https:'||!['www.sahibinden.com','sahibinden.com'].includes(u.hostname)||!u.pathname.startsWith('/ilan/'))return null;
+    const m=u.pathname.match(/-(\d{8,12})(?:\/detay\/?)?$/);
+    return m?{url:u.origin+u.pathname,id:m[1],path:u.pathname}:null;
+  }catch(e){return null;}
+}
+function guessDeal(s){const x=normalize(s);if(/kiralik|kiralama|kiraya/.test(x))return 'kiralik';if(/satilik|satisa|satis/.test(x))return 'satilik';return 'belirsiz';}
+function importMail(body){
+ const labelMatch=body.match(/["“]([^"”\n]{1,100})["”]\s+adlı\s+Favori Arama/i)||body.match(/^\s*\(([^)\n]{1,100})\)\s*Favori Arama için Sonuçlar/im);
+ const searchName=labelMatch?labelMatch[1].trim():'';
+ let labelChanges=0;
+ const links=[...body.matchAll(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g)];
+ let added=0,dup=0;
+ for(const match of links){
+   const target=targetUrl(match[2]);if(!target)continue;
+   if(searchName&&addSearchName(target.id,searchName))labelChanges++;
+   if(rows.some(x=>x.id===target.id)){dup++;continue;}
+   const escapedId=target.id;
+   const found=body.match(new RegExp('#\\s*'+escapedId+'\\s*\\n+\\s*Fiyat:\\s*([^\\n]+)','i'));
+   const deal=guessDeal(target.path+' '+match[1]);
+   rows.unshift({id:target.id,title:match[1].trim(),url:target.url,price:found?found[1].trim():'Belirtilmemiş',type:deal,description:'',reply:'',status:agencyAdvertiser(match[1])?'blocked':deal==='belirsiz'?'review':'ready',notice:agencyAdvertiser(match[1])?'Başlık emlak ofisine işaret ediyor.':deal==='belirsiz'?'Satılık/kiralık türünü belirleyin.':'Mesaj hazır; açıklama incelenmedi.',createdAt:new Date().toISOString()});
+   added++;
+ }
+ save();if(labelChanges)saveSearchLabels();if(added)selected=rows[0].id;render();
+ toast(added+' ilan eklendi; '+dup+' tekrar atlandı; '+labelChanges+' yeni arama etiketi eşleştirildi.');return added+labelChanges;
+}
+function agencyAdvertiser(title){const s=normalize(title);return /(?:emlaktan|emlak ofisinden|gayrimenkul ofisinden|emlakci araciligiyla|(?:remax|remaks|coldwell banker|kw gayrimenkul)\b)/.test(s);}
+function importData(data,silent=false){
+ const input=Array.isArray(data)?data:data&&Array.isArray(data.listings)?data.listings:null;
+ if(!input)throw new Error('Dosya ilan listesi içermiyor.');
+ if(input.length>2000)throw new Error('Dosyada çok fazla ilan var.');
+ let added=0,duplicates=0,invalid=0;
+ for(const entry of input){
+   const target=entry&&typeof entry.url==='string'?targetUrl(entry.url):null;
+   if(!target||entry.id&&String(entry.id)!==target.id){invalid++;continue;}
+   const existing=rows.find(r=>r.id===target.id);
+   if(existing){
+     duplicates++;
+     const newPrice=String(entry.price||'').slice(0,100);
+     if(newPrice && newPrice!=='Belirtilmemiş' && existing.price!==newPrice)existing.price=newPrice;
+     continue;
+   }
+   const title=String(entry.title||'Başlıksız ilan').slice(0,260);
+   const type=['satilik','kiralik'].includes(entry.type)?entry.type:guessDeal(target.path+' '+title);
+   const row={id:target.id,title,url:target.url,price:String(entry.price||'Belirtilmemiş').slice(0,100),type,description:'',reply:'',status:type==='belirsiz'?'review':'ready',notice:type==='belirsiz'?'Satılık/kiralık türü seçilmeli.':'E-postadan alındı. Mesaj hazır; açıklama incelenmedi.',createdAt:new Date().toISOString()};
+   if(agencyAdvertiser(title)){row.status='blocked';row.notice='Başlık emlak ofisi ilanına işaret ediyor. İletişime geçmeyin.';}
+   rows.unshift(row);added++;
+ }
+ if(added && !selected)selected=rows[0].id;
+ if(data && Array.isArray(data.favoriteSearchLabels))importSearchNames(data);
+ save();
+ if(!silent)toast(added+' yeni ilan eklendi, '+duplicates+' tekrar atlandı, '+invalid+' geçersiz bağlantı.');
+ return added;
+}
+function prepare(r){
+ if(agencyAdvertiser(r.title)){r.status='blocked';r.notice='İlan başlığı emlak ofisi ilanına işaret ediyor.';return;}
+ if(r.type==='belirsiz'){r.status='review';r.notice='Satılık/kiralık türünü seçin.';return;}
+ r.status='ready';r.notice='İlan türüne göre ilk mesaj hazır. Açıklama incelenmedi; iletişim tercihi bilinmiyor.';
+}
+function classify(reply){
+ const s=normalize(reply);
+ if(!s)return {status:'review',note:'Yanıt metni girilmedi.'};
+ if(/(?:bir daha|artik|lutfen).{0,35}(?:aramayin|yazmayin|mesaj atmayin|ulasmak istemiyorum|iletisime gecmeyin)|rahatsiz etmeyin|numarami silin|iletisim kurmayin/.test(s))
+  return {status:'blockedReply',note:'Açık iletişim yasağı: yanıt bile göndermeyin.'};
+ if(/bir sure kendim|kendim ilgilenecegim|ileride olabilir|daha sonra|simdilik|sonra goruselim|su an dusunmuyorum|biraz bekle/.test(s))
+  return {status:'manual',note:'Kararsız/ileriye dönük dönüş: manuel takip.'};
+ if(/olabilir|goruselim|gorusmek|komisyon|sartlariniz|nasil calisiyorsunuz|teklif|arayabilir|telefon|iletisime gec|uygun olabilir|konusalim|detay/.test(s))
+  return {status:'positive',note:'Olumlu veya ticari soru içeren dönüş: sizin manuel cevabınız bekleniyor.'};
+ if(/hayir|istemiyorum|gerek yok|ilgilenmiyorum|tesekkur|sag olun|calismak istemiyorum/.test(s))
+  return {status:'negative',note:'Olumsuz yanıt: nazik kapanış taslağı hazır; göndermeden önce kontrol edin.'};
+ return {status:'manual',note:'Anlamı kesin olmayan yanıt: manuel değerlendirme gerekli.'};
+}
+function label(r){
+ return {review:'Türü belirsiz',ready:'Mesaj hazır',blocked:'İletişim istemiyor',sent:'İletişime geçildi',negative:'Olumsuz dönüş',manual:'Manuel değerlendirme',positive:'Olumlu dönüş',blockedReply:'Bir daha iletişim kurma',excluded:'Tercih etmiyorum'}[r.status]||r.status;
+}
+function cssStatus(s){return ['ready','positive'].includes(s)?'good':['blocked','blockedReply','negative'].includes(s)?'bad':'warn';}
+let detailOpen=false, focusReturn=null;
+function kind(r){return r.url.includes('/emlak-is-yeri-')?'ticari':r.url.includes('/emlak-konut-')?'konut':'diger';}
+function numericPrice(r){const digits=String(r.price||'').replace(/[^\d]/g,'');return digits?Number(digits):Number.POSITIVE_INFINITY;}
+function inCategory(r,c){return c==='all'||c==='satilik'&&r.type==='satilik'||c==='kiralik'&&r.type==='kiralik'||c==='ticari'&&kind(r)==='ticari'||c==='konut'&&kind(r)==='konut';}
+function inStatus(r,f){return f==='all'||f==='manual'&&['manual','positive'].includes(r.status)||f==='blocked'&&['blocked','blockedReply'].includes(r.status)||r.status===f;}
+function openDetails(id,source){
+ const r=rows.find(x=>x.id===id);if(!r)return;
+ selected=id;detailOpen=true;focusReturn=source||null;
+ $('detailBackdrop').hidden=false;document.body.classList.add('modal-open');
+ showDetail();
+ $('closeDetails').focus();
+}
+function closeDetails(){
+ detailOpen=false;$('detailBackdrop').hidden=true;document.body.classList.remove('modal-open');
+ if(focusReturn&&focusReturn.isConnected)focusReturn.focus();
+ focusReturn=null;
+}
+let showExcluded=false,showHistory=false;
+const todayTR=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+function render(){
+ $('countAll').textContent=rows.length;
+ $('countPending').textContent=rows.filter(r=>r.status==='review').length;
+ $('countReady').textContent=rows.filter(r=>r.status==='ready').length;
+
+ const q=normalize($('search').value),deal=$('dealFilter').value,property=$('propertyFilter').value,f=$('filter').value,sort=$('sort').value,searchName=$('favoriteSearchFilter').value;
+ const hasDatedRows=rows.some(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.lastNotifiedOn||''));
+ const a=rows.filter(r=>(showHistory||!hasDatedRows||r.lastNotifiedOn===todayTR())&&(showExcluded?r.status==='excluded':r.status!=='excluded')&&(deal==='all'||r.type===deal)&&(property==='all'||kind(r)===property)&&inStatus(r,f)&&(searchName==='all'||searchName==='__none__'&&!searchNames(r.id).length||searchNames(r.id).includes(searchName))&&(!q||normalize([r.title,r.id,r.price,r.type,...searchNames(r.id)].join(' ')).includes(q)));
+ if(sort==='price-asc')a.sort((x,y)=>numericPrice(x)-numericPrice(y));
+ else if(sort==='price-desc')a.sort((x,y)=>numericPrice(y)-numericPrice(x));
+ else if(sort==='name')a.sort((x,y)=>x.title.localeCompare(y.title,'tr'));
+ else a.sort((x,y)=>Number(y.id)-Number(x.id));
+ const dated=rows.filter(r=>showHistory||!hasDatedRows||r.lastNotifiedOn===todayTR());
+ const excludedToday=dated.filter(r=>r.status==='excluded').length;
+ $('resultCount').textContent='Gösterilen '+a.length+' · '+(showHistory?'Tüm tarihler':'Bugün')+' toplam '+dated.length+' · Gizlenen '+excludedToday;
+ $('feedStatus').dataset.todayTotal=String(rows.filter(r=>r.lastNotifiedOn===todayTR()).length);
+ $('dateToggle').textContent=showHistory?'Yalnızca bugünü göster':!hasDatedRows?'Tarih bekleniyor · tüm ilanlar':'Geçmişi göster';
+ $('dateToggle').disabled=!hasDatedRows;
+ $('excludedToggle').textContent=showExcluded?'Normal ilanları göster':'Gizlenen ilanları göster ('+excludedToday+')';
+ $('list').innerHTML=a.length?a.map(r=>{
+   const t=r.type==='kiralik'?'Kiralık':r.type==='satilik'?'Satılık':'Belirsiz';
+   return '<button type="button" class="item" data-id="'+r.id+'" aria-label="'+escapeHtml(r.title)+' ilanını incele">'+
+   '<span class="name-cell"><span class="title">'+escapeHtml(r.title)+'</span><span class="meta">İlan No: '+r.id+'</span><span class="search-tags">'+searchNames(r.id).map(n=>'<span class="search-tag">'+escapeHtml(n)+'</span>').join('')+'</span></span>'+
+   '<span class="type-cell"><span class="type-text">'+t+' · '+(kind(r)==='ticari'?'Ticari':kind(r)==='konut'?'Konut':'Diğer')+'</span></span>'+
+   '<span class="price-cell"><span class="price">'+escapeHtml(r.price)+'</span></span>'+
+   '<span class="status-cell"><span class="pill '+cssStatus(r.status)+'">'+escapeHtml(label(r))+'</span><span class="view">İncele ›</span></span></button>';
+ }).join(''):'<div class="empty">'+(showExcluded?'Tercih edilmeyen ilan bulunamadı.':!hasDatedRows?'Henüz ilan yok veya filtrelerle eşleşmiyor.':showHistory?'Bu filtrelere uygun ilan bulunamadı.':'Bugün tarihli ilan bulunamadı. Geçmiş ilanlar için “Geçmişi göster” düğmesine basın.')+'</div>';
+ $('list').querySelectorAll('[data-id]').forEach(btn=>btn.addEventListener('click',()=>openDetails(btn.dataset.id,btn)));
+ if(detailOpen)showDetail();
+}
+function showDetail(){
+ const r=rows.find(x=>x.id===selected);
+ if(!r){$('detail').innerHTML='<div class="empty">İlan seçilmedi.</div>';return;}
+ const typeName=r.type==='kiralik'?'Kiralık':r.type==='satilik'?'Satılık':'Belirsiz';
+ const message=r.type==='kiralik'?RENT:r.type==='satilik'?SALE:'Önce satılık/kiralık türünü seçin.';
+ const canPrepare=r.status==='ready';
+ const locked=['sent','positive','negative','manual','blockedReply','excluded'].includes(r.status);
+ $('detail').innerHTML=
+ '<div class="eyebrow">İlan #'+r.id+'</div><div class="detail-title">'+escapeHtml(r.title)+'</div>'+
+ '<div class="detail-meta"><span>'+escapeHtml(r.price)+'</span><span>'+typeName+'</span><span class="pill '+cssStatus(r.status)+'">'+escapeHtml(label(r))+'</span></div>'+
+ '<div class="small"><b>Favori arama:</b> '+(searchNames(r.id).length?searchNames(r.id).map(escapeHtml).join(' · '):'Etiket bulunamadı')+'</div>'+
+ '<div class="note" id="notice">'+escapeHtml(r.notice||'Açıklama kontrolü zorunlu değil.')+'</div>'+
+ '<label for="dealType">İlan türü</label><select id="dealType" '+(locked?'disabled':'')+'><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option><option value="belirsiz">Belirsiz</option></select>'+
+ '<hr><h2>İlan sahibine ilk mesaj</h2><textarea class="message" id="initialMessage" readonly spellcheck="false" aria-label="İlan sahibine gönderilecek mesaj" style="min-height:112px;display:block;">'+escapeHtml(message)+'</textarea>'+
+ '<div class="controls" style="margin-top:10px"><button id="copyAndOpen" class="primary">'+(canPrepare?'Mesajı Kopyala ve İlanı Aç ↗':'İlanı Tekrar Aç ↗')+'</button><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button></div><div class="controls" style="margin-top:8px"><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
+ '<div class="small" style="margin-top:7px"><b>Sıra:</b> “Mesajı Kopyala ve İlanı Aç” düğmesine basın. Mesaj kopyalanır ve ilan yeni sekmede açılır. İletişim istemeyenlere yazmayın; uygunsa Ctrl + V ile yapıştırın. Mesaj otomatik gönderilmez. İletişim istemeyenlere yazmayın. “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
+ '<div class="small" style="margin-top:8px">Yanıtları ve görüşmeleri sahibinden.com üzerinden takip edebilirsiniz.</div>';
+ $('dealType').value=r.type;
+ $('dealType').addEventListener('change',e=>{if(locked)return;r.type=e.target.value;prepare(r);save();});
+ $('copyAndOpen').addEventListener('click',async()=>{
+  // Previously handled or excluded listings remain viewable without changing their status.
+  const destination=String(r.url||'');
+  if(!/^https:\/\/(?:www\.)?sahibinden\.com\/ilan\//i.test(destination)){toast('Geçerli sahibinden.com ilan bağlantısı bulunamadı.');return;}
+  const tab=window.open('about:blank','_blank');
+  if(tab)tab.opener=null;
+  if(r.status==='ready'){
+   const ok=await copy(r.type==='kiralik'?RENT:SALE,$('copyAndOpen'));
+   if(!ok){if(tab)tab.close();return;}
+  }
+  if(tab)tab.location.replace(destination);
+  else toast('Açılır pencere engellendi. Tarayıcıda bu site için izin verin.');
+ });
+ $('excludeListing').addEventListener('click',()=>{if(r.status==='excluded'){r.status=r.previousStatus||'ready';delete r.previousStatus;r.notice='Tercih geri alındı.';}else{r.previousStatus=r.status;r.status='excluded';r.notice='Tercih edilmiyor; ilan gizlendi.';}closeDetails();save();});
+ $('markSent').addEventListener('click',()=>{if(r.status!=='ready')return;r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';try{rememberSent(r.id);}catch(e){toast('Gönderim kaydı saklanamadı; tarayıcı depolama iznini kontrol edin.');}save();recordSentCloud(r.id);});
+
+}
+async function copy(s,button){
+ let copied=false;
+ // The copy button never opens another tab; changing focus before copying
+ // can make the Clipboard API reject with NotAllowedError in Chrome.
+ try{
+   if(navigator.clipboard && window.isSecureContext){
+     await navigator.clipboard.writeText(s);
+     copied=true;
+   }
+ }catch(e){console.warn('Clipboard API rejected the copy operation:',e);}
+ if(!copied){
+   // Older browsers and restricted contexts may still support execCommand.
+   const field=document.createElement('textarea');
+   field.value=s;
+   field.setAttribute('readonly','');
+   field.style.position='fixed';
+   field.style.top='0';
+   field.style.left='0';
+   field.style.opacity='0';
+   document.body.appendChild(field);
+   field.focus();
+   field.select();
+   field.setSelectionRange(0,field.value.length);
+   try{copied=!!document.execCommand('copy');}catch(e){copied=false;}
+   field.remove();
+ }
+ if(copied){
+   if(button)button.textContent='✓ Mesaj kopyalandı';
+   toast('Mesaj kopyalandı. Şimdi “İlanı Aç” ile devam edin.');
+ }else{
+   const field=$('initialMessage');
+   if(field){field.focus();field.select();field.setSelectionRange(0,field.value.length);}
+   toast('Tarayıcı kopyalamayı engelledi. Metin seçildi; Ctrl + C ile kopyalayın.');
+ }
+ return copied;
+}
+$('importFileBtn').addEventListener('click',async()=>{const f=$('importFile').files&&$('importFile').files[0];if(!f){toast('Önce indirilen dosyayı seçin.');return;}if(f.size>2000000){toast('Dosya 2 MB sınırını aşıyor.');return;}try{const body=await f.text();if(f.name.toLowerCase().endsWith('.json'))importData(JSON.parse(body));else{const n=importMail(body);if(!n)toast('Bu dosyada tanınan ilan bağlantısı yok.');}}catch(e){toast('Dosya okunamadı: '+String(e.message||e));}});
+$('labelFileBtn').addEventListener('click',()=>$('labelFile').click());
+$('labelFile').addEventListener('change',async e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ if(file.size>2000000){toast('Etiket dosyası 2 MB sınırını aşıyor.');e.target.value='';return;}
+ try{
+  const data=JSON.parse(await file.text());
+  const x=importSearchNames(data);
+  toast(x.tagged+' etiket eşleştirildi. Favori Arama Adı filtresinden seçim yapabilirsiniz.');
+ }catch(err){toast('Etiket dosyası okunamadı: '+String(err.message||err));}
+ finally{e.target.value='';}
+});
+let syncingFeed=false;
+async function refreshFeed(){
+ if(syncingFeed||!currentUser)return;
+ syncingFeed=true;
+ $('refreshFeedBtn').disabled=true;
+ $('feedStatus').textContent='Kişiye özel ilanlar kontrol ediliyor...';
+ try{
+   let res=await apiCall('/rest/v1/crm_favorite_search_listings?select=listing_id,title,url,price,deal_type,search_labels,last_notified_on&order=listing_id.desc&limit=2000');
+   if(res.status===401 && await checkUser())res=await apiCall('/rest/v1/crm_favorite_search_listings?select=listing_id,title,url,price,deal_type,search_labels,last_notified_on&order=listing_id.desc&limit=2000');
+   if(!res.ok)throw new Error('Özel listeye erişilemedi (HTTP '+res.status+')');
+   const items=await res.json();
+   if(!Array.isArray(items))throw new Error('Beklenmeyen sunucu yanıtı');
+   const data={listings:items.map(x=>({id:x.listing_id,title:x.title,url:x.url,price:x.price,type:x.deal_type}))};
+   const added=importData(data,true);
+   applySentLedger();
+   let labelsAdded=0;
+   for(const item of items){
+     if(Array.isArray(item.search_labels))for(const name of item.search_labels){
+       if(addSearchName(item.listing_id,name))labelsAdded++;
+     }
+   }
+   for(const item of items){const row=rows.find(x=>x.id===String(item.listing_id));if(row&&/^\d{4}-\d{2}-\d{2}$/.test(item.last_notified_on||''))row.lastNotifiedOn=item.last_notified_on;}
+   save();
+   await syncContactStatus();
+   if(labelsAdded)saveSearchLabels();
+   $('feedStatus').textContent='✓ Hesabınıza ait '+items.length+' ilan kontrol edildi. '+added+' yeni ilan, '+labelsAdded+' yeni etiket eşleştirildi.';
+ }catch(e){
+   console.warn('Private favorite feed unavailable',e);
+   $('feedStatus').textContent='Özel ilanlara ulaşılamadı: '+String(e.message||e)+'. Yerel kayıtlar silinmedi.';
+ }finally{
+   syncingFeed=false;$('refreshFeedBtn').disabled=false;
+ }
+}
+$('excludedToggle').addEventListener('click',()=>{showExcluded=!showExcluded;render();});
+$('dateToggle').addEventListener('click',()=>{showHistory=!showHistory;render();});
+async function importGmailThenRefresh(){
+ const status=$('feedStatus'),button=$('refreshFeedBtn');
+ if(button.disabled)return;
+ button.disabled=true;
+ status.textContent='Gmail sahibinden.com bildirimleri taranıyor…';
+ let summary='';
+ try{
+  const r=await apiCall('/functions/v1/crm-gmail-sync',{method:'POST',body:'{}'});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(data.error||('HTTP '+r.status));
+  summary='Gmail taraması: '+(data.checked_messages||0)+' bildirim incelendi, '+(data.new_listings||0)+' yeni ilan eklendi.';
+ }catch(e){
+  summary='Gmail taraması yapılamadı: '+String(e.message||e)+'.';
+ }finally{button.disabled=false}
+ await refreshFeed();
+ status.textContent=summary+' '+status.textContent;
+}
+$('refreshFeedBtn').addEventListener('click',importGmailThenRefresh);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser)refreshFeed();});
+$('search').addEventListener('input',render);
+for(const id of ['dealFilter','propertyFilter','favoriteSearchFilter','filter','sort'])$(id).addEventListener('change',render);
+$('resetFilters').addEventListener('click',()=>{
+ showExcluded=false;showHistory=false;
+ $('search').value='';$('dealFilter').value='all';$('favoriteSearchFilter').value='all';$('propertyFilter').value='all';$('filter').value='all';$('sort').value='id-desc';render();
+});
+$('closeDetails').addEventListener('click',closeDetails);
+$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeDetails();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&detailOpen)closeDetails();});
+$('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),listings:rows,favoriteSearchLabels:Object.entries(searchLabels).map(([id,labels])=>({id,labels}))},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='ilan-asistani-yedek.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);});
+$('speakBtn').addEventListener('click',()=>{if(!('speechSynthesis' in window)){toast('Bu tarayıcı seslendirmeyi desteklemiyor.');return;}speechSynthesis.cancel();const msg='Toplam '+rows.length+' farklı ilan var. '+rows.filter(r=>r.status==='review').length+' ilan türü belirsiz. '+rows.filter(r=>r.status==='ready').length+' ilan için mesaj hazır.';const u=new SpeechSynthesisUtterance(msg);u.lang='tr-TR';speechSynthesis.speak(u);});
+$('passwordLogin').addEventListener('click',signInPassword);
+$('magicLogin').addEventListener('click',sendSignInLink);
+$('verifyCode').addEventListener('click',verifyEmailCode);
+$('logoutBtn').addEventListener('click',logout);
+$('saveListingSourceEmail').addEventListener('click',saveListingSourceEmail);
+$('connectGmailBtn').addEventListener('click',startGmailConnect);
+$('disconnectGmailBtn').addEventListener('click',disconnectGmail);
+restoreAuth();
+})();
+</script></body></html>
