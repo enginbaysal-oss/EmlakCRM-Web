@@ -632,7 +632,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 </section>
 </div>
 <div class="view-screen" id="tapuView" hidden><iframe id="tapuFrame" title="TapuMatik hesaplama" style="width:100%;height:85vh;min-height:650px;border:0;background:white;border-radius:12px"></iframe></div>
-<div class="view-screen" id="pdfView" hidden><section style="max-width:680px;margin:28px auto;padding:28px;background:#fff;border:1px solid #dce7ee;border-radius:16px;text-align:center;box-shadow:0 6px 24px #163b5712"><h2 style="margin:0 0 12px;color:#143d5b">PDF İmzala · Çoklu İmza</h2><p style="color:#40566a;line-height:1.6">PDF İmzala güvenilir bağlantıda ayrı sekmede açılır. Program yüklemeniz gerekmez.</p><a href="https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:12px;padding:16px 26px;background:#f36b12;color:#fff;font-weight:800;text-decoration:none;border-radius:12px">PDF İmzala Uygulamasını Aç ↗</a></section><iframe id="pdfWebFrame" title="PDF İmzala arka plan çerçevesi" hidden style="display:none"></iframe></div>
+<div class="view-screen" id="pdfView" hidden><iframe id="pdfWebFrame" title="PDF İmzala · Çoklu İmza" allow="clipboard-read; clipboard-write" style="width:100%;height:calc(100vh - 96px);min-height:680px;border:0;background:#f0f5f8;border-radius:12px" referrerpolicy="same-origin"></iframe></div>
 <div class="view-screen" id="assistantView"><iframe id="assistantFrame" title="EmlakAsistan" style="width:100%;height:85vh;min-height:620px;border:0;background:#fff;border-radius:12px"></iframe></div>
 
 <div class="view-screen" id="customersView"><div class="bar" id="customers"><h2>Müşteri Yönetimi</h2><div class="row"><button type="button" class="secondary" id="exportClients">Excel’e Aktar</button><button id="addClient">+ Müşteri ekle</button></div></div>
@@ -1968,13 +1968,13 @@ async function sendPdfSession(){
   await crmAuthenticatedSession();
   const saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null");
   if(!saved?.access_token)return;
-  frame.contentWindow.postMessage({type:"emlakcrm-pdf-session",session:{access_token:saved.access_token,refresh_token:saved.refresh_token||"",expires_at:saved.expires_at||0}},"https://enginbaysal-oss.github.io");
+  frame.contentWindow.postMessage({type:"emlakcrm-pdf-session",session:{access_token:saved.access_token,refresh_token:saved.refresh_token||"",expires_at:saved.expires_at||0}},location.origin);
  }catch(err){console.info("PDF oturum aktarımı:",err.message)}
 }
 $("pdfWebFrame").addEventListener("load",()=>{void sendPdfSession()});
 window.addEventListener("message",async event=>{
  const frame=$("pdfWebFrame");
- if(event.origin!=="https://enginbaysal-oss.github.io"||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
+ if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=="emlakcrm-pdf-ready")return;
  void sendPdfSession();
 });
 // Only the same-origin EmlakAsistan iframe may request a verified CRM session.
@@ -2016,7 +2016,14 @@ async function showScreen(name){
  if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
- // PDF imzalama is opened by a user-initiated link in a separate tab to avoid broken iframe rendering.
+ if(selected==="pdf"){
+  // Run the real multi-sign module on the same origin. PDF access is checked again inside it.
+  const frame=$("pdfWebFrame");
+  if(!frame.getAttribute("src"))frame.setAttribute("src","pdf-imzala.html?v=20261113a");
+  void sendPdfSession();
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
+ }
  if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108h");
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
