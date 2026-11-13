@@ -97,6 +97,10 @@
   if(!entitlementResponse.ok)throw Error("Abonelik ve deneme süresi doğrulanamadı");
   const access=await entitlementResponse.json();
   if(access?.allowed!==true)throw Error(access?.role==="trial_expired"?"3 günlük ücretsiz deneme süreniz doldu. Abonelik satın alarak devam edebilirsiniz.":"Aktif abonelik veya deneme hakkı yok");
+  if(access.role==="trial"&&access.trial_expires_at&&access.server_now){
+   const remaining=Date.parse(access.trial_expires_at)-Date.parse(access.server_now);
+   if(Number.isFinite(remaining))setTimeout(()=>location.replace(home),Math.max(0,remaining)+500);
+  }
 
   document.getElementById("emlakcrm-access-pending")?.remove();
  }catch(e){
