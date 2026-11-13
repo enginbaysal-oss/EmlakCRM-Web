@@ -506,6 +506,11 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
  <p data-trial-detail style="margin:6px 0 10px;color:#3e5166"></p>
  <a href="./abonelik-satin-al.html" style="display:inline-block;background:#f58220;color:#fff;border-radius:10px;padding:9px 14px;font-weight:750;text-decoration:none">12 Aylık Aboneliği İncele →</a>
 </section>
+<section id="crmGuestTrialPromo" hidden class="card" style="margin:10px 0 14px;padding:16px;border:1px solid #f7bf84;background:#fff9ef" aria-label="3 gün ücretsiz deneme">
+ <strong style="font-size:18px;color:#17354d">🎁 EmlakCRM'yi 3 Gün Ücretsiz Deneyin</strong>
+ <p style="margin:8px 0 12px;color:#485d6d">Müşteri, portföy, ajanda, Tapumatik ve diğer modülleri keşfedin. Kredi kartı gerekmez.</p>
+ <button type="button" id="crmStartFreeTrial" style="background:#ee7821;color:white;border:0;border-radius:11px;padding:12px 18px;font-weight:800;cursor:pointer">Ücretsiz Hesap Oluştur</button>
+</section>
 <section id="homeAnnouncements" class="card" style="margin:10px 0 16px;padding:14px;border:1px solid #cbdde9" aria-label="EmlakCRM duyuruları">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
 <h2 style="margin:0;font-size:17px">📣 Duyurular <span id="homeAnnouncementBadge" style="font-size:12px;background:#e55b2b;color:#fff;padding:3px 8px;border-radius:14px" hidden></span></h2>
@@ -1715,6 +1720,12 @@ function crmInlineMode(next){
 }
 $("crmLoginTab").onclick=()=>crmInlineMode("login");
 $("crmRegisterTab").onclick=()=>crmInlineMode("register");
+$("crmStartFreeTrial").onclick=()=>{
+ location.hash="account";
+ void showScreen("account");
+ crmInlineMode("register");
+ $("crmInlineEmail").focus();
+};
 async function crmAuthPost(route,payload){
  let response;
  try{response=await fetch(crmApiBase+"/auth/v1"+route,{method:"POST",headers:{apikey:crmPublicKey,"Content-Type":"application/json"},body:JSON.stringify(payload)})}
@@ -1926,6 +1937,9 @@ function crmShowTrialBanner(id,access){
 async function crmRefreshHomeTrial(){
  try{crmShowTrialBanner("crmHomeTrialBanner",await crmCheckEntitlement());}
  catch(_){crmShowTrialBanner("crmHomeTrialBanner",null);}
+ let activeSession=null;
+ try{activeSession=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||localStorage.getItem("emlakcrm_auth_remember_v1")||"null");}catch(_){}
+ $("crmGuestTrialPromo").hidden=Boolean(activeSession?.access_token);
 }
 async function crmRefreshHomeSessionLamp(){
  const dot=document.getElementById("crmHomeSessionDot"),label=document.getElementById("crmHomeSessionText");
