@@ -501,6 +501,11 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 </div>
 <header><div class="top"><div><div class="light">Gayrimenkul yönetim paneli</div><h1 class="emlakcrm-brand-inline"><img class="emlakcrm-brand-logo" src="assets/emlakcrm-logo.svg" alt="EmlakCRM logosu">EmlakCRM</h1><div class="light">Müşteri yönetimi, ajanda ve araçlar bir arada.</div></div><div class="header-actions"><span id="crmHomeSessionLamp" role="status" aria-live="polite" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#fff"><span id="crmHomeSessionDot" style="width:10px;height:10px;border-radius:50%;background:#aeb8c3;display:inline-block"></span><span id="crmHomeSessionText">Kontrol ediliyor</span></span><button id="openAuth" type="button" class="header-login">Ayarlar</button></div></div></header>
 <main><div id="appNav" class="screenNav" hidden><button type="button" class="homeBack" data-go="home">← Ana Sayfaya Dön</button><nav id="crmNav" aria-label="Müşteri Yönetimi ve Ajanda"><button type="button" data-go="customers">Müşteriler</button><button type="button" data-go="agenda">Ajanda</button><button type="button" data-go="matching">Eşleştirme</button></nav></div><div id="homeView" class="view-screen">
+<section id="crmHomeTrialBanner" hidden class="card" style="margin:10px 0;padding:15px;border:1px solid #f6b36a;background:#fff8ec" aria-live="polite">
+ <strong data-trial-headline style="font-size:17px;color:#17354d"></strong>
+ <p data-trial-detail style="margin:6px 0 10px;color:#3e5166"></p>
+ <a href="./abonelik-satin-al.html" style="display:inline-block;background:#f58220;color:#fff;border-radius:10px;padding:9px 14px;font-weight:750;text-decoration:none">12 Aylık Aboneliği İncele →</a>
+</section>
 <section id="homeAnnouncements" class="card" style="margin:10px 0 16px;padding:14px;border:1px solid #cbdde9" aria-label="EmlakCRM duyuruları">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
 <h2 style="margin:0;font-size:17px">📣 Duyurular <span id="homeAnnouncementBadge" style="font-size:12px;background:#e55b2b;color:#fff;padding:3px 8px;border-radius:14px" hidden></span></h2>
@@ -543,6 +548,11 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <div><span>Abonelik durumu</span><strong id="accountSubscriptionStatus">Giriş bekleniyor</strong></div>
 <div><span>Veri saklama</span><strong>Bu tarayıcıda</strong></div>
 </div>
+<section id="crmAccountTrialBanner" hidden class="card" style="padding:14px;margin:12px 0;border:1px solid #f6b36a;background:#fff8ec" aria-live="polite">
+<strong data-trial-headline></strong>
+<p data-trial-detail style="margin:7px 0"></p>
+<a href="./abonelik-satin-al.html">Deneme sonrası abonelik satın al →</a>
+</section>
 <section class="card" aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
 <h3 style="margin:0 0 8px">Tek Paket · EmlakCRM Yıllık Abonelik</h3>
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(standart · KDV dahil / 12 ay)</span></p><p style="font-size:13px;color:#22637d;margin:3px 0 8px"><strong>İlyada 3 danışmanları:</strong> Ofis onayından sonra 500 TL (KDV dahil / 12 ay).</p>
@@ -554,7 +564,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 </section>
 <p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme henüz mevcut değildir; canlı ödeme durumunu abonelik sayfası gösterir.</p>
 <div class="accountCloud" id="crmInlineAuth">
-<h3>EmlakCRM Giriş / Kayıt</h3><p class="muted">Giriş işlemleri bu ekranda tamamlanır. Ayrı bir dosyaya geçilmez.</p>
+<h3>EmlakCRM Giriş / Kayıt</h3><p class="muted">Yeni kayıtlar için 3 gün tam erişimli ücretsiz deneme. Kredi kartı gerekmez; deneme bitince kayıtlar silinmez.</p>
 <div class="row" style="gap:8px"><button type="button" id="crmLoginTab" aria-pressed="true">Giriş Yap</button><button type="button" class="secondary" id="crmRegisterTab" aria-pressed="false">Hesap Oluştur</button></div>
 <form id="crmInlineAuthForm" class="crmInlineAuthForm">
 <label for="crmInlineEmail">E-posta</label><input type="email" id="crmInlineEmail" autocomplete="username" required>
@@ -1867,18 +1877,41 @@ $("crmRecoveryForm").onsubmit=async event=>{
 };
 // Recovery callback is initialized after all screen/navigation bindings.
 // Merkezi lisans kararı: ödeme altyapısı devreye girene kadar yalnızca durum okur.
+// Merkezi erişim sonucu yalnızca sunucudan alınır; istemci saati karar vermez.
 async function crmCheckEntitlement(){
- const {user,token}=await crmAuthenticatedSession();
- const headers={apikey:crmPublicKey,Authorization:"Bearer "+token};
- const admin=await fetch(crmApiBase+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
- if(!admin.ok)throw Error("Yönetici yetkisi kontrol edilemedi");
- const admins=await admin.json();
- if(admins.some(r=>r.user_id===user.id))return {allowed:true,role:"super_admin",expiresAt:null};
- const res=await fetch(crmApiBase+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
- if(!res.ok)throw Error("Abonelik bilgisi alınamadı");
- const records=await res.json(),now=Date.now();
- const active=records.find(r=>r.status==="active"&&r.starts_at&&r.expires_at&&Date.parse(r.starts_at)<=now&&Date.parse(r.expires_at)>now);
- return {allowed:!!active,role:active?"subscriber":"unsubscribed",expiresAt:active?.expires_at||null};
+ const {token}=await crmAuthenticatedSession();
+ const response=await fetch(crmApiBase+"/rest/v1/rpc/emlakcrm_entitlement_status",{
+  method:"POST",headers:{apikey:crmPublicKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},
+  body:"{}",cache:"no-store"
+ });
+ if(!response.ok)throw Error("Abonelik veya ücretsiz deneme hakkı kontrol edilemedi");
+ const access=await response.json();
+ if(typeof access?.allowed!=="boolean"||!access.role)throw Error("Sunucu üyelik yanıtı geçersiz");
+ return {allowed:access.allowed,role:access.role,expiresAt:access.expires_at||null,
+   trialExpiresAt:access.trial_expires_at||null,serverNow:access.server_now||null};
+}
+function crmTrialTimeLeft(access){
+ const remaining=Math.max(0,Date.parse(access.trialExpiresAt)-Date.parse(access.serverNow));
+ const hours=Math.floor(remaining/3600000);
+ const minutes=Math.ceil((remaining%3600000)/60000);
+ return hours>=24?Math.floor(hours/24)+" gün "+(hours%24)+" saat":hours+" saat "+minutes+" dakika";
+}
+function crmShowTrialBanner(id,access){
+ const el=document.getElementById(id);
+ if(!el)return;
+ if(!access||!["trial","trial_expired"].includes(access.role)){el.hidden=true;return;}
+ const active=access.role==="trial";
+ el.hidden=false;
+ const headline=el.querySelector("[data-trial-headline]");
+ const detail=el.querySelector("[data-trial-detail]");
+ if(headline)headline.textContent=active?"🎁 3 Günlük Ücretsiz Deneme Aktif":"🔒 Ücretsiz Deneme Süreniz Doldu";
+ if(detail)detail.textContent=active
+   ?crmTrialTimeLeft(access)+" hakkınız kaldı. Tüm modülleri deneyebilirsiniz."
+   :"Verileriniz saklanıyor. Kaldığınız yerden devam etmek için abonelik satın alın.";
+}
+async function crmRefreshHomeTrial(){
+ try{crmShowTrialBanner("crmHomeTrialBanner",await crmCheckEntitlement());}
+ catch(_){crmShowTrialBanner("crmHomeTrialBanner",null);}
 }
 async function crmRefreshHomeSessionLamp(){
  const dot=document.getElementById("crmHomeSessionDot"),label=document.getElementById("crmHomeSessionText");
@@ -1903,7 +1936,7 @@ async function updateAccountStatus(){
  const licenseStart=$("crmLicenseStart"),licenseEnd=$("crmLicenseEnd"),licenseMessage=$("crmLicenseMessage");
  licenseStart.textContent="—";licenseEnd.textContent="—";licenseMessage.textContent="Abonelik kontrol ediliyor...";
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
- if(!saved?.access_token){$("crmAdminPanelLink").hidden=true;status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
+ if(!saved?.access_token){crmShowTrialBanner("crmAccountTrialBanner",null);$("crmAdminPanelLink").hidden=true;status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
  status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
   const {user}=await crmAuthenticatedSession();
@@ -1911,10 +1944,13 @@ async function updateAccountStatus(){
   logout.hidden=false;login.hidden=true;
   const entitlement=await crmCheckEntitlement();
   $("crmAdminPanelLink").hidden=entitlement.role!=="super_admin";
+  crmShowTrialBanner("crmAccountTrialBanner",entitlement);
   if(entitlement.role==="super_admin"){sub.textContent="Süper Yönetici · Süresiz abonelik";licenseStart.textContent="Süresiz";licenseEnd.textContent="Süresiz";licenseMessage.textContent="Kurucu yönetici hesabı: ödeme zorunluluğu yok.";}
+  else if(entitlement.role==="trial"){sub.textContent="3 Günlük Ücretsiz Deneme · "+crmTrialTimeLeft(entitlement)+" kaldı";licenseEnd.textContent=new Date(entitlement.trialExpiresAt).toLocaleString("tr-TR");licenseMessage.textContent="Ücretsiz denemeniz aktif. Tüm modülleri kullanabilirsiniz.";}
+  else if(entitlement.role==="trial_expired"){sub.textContent="Ücretsiz deneme tamamlandı";licenseEnd.textContent=new Date(entitlement.trialExpiresAt).toLocaleString("tr-TR");licenseMessage.textContent="Denemeniz bitti. Kayıtlarınız korunuyor; abonelik satın alarak devam edin.";}
   else if(entitlement.allowed){sub.textContent="Aktif · "+new Date(entitlement.expiresAt).toLocaleDateString("tr-TR")+" tarihine kadar";licenseEnd.textContent=new Date(entitlement.expiresAt).toLocaleDateString("tr-TR");licenseMessage.textContent="Aboneliğiniz aktif.";}
   else {sub.textContent="Aktif abonelik bulunamadı";licenseMessage.textContent="Aktif aboneliğiniz bulunmuyor. Abonelik işlemleri için yukarıdaki düğmeye basın.";}
- }catch(err){$("crmAdminPanelLink").hidden=true;licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
+ }catch(err){crmShowTrialBanner("crmAccountTrialBanner",null);$("crmAdminPanelLink").hidden=true;licenseMessage.textContent="Abonelik bilgisi şu anda alınamıyor.";
   if(status.textContent==="Oturum doğrulanıyor..."){status.textContent="Bağlantı veya oturum doğrulaması başarısız · Tekrar denenecek";logout.hidden=false;login.hidden=true;sub.textContent="Oturum kontrol edilemedi"}
   else{sub.textContent="Abonelik kontrol edilemedi"}
  }
@@ -2004,7 +2040,7 @@ async function showScreen(name){
    if(request!==crmNavigationRequest)return;
    if(!entitlement.allowed){
     selected="account";
-    alert("Bu modülü kullanmak için aktif EmlakCRM aboneliği gereklidir. Standart yıllık abonelik 750 TL; onaylı İlyada 3 danışmanları için 500 TL (KDV dahil). Ödeme durumunu abonelik ekranından kontrol edin.");
+    alert(entitlement.role==="trial_expired"?"3 günlük ücretsiz deneme süreniz bitti. Kayıtlarınız korunuyor; abonelik satın alarak devam edin.":"Bu modül için aktif abonelik veya ücretsiz deneme hakkı gereklidir.");
    }
   }catch(err){
    if(request!==crmNavigationRequest)return;
@@ -2013,7 +2049,7 @@ async function showScreen(name){
    return;
   }
  }
- if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
+ if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home"){renderHomeOffers();void crmRefreshHomeTrial();}}
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
  if(selected==="pdf"){
@@ -2052,7 +2088,7 @@ document.querySelectorAll("#homeView a.tool[href]").forEach(link=>{
   try{
    const entitlement=await crmCheckEntitlement();
    if(entitlement.allowed){window.location.assign(href);return}
-   alert("Bu modül için aktif EmlakCRM aboneliği gereklidir. Standart yıllık ücret 750 TL; onaylı İlyada 3 danışmanları için 500 TL (KDV dahil). Ödeme durumunu abonelik ekranından kontrol edin.");
+   alert(entitlement.role==="trial_expired"?"3 günlük ücretsiz denemeniz tamamlandı. Kayıtlarınız korunuyor; devam etmek için abonelik satın alın.":"Bu modül için aktif EmlakCRM aboneliği veya ücretsiz deneme hakkı gereklidir.");
   }catch(_){
    alert("Devam etmek için önce Ayarlar bölümünden giriş yapın.");
   }
