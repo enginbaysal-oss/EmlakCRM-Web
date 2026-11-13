@@ -26,8 +26,10 @@ jobs:
                curl -fsSL --max-time 15 "$BASE/portfoy-rapor.html?migration=20261111a" -o "$portfolio" &&
                curl -fsSL --max-time 15 "$BASE/emlakcrm-cloud-backup.js?migration=20261111a" -o "$backup" &&
                curl -fsSL --max-time 15 "$BASE/emlakcrm-auto-migrate.js?migration=20261111a" -o "$migration" &&
-               grep -q 'emlakcrm-auto-migrate.js?v=20261111a' "$index" &&
-               grep -q 'emlakcrm-auto-migrate.js?v=20261111a' "$portfolio" &&
+               # Verify that both pages load the migration script, regardless of its cache-busting version.
+               # The downloaded JavaScript is separately checked for its safe origin guard below.
+               grep -Eq 'src="\./emlakcrm-auto-migrate\.js\?v=[[:alnum:]._-]+"' "$index" &&
+               grep -Eq 'src="\./emlakcrm-auto-migrate\.js\?v=[[:alnum:]._-]+"' "$portfolio" &&
                grep -q 'window.addEventListener("focus",syncOnReturn)' "$backup" &&
                grep -q 'location.origin===MIGRATION_ORIGIN' "$migration" &&
                grep -q 'https://emlkcrm.com.tr' "$migration"; then
