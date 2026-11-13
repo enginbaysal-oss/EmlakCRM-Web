@@ -2016,10 +2016,12 @@ async function showScreen(name){
  if(selected==="account"){updateAccountStatus();void loadCloudOffices();}
  if(selected==="tapu"&&!$("tapuFrame").srcdoc)$("tapuFrame").srcdoc=tapuDocument;
  if(selected==="pdf"){
-  // PDF imzalama uygulamasini dogrudan ac: gomulu iframe bos ekran sorunu.
-  // Abonelik kontrolu yukarida tamamlanir; diger modullere dokunulmaz.
-  window.location.assign("https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html");
-  return;
+  // Keep the embedded view so the verified CRM session can be transferred by postMessage.
+  const frame=$("pdfWebFrame");
+  if(!frame.getAttribute("src"))frame.setAttribute("src","https://enginbaysal-oss.github.io/pdf-imza/coklu-imza.html?v=20261113");
+  void sendPdfSession();
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
+  setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
  }
  if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108h");
  document.body.dataset.screen=selected;
