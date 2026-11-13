@@ -2019,7 +2019,7 @@ async function showScreen(name){
  if(selected==="pdf"){
   // Run the real multi-sign module on the same origin. PDF access is checked again inside it.
   const frame=$("pdfWebFrame");
-  if(!frame.getAttribute("src"))frame.setAttribute("src","/pdf-imzala.html?v=20261113b");
+  if(!frame.getAttribute("src"))frame.setAttribute("src","pdf-imzala.html?v=20261113c");
   void sendPdfSession();
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
