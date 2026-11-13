@@ -1887,14 +1887,28 @@ async function crmCheckEntitlement(){
  if(!response.ok)throw Error("Abonelik veya ücretsiz deneme hakkı kontrol edilemedi");
  const access=await response.json();
  if(typeof access?.allowed!=="boolean"||!access.role)throw Error("Sunucu üyelik yanıtı geçersiz");
- return {allowed:access.allowed,role:access.role,expiresAt:access.expires_at||null,
+ const result={allowed:access.allowed,role:access.role,expiresAt:access.expires_at||null,
    trialExpiresAt:access.trial_expires_at||null,serverNow:access.server_now||null};
+ crmScheduleTrialExpiry(result);
+ return result;
 }
 function crmTrialTimeLeft(access){
  const remaining=Math.max(0,Date.parse(access.trialExpiresAt)-Date.parse(access.serverNow));
  const hours=Math.floor(remaining/3600000);
  const minutes=Math.ceil((remaining%3600000)/60000);
  return hours>=24?Math.floor(hours/24)+" gün "+(hours%24)+" saat":hours+" saat "+minutes+" dakika";
+}
+let crmTrialExpiryTimer=null;
+function crmScheduleTrialExpiry(access){
+ if(crmTrialExpiryTimer!==null){clearTimeout(crmTrialExpiryTimer);crmTrialExpiryTimer=null;}
+ if(access?.role!=="trial"||!access.trialExpiresAt||!access.serverNow)return;
+ const remaining=Date.parse(access.trialExpiresAt)-Date.parse(access.serverNow);
+ if(!Number.isFinite(remaining))return;
+ crmTrialExpiryTimer=setTimeout(()=>{
+  crmTrialExpiryTimer=null;
+  if(location.hash!=="#account")location.hash="account";
+  else void updateAccountStatus();
+ },Math.max(0,remaining)+500);
 }
 function crmShowTrialBanner(id,access){
  const el=document.getElementById(id);
