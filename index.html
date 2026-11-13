@@ -548,6 +548,12 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <div class="bar"><h2>⚙️ Ayarlar</h2></div>
 <section class="card accountPanel">
 <div class="accountHead"><div class="accountAvatar">👤</div><div><h3>Hesap / Giriş / Kayıt</h3><p class="muted">Hesabına giriş yap, aboneliğini kontrol et ve EmlakCRM'yi kullan.</p></div></div>
+<section id="crmTrialSignupPrompt" hidden style="margin:12px 0 16px;padding:15px;border:2px solid #f4a154;border-radius:14px;background:#fff8e9" aria-label="3 gün ücretsiz deneme ve kayıt">
+ <strong style="display:block;font-size:19px;color:#17354d">🎁 3 Gün Ücretsiz Deneme!</strong>
+ <p style="margin:7px 0 11px;font-size:14px;color:#405568">Tüm modülleri 72 saat ücretsiz kullanın. Kart bilgisi gerekmez.</p>
+ <button id="crmCreateTrialAccountTop" type="button" style="display:block;width:100%;max-width:420px;padding:14px 16px;border:0;border-radius:12px;background:#ed7320;color:white;font-size:17px;font-weight:850;cursor:pointer;box-shadow:0 3px 8px #a64e2740">HESAP OLUŞTUR · ÜCRETSİZ DENE</button>
+ <p style="margin:8px 0 0;font-size:12px;color:#586a79">Süre bitince verileriniz silinmez; satın alarak devam edebilirsiniz.</p>
+</section>
 <div class="accountInfo">
 <div><span>Oturum durumu</span><strong id="accountSessionStatus">Kontrol ediliyor</strong></div>
 <div><span>Abonelik durumu</span><strong id="accountSubscriptionStatus">Giriş bekleniyor</strong></div>
@@ -1720,6 +1726,13 @@ function crmInlineMode(next){
 }
 $("crmLoginTab").onclick=()=>crmInlineMode("login");
 $("crmRegisterTab").onclick=()=>crmInlineMode("register");
+$("crmCreateTrialAccountTop").onclick=()=>{
+ crmInlineMode("register");
+ const form=$("crmInlineAuth");
+ form.hidden=false;
+ form.scrollIntoView({behavior:"smooth",block:"start"});
+ $("crmInlineEmail").focus({preventScroll:true});
+};
 $("crmStartFreeTrial").onclick=()=>{
  location.hash="account";
  void showScreen("account");
@@ -1964,10 +1977,11 @@ async function updateAccountStatus(){
  const licenseStart=$("crmLicenseStart"),licenseEnd=$("crmLicenseEnd"),licenseMessage=$("crmLicenseMessage");
  licenseStart.textContent="—";licenseEnd.textContent="—";licenseMessage.textContent="Abonelik kontrol ediliyor...";
  let saved;try{saved=JSON.parse(sessionStorage.getItem(crmAuthSessionKey)||"null")}catch{}
- if(!saved?.access_token){crmShowTrialBanner("crmAccountTrialBanner",null);$("crmAdminPanelLink").hidden=true;status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
+ if(!saved?.access_token){$("crmTrialSignupPrompt").hidden=false;crmShowTrialBanner("crmAccountTrialBanner",null);$("crmAdminPanelLink").hidden=true;status.textContent="Giriş yapılmadı";sub.textContent="Giriş bekleniyor";logout.hidden=true;login.hidden=false;licenseMessage.textContent="Abonelik durumunu görmek için giriş yapın.";return}
  status.textContent="Oturum doğrulanıyor...";sub.textContent="Abonelik kontrol ediliyor...";
  try{
   const {user}=await crmAuthenticatedSession();
+  $("crmTrialSignupPrompt").hidden=true;
   status.textContent=user.email||saved.email||"Giriş yapıldı";
   logout.hidden=false;login.hidden=true;
   const entitlement=await crmCheckEntitlement();
