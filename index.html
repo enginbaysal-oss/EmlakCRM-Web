@@ -2008,8 +2008,9 @@ async function showScreen(name){
    }
   }catch(err){
    if(request!==crmNavigationRequest)return;
-   selected="account";
-   alert("Devam etmek için Ayarlar bölümünden giriş yapın. Oturum veya abonelik doğrulanamadı.");
+   // Do not claim the user is logged out on a transient network / subscription check error.
+   alert("Modül açılamadı: "+String(err?.message||"Oturum veya abonelik kontrolü başarısız.")+" Lütfen bağlantıyı kontrol edip tekrar deneyin.");
+   return;
   }
  }
  if(selected==="home"||selected==="agenda"){refreshPortfolioExpiryNotices();renderHomeAgenda();if(selected==="home")renderHomeOffers();}
