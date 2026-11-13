@@ -109,9 +109,9 @@
 <p id="remaxPackageStatus" class="muted" role="status" aria-live="polite">Şablon dosyası seçmek için yukarıdaki alanı kullan.</p>
 </section>
 <section class="card" id="officeApprovalPanel" style="margin:0 0 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px"><h2>İlyada 3 Onay Talepleri</h2><button type="button" id="discountRefresh">Talepleri Yenile</button></div><p class="muted">“Evet” yanıtı veren danışmanların ofis kayıtlarını buradan doğrula. Ofis onayı ücretli abonelik başlatmaz.</p><div class="scroll"><table><thead><tr><th>Danışman</th><th>Talep</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="discountRows"></tbody></table></div><p id="discountMessage" class="muted"></p></section>
-<div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
+<div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>3 günlük denemede</span><strong id="trial">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
 <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>Kullanıcılar ve Abonelikler</h2><button type="button" id="refresh">Yenile</button></div><p class="muted" style="font-size:13px">Özel fiyat ve ofis onayı abonelik değildir. RE/MAX paketi yalnızca aktif aboneliği olan onaylı danışmanlara açılır.</p>
-<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
+<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="trial">3 günlük denemede</option><option value="trial_expired">Denemesi biten</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option></select></div>
 <div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Yetki / Durum</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik başlangıcı</th><th>Abonelik bitişi</th><th>Ödeme sağlayıcısı</th><th>İlyada 3</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
 
@@ -439,7 +439,7 @@ async function loadDiscounts({quiet=false}={}){
 }
 function showGate(message){$("dashboard").classList.add("hidden");$("gate").classList.remove("hidden");$("gateMessage").textContent=message}
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
-function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
+function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",trial:"3 günlük denemede",trial_expired:"Deneme bitti",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
 function addCell(tr,value,cls,label){const td=document.createElement("td");if(label)td.dataset.label=label;if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
 function render(){
  const term=$("search").value.toLocaleLowerCase("tr").trim(),filter=$("filter").value;
@@ -448,10 +448,10 @@ function render(){
  for(const u of filtered){
   const tr=document.createElement("tr"),status=u.subscription_status||"none";
   addCell(tr,u.email||"E-posta bulunamadı",null,"Kullanıcı");
-  addCell(tr,statusText(status),"pill "+(["active","unlimited"].includes(status)?"ok":status==="none"?"warn":""),"Yetki / Durum");
+  addCell(tr,statusText(status),"pill "+(["active","unlimited","trial"].includes(status)?"ok":status==="none"||status==="trial_expired"?"warn":""),"Yetki / Durum");
   addCell(tr,fmt(u.created_at),null,"Kayıt tarihi");addCell(tr,fmt(u.last_sign_in_at),null,"Son giriş");
-  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.starts_at),null,"Abonelik başlangıcı");
-  addCell(tr,status==="unlimited"?"Süresiz":fmt(u.expires_at),null,"Abonelik bitişi");
+  addCell(tr,status==="unlimited"?"Süresiz":status==="trial"||status==="trial_expired"?fmt(u.created_at):fmt(u.starts_at),null,"Abonelik başlangıcı");
+  addCell(tr,status==="unlimited"?"Süresiz":status==="trial"||status==="trial_expired"?fmt(u.trial_expires_at):fmt(u.expires_at),null,"Abonelik bitişi");
   addCell(tr,u.payment_provider||"—",null,"Ödeme sağlayıcısı");
    const td=document.createElement("td"),email=String(u.email||"").trim().toLowerCase();td.dataset.label="İlyada 3";
    const officeState=officeStatusByEmail.get(email)||"none";
@@ -479,6 +479,7 @@ function render(){
  $("empty").classList.toggle("hidden",filtered.length>0);
  $("total").textContent=userRows.length;$("admins").textContent=userRows.filter(u=>u.is_super_admin).length;
  $("active").textContent=userRows.filter(u=>u.subscription_status==="active").length;
+ $("trial").textContent=userRows.filter(u=>u.subscription_status==="trial").length;
  $("none").textContent=userRows.filter(u=>u.subscription_status==="none").length;
 }
 async function loadLegalDeliveryStatus(){

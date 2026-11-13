@@ -217,13 +217,19 @@ async function pdfHasEntitlement(){
  if(crmUser.id!==user.id)return false;
  const active=localStorage.getItem("emlakcrm_active_account_v1");
  if(active&&active!==user.id)return false;
- const adminResponse=await fetch(API+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
- if(!adminResponse.ok)throw Error("Yönetici yetkisi sorgulanamadı");
- if((await adminResponse.json()).some(a=>a.user_id===user.id))return true;
- const subscriptionResponse=await fetch(API+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
- if(!subscriptionResponse.ok)throw Error("Abonelik sorgulanamadı");
- const now=Date.now();
- return (await subscriptionResponse.json()).some(s=>s.status==="active"&&Date.parse(s.starts_at)<=now&&Date.parse(s.expires_at)>now);
+ const entitlementResponse=await fetch(API+"/rest/v1/rpc/emlakcrm_entitlement_status",{
+  method:"POST",headers:{...headers,"Content-Type":"application/json"},body:"{}",cache:"no-store"
+ });
+ if(!entitlementResponse.ok)throw Error("Abonelik ve deneme süresi sorgulanamadı");
+ const entitlement=await entitlementResponse.json();
+ if(entitlement?.role==="trial"&&entitlement.trial_expires_at&&entitlement.server_now){
+  const remaining=Date.parse(entitlement.trial_expires_at)-Date.parse(entitlement.server_now);
+  if(Number.isFinite(remaining))setTimeout(()=>{
+   const target=new URL("./index.html#account",location.href).href;
+   try{window.top.location.replace(target)}catch(_){location.replace(target)}
+  },Math.max(0,remaining)+500);
+ }
+ return entitlement?.allowed===true;
 }
 async function adminView(){
  try{
