@@ -202,17 +202,11 @@ main{max-width:1200px}
  <p class="small">Hesabınız güvenli şekilde doğrulanıyor.</p>
 </section>
 <section id="authGate" hidden class="card" style="max-width:540px;margin:10vh auto 30px;padding:26px">
- <div class="eyebrow">EmlakCep / Kişiye Özel</div>
- <h1>Favori İlanlara Giriş</h1>
- <p class="small">Favori arama ve ilanlarınız sadece hesabınızla görüntülenir. E-posta adresinizle giriş yapın.</p>
- <label for="authEmail">Hesap e-posta adresi</label>
- <input type="email" id="authEmail" autocomplete="email" placeholder="E-posta adresiniz">
- <label for="authPassword">Şifre (varsa)</label>
- <input type="password" id="authPassword" autocomplete="current-password" placeholder="Hesap şifreniz">
- <div class="controls" style="margin-top:12px"><button id="passwordLogin" type="button" class="primary">Şifreyle Giriş</button><button id="magicLogin" type="button">E-postayla Giriş Bağlantısı</button></div>
- <label for="authCode">E-postanızda 6 haneli kod geldiyse</label>
- <div class="controls"><input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Giriş kodu"><button id="verifyCode" type="button">Kodu Doğrula</button></div>
- <p id="authStatus" role="status" class="small" style="margin-top:12px">Giriş yapmadan özel ilanlar görüntülenmez.</p>
+ <div class="eyebrow">EmlakCRM / Kişiye Özel</div>
+ <h1>İlan Asistanı bağlantısı kontrol ediliyor</h1>
+ <p class="small">Bu modül EmlakCRM hesabınızla otomatik açılır. Yeniden hesap oluşturmanız veya ikinci kez giriş yapmanız gerekmez.</p>
+ <p id="authStatus" role="status" class="small" style="margin-top:12px">Özel ilan hesabına güvenli bağlantı kuruluyor.</p>
+ <div class="controls" style="margin-top:16px"><button id="retryAutoLogin" type="button" class="primary">Bağlantıyı Yeniden Dene</button><a class="btn home-back-btn" href="./index.html">Ana Sayfaya Dön</a></div>
 </section>
 <main id="privateMain" hidden>
 <header class="page-head"><div><div class="eyebrow">Emlak CRM / İlan Asistanı</div><h1>İlan Asistanı</h1><div class="small">Favori arama bildirimleri • İlanları görüntüleme</div></div><div class="controls"><a class="btn home-back-btn" href="./index.html">← Ana Sayfaya Dön</a><button type="button" id="logoutBtn">Oturumu Kapat</button></div></header>
@@ -470,7 +464,7 @@ async function restoreAuth(){
   if(privateSession){if(await enterPrivate())return;}
   reportAuth('EmlakCRM ile otomatik giriş yapılıyor...');
   try{await restoreFromEmlakCrm();}
-  catch(ssoError){reportAuth('Otomatik giriş tamamlanamadı: '+String(ssoError.message||ssoError)+'. Mevcut özel hesabınızla giriş yapabilirsiniz.');}
+  catch(ssoError){reportAuth('Güvenli bağlantı kurulamadı: '+String(ssoError.message||ssoError)+'. Yeniden denemek için butona basabilirsiniz.');}
  }catch(e){reportAuth('Oturum kontrolü başarısız: '+String(e.message||e));}
  finally{ $('authLoading').hidden=true; if(!currentUser&&!window.__emlakcrmAccessDenied)$('authGate').hidden=false; }
 }
@@ -815,13 +809,16 @@ $('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&detailOpen)closeDetails();});
 $('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),listings:rows,favoriteSearchLabels:Object.entries(searchLabels).map(([id,labels])=>({id,labels}))},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='ilan-asistani-yedek.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 $('speakBtn').addEventListener('click',()=>{if(!('speechSynthesis' in window)){toast('Bu tarayıcı seslendirmeyi desteklemiyor.');return;}speechSynthesis.cancel();const msg='Toplam '+rows.length+' farklı ilan var. '+rows.filter(r=>r.status==='review').length+' ilan türü belirsiz. '+rows.filter(r=>r.status==='ready').length+' ilan için mesaj hazır.';const u=new SpeechSynthesisUtterance(msg);u.lang='tr-TR';speechSynthesis.speak(u);});
-$('passwordLogin').addEventListener('click',signInPassword);
-$('magicLogin').addEventListener('click',sendSignInLink);
-$('verifyCode').addEventListener('click',verifyEmailCode);
+$('retryAutoLogin').addEventListener('click',async()=>{
+ $('authGate').hidden=true;
+ $('authLoading').hidden=false;
+ await restoreAuth();
+});
 $('logoutBtn').addEventListener('click',logout);
 $('saveListingSourceEmail').addEventListener('click',saveListingSourceEmail);
 $('connectGmailBtn').addEventListener('click',startGmailConnect);
 $('disconnectGmailBtn').addEventListener('click',disconnectGmail);
+$('authLoading').hidden=false;
 restoreAuth();
 })();
 </script></body></html>
