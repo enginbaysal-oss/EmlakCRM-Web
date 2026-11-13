@@ -222,6 +222,13 @@ async function pdfHasEntitlement(){
  });
  if(!entitlementResponse.ok)throw Error("Abonelik ve deneme süresi sorgulanamadı");
  const entitlement=await entitlementResponse.json();
+ if(entitlement?.role==="trial"&&entitlement.trial_expires_at&&entitlement.server_now){
+  const remaining=Date.parse(entitlement.trial_expires_at)-Date.parse(entitlement.server_now);
+  if(Number.isFinite(remaining))setTimeout(()=>{
+   const target=new URL("./index.html#account",location.href).href;
+   try{window.top.location.replace(target)}catch(_){location.replace(target)}
+  },Math.max(0,remaining)+500);
+ }
  return entitlement?.allowed===true;
 }
 async function adminView(){
