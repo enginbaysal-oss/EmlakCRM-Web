@@ -88,15 +88,16 @@
   if(!userRes.ok)throw Error("Oturum doğrulanamadı");
   const user=await userRes.json(),headers={apikey:key,Authorization:"Bearer "+token};
    if(!user?.id||user.id!==window.emlakcrmAccountDataScope?.currentUserId())throw Error("Aktif hesap değişti. Tekrar giriş yapın.");
-  const admin=await fetch(base+"/rest/v1/emlakcrm_super_admins?select=user_id&user_id=eq."+encodeURIComponent(user.id)+"&limit=1",{headers});
-  if(!admin.ok)throw Error("Yetki kontrolü başarısız");
-  const admins=await admin.json();let allowed=admins.some(a=>a.user_id===user.id);
-  if(!allowed){
-   const res=await fetch(base+"/rest/v1/emlakcrm_subscriptions?select=status,starts_at,expires_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit=20",{headers});
-   if(!res.ok)throw Error("Abonelik kontrolü başarısız");
-   const now=Date.now();allowed=(await res.json()).some(s=>s.status==="active"&&Date.parse(s.starts_at)<=now&&Date.parse(s.expires_at)>now);
-  }
-  if(!allowed)throw Error("Aktif abonelik yok");
+  const entitlementResponse=await fetch(base+"/rest/v1/rpc/emlakcrm_entitlement_status",{
+   method:"POST",
+   headers:{...headers,"Content-Type":"application/json"},
+   body:"{}",
+   cache:"no-store"
+  });
+  if(!entitlementResponse.ok)throw Error("Abonelik ve deneme süresi doğrulanamadı");
+  const access=await entitlementResponse.json();
+  if(access?.allowed!==true)throw Error(access?.role==="trial_expired"?"3 günlük ücretsiz deneme süreniz doldu. Abonelik satın alarak devam edebilirsiniz.":"Aktif abonelik veya deneme hakkı yok");
+
   document.getElementById("emlakcrm-access-pending")?.remove();
  }catch(e){
   // Never show private module contents after a failed identity/entitlement check.
