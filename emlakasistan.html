@@ -172,7 +172,7 @@
 <p class="warn note">Şablonlar tarayıcınızda saklanır; JSON yedeğini koruyun. Dosyalar sunucuya gönderilmez. Gerçek müşteri verileri için henüz güvenli oturum ve saklama altyapısı yoktur. İmza çizimi nitelikli elektronik imza değildir.</p></div></details></div>
 <p class="note" id="status" role="status">Kaydedilmiş şablonlar kontrol ediliyor…</p>
 </section>
-<section id="officeTemplateGift" hidden aria-live="polite"><strong>🎁 İlyada 3'e Özel RE/MAX Şablonları</strong><p>Ofis paketin hazır. Dosya indirmen veya seçmen gerekmiyor. Tek tuşla belgelerine ekleyebilir, güncellemeleri alabilirsin.</p><button id="officeJsonImport" type="button">RE/MAX Şablonlarını Ekle / Güncelle</button><p id="officeGiftResult" role="status" aria-live="polite"></p></section>
+<section id="officeTemplateGift" hidden aria-live="polite"><strong>🎁 İlyada 3'e Özel RE/MAX Şablonları</strong><p>Ofis onayından sonra, aktif deneme veya abonelik hakkın boyunca şablonlar bu ekran açıldığında otomatik yüklenir.</p><button id="officeJsonImport" type="button">Paketi Yenile</button><p id="officeGiftResult" role="status" aria-live="polite"></p></section>
 <section id="workspace" class="hide"><section class="card controls"><div class="actionBar"><span class="badge" id="count"></span><div class="tools"><button id="saveDraft" type="button">Taslağı kaydet</button><button id="loadDraft" type="button">Taslağı aç</button><button id="removeDraft" type="button" class="danger">Taslağı sil</button><button id="print" type="button" class="primaryAction">PDF Oluştur</button><button id="archiveOpen" type="button">Belge Arşivi</button></div></div></section><div class="card controls templatePicker"><label for="templates">BELGE ŞABLONU SEÇİNİZ</label><select id="templates" aria-label="Belge şablonu seçin"></select></div>
 <section class="card" id="fieldsCard"><h2 id="title">Belge alanları</h2><div class="fields" id="fields"></div></section><section id="viewer"><p class="note" style="text-align:center">✥ İmzayı tutup belge üzerinde istediğiniz yere taşıyabilirsiniz.</p><div id="pages"></div></section><div id="printAll" aria-hidden="true"></div><section class="card controls" id="pdfActions" hidden><h2>PDF arşive kaydedildi</h2><div class="tools"><button id="pdfSave">Kaydet</button><button id="pdfShare">WhatsApp ile Gönder</button></div></section><section class="card controls" id="pdfArchive" hidden><h2>Belge Arşivi</h2><p class="note">Belgeler bu cihazda saklanır. Uygulamayı kaldırmak arşivi silebilir.</p><div id="pdfArchiveItems"></div></section></section>
 </main><dialog id="signatureDialog" class="sigDialog"><h2 id="signatureTitle">İmza ekle</h2><p class="note">Fare veya parmağınızla imza çizin. Bu çizim, nitelikli elektronik imza değildir.</p><canvas id="signatureCanvas" class="sigCanvas" width="800" height="320"></canvas><p class="tools"><button id="signatureClear" type="button">Temizle</button><button id="signatureSave" type="button">İmzayı yerleştir</button><button id="signatureCancel" type="button">İptal</button></p></dialog><script>
@@ -198,56 +198,68 @@ async function officeCanLoadTemplates(token){
   if(!r.ok)return false;
   return await r.json()===true;
 }
-(async function checkOfficeGift(){
-  try{
-    const token=officeAccessToken();
-    if(token && await officeCanLoadTemplates(token))$("officeTemplateGift").hidden=false;
-  }catch{}
-})();
-$("officeJsonImport").addEventListener("click",async()=>{
+const REMAX_MANAGED_KEY="emlakcrm_remax_managed_ids_v2";
+let officeSyncInFlight=null;
+async function syncOfficeTemplates({automatic=false}={}){
+ if(officeSyncInFlight)return officeSyncInFlight;
+ officeSyncInFlight=(async()=>{
   const button=$("officeJsonImport"),message=$("officeGiftResult");
-  button.disabled=true;message.textContent="Ofis yetkin kontrol ediliyor...";
+  const token=officeAccessToken();
+  if(!token||!await officeCanLoadTemplates(token)){
+   $("officeTemplateGift").hidden=true;
+   if(!automatic)message.textContent="RE/MAX paketi yalnızca İlyada 3 onaylı ve aktif abonelik/deneme hakkı olan danışmanlara açılır.";
+   return false;
+  }
+  $("officeTemplateGift").hidden=false;
+  button.disabled=true;
+  message.textContent=automatic?"RE/MAX şablonları otomatik yükleniyor...":"RE/MAX şablonları güncelleniyor...";
   try{
-    const token=officeAccessToken();
-    if(!token||!await officeCanLoadTemplates(token))throw Error("Bu paket yalnızca onaylı, aktif aboneliği olan İlyada 3 danışmanlarına açıktır.");
-    message.textContent="Şablonlar güvenli sunucudan alınıyor...";
-    const response=await fetch(OFFICE_STORAGE_BASE+OFFICE_REMAX_PATH,{
-      headers:{"apikey":OFFICE_STORAGE_KEY,Authorization:"Bearer "+token},
-      cache:"no-store"
-    });
-    if(!response.ok){
-      if(response.status===404)throw Error("Ofis yöneticisi henüz RE/MAX şablon paketini yüklememiş.");
-      if([401,403].includes(response.status))throw Error("Paket erişim yetkisi doğrulanamadı. Tekrar giriş yapın.");
-      throw Error("Paket şu an alınamadı (HTTP "+response.status+").");
+   const response=await fetch(OFFICE_STORAGE_BASE+OFFICE_REMAX_PATH,{
+    headers:{"apikey":OFFICE_STORAGE_KEY,Authorization:"Bearer "+token},cache:"no-store"
+   });
+   if(!response.ok)throw Error(response.status===404?"Ofis şablon paketi henüz yüklenmemiş.":"Şablon paketi alınamadı (HTTP "+response.status+").");
+   const raw=await response.text();
+   if(raw.length>20*1024*1024)throw Error("Şablon paketi boyut sınırı aşıldı.");
+   const incoming=JSON.parse(raw);validate(incoming);
+   // Only touch this account's IndexedDB records; preserve all personal templates.
+   const saved=await readSaved();
+   if(saved.length)validate(saved);
+   let managed=[];
+   try{const value=JSON.parse(localStorage.getItem(REMAX_MANAGED_KEY)||"[]");if(Array.isArray(value))managed=value.filter(x=>typeof x==="string")}catch{}
+   const managedIds=new Set(managed);
+   const next=[...saved],indices=new Map(next.map((t,i)=>[String(t.id||t.name),i]));
+   let added=0,updated=0,preserved=0;
+   for(const t of incoming){
+    const id=String(t.id||t.name);
+    if(indices.has(id)){
+     if(!managedIds.has(id)){preserved++;continue;} // Never overwrite a user-added template.
+     const i=indices.get(id);
+     if(JSON.stringify(next[i])!==JSON.stringify(t)){next[i]=t;updated++;}
+    }else{
+     indices.set(id,next.length);next.push(t);managedIds.add(id);added++;
     }
-    const raw=await response.text();
-    if(raw.length>20*1024*1024)throw Error("Paket boyutu sınırı aşıldı.");
-    const incoming=JSON.parse(raw);
-    validate(incoming);
-    const current=await readSaved();
-    if(current.length)validate(current);
-    // Sadece aynı ID'deki resmî ofis şablonları güncellenir;
-    // diğer kullanıcı ve genel şablonlar asla topluca silinmez.
-    const mapped=new Map(current.map((t,i)=>[String(t.id||t.name),i]));
-    let added=0,updated=0;
-    const next=[...current];
-    for(const t of incoming){
-      const id=String(t.id||t.name);
-      if(mapped.has(id)){next[mapped.get(id)]=t;updated++}
-      else{mapped.set(id,next.length);next.push(t);added++}
-    }
-    if(next.length>50)throw Error("Toplam 50 şablon sınırı aşılıyor. Önce kullanılmayan özel şablonlarınızı arşivleyin.");
-    // Sadece yerel şablon veri deposunu güncelle; ödeme ve aboneliğe dokunma.
+   }
+   const allIds=new Set(next.map(t=>String(t.id||t.name)));
+   const visible=[...next,...templates.filter(t=>!allIds.has(String(t.id||t.name)))];
+   if(next.length>50||visible.length>50)throw Error("50 şablon sınırına ulaşıldı. Kişisel şablonlarınız korunuyor; yöneticinize bildirin.");
+   if(added||updated){
+    const before=templates;
     templates=next;
-    await save();
-    const bundled=await fetch(new URL("assets/emlakcrm-genel-sablonlar-8.json",window.location.href),{cache:"no-store"}).then(r=>r.ok?r.json():[]).catch(()=>[]);
-    const ids=new Set(templates.map(t=>String(t.id||t.name)));
-    templates=[...templates,...(Array.isArray(bundled)?bundled:[]).filter(t=>!ids.has(String(t.id||t.name)))].slice(0,50);
-    show();
-    message.textContent="Paket hazır: "+added+" yeni şablon eklendi, "+updated+" şablon güncellendi. Şablon listesinden belgeyi seçebilirsin.";
-  }catch(e){message.textContent="Paket açılamadı: "+e.message}
-  finally{button.disabled=false}
-});
+    try{await save();}catch(e){templates=before;throw e;}
+    templates=visible;
+    if(selected<0)show();else renderTemplateSelector();
+   }
+   try{localStorage.setItem(REMAX_MANAGED_KEY,JSON.stringify([...managedIds]));}catch{}
+   message.textContent=(added||updated?"✓ RE/MAX şablonları otomatik hazır: "+added+" yeni, "+updated+" güncellendi.":"✓ RE/MAX şablonları kullanıma hazır.")+(preserved?" "+preserved+" kişisel şablon korunarak atlandı.":"");
+   return true;
+  }catch(e){
+   message.textContent="RE/MAX paketi otomatik yüklenemedi: "+String(e.message||e)+". Paketini Yenile'ye basarak tekrar deneyebilirsin.";
+   return false;
+  }finally{button.disabled=false}
+ })();
+ try{return await officeSyncInFlight;}finally{officeSyncInFlight=null;}
+}
+$("officeJsonImport").addEventListener("click",()=>void syncOfficeTemplates({automatic:false}));
 function storage(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>request.result.createObjectStore("items");request.onerror=()=>reject(request.error);request.onsuccess=()=>resolve(request.result)})}
 async function readSaved(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readonly");const req=tx.objectStore("items").get(KEY);req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()})}
 async function save(){const db=await storage();return new Promise((resolve,reject)=>{const tx=db.transaction("items","readwrite");tx.objectStore("items").put(templates,KEY);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)})}
@@ -281,6 +293,7 @@ $("restore").onclick=()=>$("upload").click();$("addMore").onclick=()=>$("upload"
   templates=[...saved,...bundled.filter(t=>!ids.has(String(t.id||t.name)))];
   if(templates.length>50)templates=templates.slice(0,50);
   show();
+  await syncOfficeTemplates({automatic:true});
   $("status").textContent=templates.length
    ?templates.length+" şablon kullanıma hazır ("+bundled.length+" standart şablon pakette)."
    :"Standart şablon paketi yüklenemedi ("+bundleErrorMessage+"). JSON yükleyin veya yöneticinize bildirin.";
