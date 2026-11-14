@@ -39,7 +39,7 @@ jobs:
           for element in ('gate', 'dashboard', 'rows', 'announcementPublish', 'userTablePanel'):
               assert element in parser.ids, f'Missing essential element: {element}'
           assert 'admin-side' in html and 'admin-quick' in html, 'New navigation missing'
-          scripts = re.findall(r'<script(?:\\s[^>]*)?>(.*?)</script>', html, flags=re.S|re.I)
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.S|re.I)
           assert scripts, 'No inline scripts found'
           for i, code in enumerate(scripts):
               if not code.strip(): continue
