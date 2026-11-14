@@ -10,7 +10,8 @@
  const optKey="emlakcrm_widget_sync_optin_v1",phoneKey="emlakcrm_widget_show_phone_v1";
  const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co/rest/v1/emlakcrm_desktop_widget_snapshots";
  const publicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
- let lastWritten="",busy=false,lastAttempt=0,disabled=false;
+ let lastWritten="",busy=false,lastAttempt=0,disabled=false,stickyNotice="";
+ function note(message){stickyNotice=message;status.textContent=message;}
  const owner=()=>window.emlakcrmAccountDataScope?.currentUserId()||"";
  const enabled=()=>{try{return !!owner()&&localStorage.getItem(optKey)==="yes"}catch{return false}};
  const phoneEnabled=()=>{try{return localStorage.getItem(phoneKey)==="yes"}catch{return false}};
@@ -53,9 +54,14 @@
   phoneBox.checked=phoneEnabled();
   phoneBox.disabled=!ok;
   link.href="./desktop-widget.html";
-  if(!owner()){status.textContent="Önce EmlakCRM hesabınıza giriş yapın.";btn.disabled=true;return;}
+  if(!owner()){
+   btn.disabled=false;
+   btn.textContent="Giriş Yaparak Etkinleştir";
+   if(!busy)status.textContent=stickyNotice||"Bu Chrome penceresinde EmlakCRM oturumu doğrulanamadı. Önce hesabınıza giriş yapın.";
+   return;
+  }
   btn.disabled=false;
-  if(!busy)status.textContent=ok?"Açık • Yalnızca bu hesabın masaüstü özeti eşitlenir.":"Kapalı • Masaüstü için bilgi paylaşılmıyor.";
+  if(!busy)status.textContent=stickyNotice||(ok?(lastWritten?"✓ Senkron açık, veriler bulutta güncel.":"Senkron açık, ilk aktarım bekleniyor."):"Kapalı • Masaüstü için veri paylaşılmıyor.");
  }
  async function session(){
   const userId=owner();
@@ -90,8 +96,8 @@
    });
    if(!response.ok)throw Error("Bulut aktarımı yapılamadı ("+response.status+").");
    lastWritten=hash;
-   status.textContent="✓ Masaüstü özeti güncellendi · "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
-  }catch(e){status.textContent="Senkronizasyon hatası: "+String(e.message||e).slice(0,160);}
+   note("✓ Masaüstü özeti güncellendi · "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+". Lively'de 15 saniye içinde görünebilir.");
+  }catch(e){note("⚠ Senkronizasyon hatası: "+String(e.message||e).slice(0,160)+". Bu cihazdaki kayıtlar değişmedi.");}
   finally{busy=false;}
  }
  async function wipe(){
@@ -115,15 +121,16 @@
     const message="Masaüstü Widget için bu tarayıcıdaki ajanda ve teklif özetini hesabınıza güvenle eşitleyelim mi?\n\nWidget'ta müşteri adları görünebilir. Telefonlar varsayılan olarak gizlidir.\n\n"+(empty?"Uyarı: Bu tarayıcıda henüz ajanda/teklif kaydı görünmüyor. Boş özet aktarılacak.":"");
     if(!confirm(message))return;
     localStorage.setItem(optKey,"yes");
+    stickyNotice="";
     disabled=false;
    }else{
     // Stop new uploads first, then delete old snapshot to honor opt-out.
     localStorage.removeItem(optKey);
     disabled=true;
-    try{await wipe();status.textContent="✓ Masaüstü özetiniz buluttan silindi.";}
-    catch(err){status.textContent="Eşitleme durdu ama eski özet silinemedi: "+err.message+". Oturum açıkken yeniden deneyin.";}
+    try{await wipe();note("✓ Masaüstü senkronizasyonu durduruldu ve bulut özeti silindi.");}
+    catch(err){note("⚠ Eşitleme durdu ancak eski özet henüz silinemedi: "+err.message+". Oturum açıkken yeniden deneyin.");}
    }
-  }catch(err){status.textContent="İşlem yapılamadı: "+String(err.message||err);}
+  }catch(err){note("⚠ Senkronizasyon açılamadı: "+String(err.message||err)+". Oturum ve bağlantıyı kontrol edin.");}
   finally{busy=false;paint();if(enabled())void push(true);}
  });
  phoneBox.addEventListener("change",()=>{
@@ -133,7 +140,7 @@
    if(phoneBox.checked)localStorage.setItem(phoneKey,"yes");
    else localStorage.removeItem(phoneKey);
    lastWritten="";void push(true);
-  }catch(err){status.textContent=String(err.message||err);}
+  }catch(err){note("Telefon görünürlüğü değiştirilemedi: "+String(err.message||err));}
  });
  window.addEventListener("emlakcrm:session-ready",()=>{paint();if(enabled())void push(true);});
  window.addEventListener("focus",()=>{paint();if(enabled())void push();});
