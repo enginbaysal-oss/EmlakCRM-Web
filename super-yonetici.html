@@ -69,14 +69,14 @@
 </div>
 <section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
 <h2>Shopier Ödeme Bağlantısı</h2>
-<p class="muted">Shopier siparişlerinin güvenli bildirim bağlantısını kurar. Ödemeleri önce doğrulama listesine alır; kullanıcı aboneliği bu aşamada otomatik açılmaz.</p>
+<p class="muted">Shopier bildirim bağlantısı ve otomatik abonelik aktivasyonunun <strong>canlı durumunu</strong> buradan kontrol et. Güncel sunucu bilgileri aşağıda gösterilir.</p>
 <div class="toolbar"><button type="button" id="shopierConnect" disabled>Shopier Bağlantısını Kur</button><button type="button" id="shopierCheck">Bağlantıyı Kontrol Et</button><button type="button" id="shopierOrderHealthCheck">Shopier Sipariş API’sini Test Et</button></div>
 <p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
 <p id="shopierOrderHealthResult" class="muted" role="status" aria-live="polite"></p>
 </section>
 <section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 özel Shopier ürünü">
 <h2>İlyada 3 · 500 TL Shopier Ürünü</h2>
-<p class="muted">İlyada 3 için seçtiğimiz kare görseli yükle. Sistem <strong>500 TL (KDV dahil)</strong> fiyatlı, <strong>12 aylık dijital</strong> ürünü mağaza vitrininde gizli olacak şekilde yalnızca senin onayınla oluştursun. Mevcut 750 TL ürün korunur.</p>
+<p class="muted"><strong>500 TL (KDV dahil) / 12 ay</strong> İlyada 3 özel ürünümüz hazırsa <strong>tekrar ürün oluşturma veya görsel yükleme</strong>. Önce <strong>Ürün Oluşturma Durumunu Kontrol Et</strong> ile mevcut kaydı ve ödeme aktivasyonunu doğrula. 750 TL standart ürün korunur.</p>
 <label for="shopierOfficeArtwork" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün görseli (PNG)</label>
 <input type="file" id="shopierOfficeArtwork" accept="image/png,.png" style="display:block;width:100%;margin:0 0 12px">
 <div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button><button id="shopierOfficeProductDiscover" type="button">Shopier’deki 500 TL Ürününü Bul</button></div>
@@ -151,7 +151,7 @@ async function shopierProductCreationCheck(){
   shopierProductCreationBlocked=shopierProductCreationReady||state.create_attempted===true;
   shopierProductCreateBtn.disabled=shopierProductCreationBlocked||!shopierProductImage.files?.length;
   shopierProductCreateState.textContent=shopierProductCreationReady
-   ?"500 TL ürün Shopier'de oluşturuldu. Ürün bağlantısı aşağıdaki alanda kayıtlı."
+   ?"✓ 500 TL Shopier ürünü hazır. Otomatik abonelik aktivasyonu: "+(state.activation_enabled===true?"AÇIK":state.activation_enabled===false?"KAPALI":"DOĞRULANAMADI")+". Yeniden ürün oluşturmaya gerek yok."
    :state.create_attempted
    ?"Ürün oluşturma denemesi yapıldı. Aynı işlemi tekrarlamak yerine Shopier ürün listesini kontrol edin; ikinci ürün oluşturulmayacak."
    :state.image_ready
@@ -185,7 +185,8 @@ $("shopierOfficeProductDiscover").addEventListener("click",async()=>{
   if(!r.ok)throw Error(j.reason||j.error||"Shopier ürün kaydı alınamadı");
   if(j.status!=="ready"||!/^https:\/\/www\.shopier\.com\/enginbaysal\/\d+$/.test(j.product_url||""))throw Error("Ürün doğrulaması tamamlanamadı");
   $("shopierOfficeProductUrl").value=j.product_url;
-  status.textContent="500 TL dijital ürün Shopier'den doğrulandı ve EmlakCRM'ye kaydedildi. Ödeme aktivasyonu henüz kapalı.";
+  status.textContent="✓ 500 TL Shopier ürünü doğrulandı ve EmlakCRM'ye kaydedildi. Canlı ödeme durumunu kontrol ediyorum…";
+  await shopierProductCreationCheck();
   await loadOfficeShopierProduct();
  }catch(e){
   status.textContent="Shopier ürününü otomatik bulamadım: "+e.message+". Var olan ürünün bağlantısını aşağıdaki alandan elle kaydedebilirsin.";
@@ -211,7 +212,7 @@ shopierProductCreateBtn.addEventListener("click",async()=>{
   const result=await productCreationRequest("POST");
   if(result?.status!=="ready"||typeof result.product_url!=="string")throw Error("Shopier ürün kaydı doğrulanamadı.");
   $("shopierOfficeProductUrl").value=result.product_url;
-  shopierProductCreateState.textContent="500 TL özel ürün kaydedildi. Ücretli üyelik aktivasyonu henüz açık değil.";
+  shopierProductCreateState.textContent="500 TL özel ürün kaydedildi. Aktivasyon durumunu doğruluyorum…";
   shopierProductCreationBlocked=true;shopierProductCreationReady=true;
   await loadOfficeShopierProduct();
  }catch(e){
@@ -233,7 +234,7 @@ async function loadOfficeShopierProduct(){
   const j=await officeShopierProductRequest("get");
   if(j?.status==="ready"&&typeof j.product_url==="string"){
    field.value=j.product_url;
-   status.textContent="500 TL özel ürün bağlantısı kayıtlı. Ödeme aktivasyonu henüz devrede değil.";
+   status.textContent="✓ 500 TL özel ürün bağlantısı kayıtlı. Otomatik aktivasyonun güncel durumu yukarıdaki ürün kontrolünde görünür.";
   }else{
    field.value="";
    status.textContent="500 TL özel ürün henüz kaydedilmedi.";
@@ -253,7 +254,7 @@ $("shopierOfficeProductSave").addEventListener("click",async()=>{
   const j=await officeShopierProductRequest("save",{p_url:v});
   if(j?.status!=="ready")throw Error("Kayıt doğrulanamadı");
   field.value=j.product_url;
-  status.textContent="500 TL özel ürün bağlantısı kaydedildi. Abonelik aktivasyonu hâlâ test bekliyor.";
+  status.textContent="✓ 500 TL özel ürün bağlantısı kaydedildi. Canlı aktivasyon durumunu ürün kontrolünden doğrula.";
  }catch(e){status.textContent="Bağlantı kaydedilemedi: "+e.message}
  finally{button.disabled=false}
 });
@@ -294,7 +295,7 @@ async function shopierCheck(){
   shopierConnectBtn.hidden=state.webhook_ready===true;
   shopierConnectBtn.disabled=state.webhook_ready===true||state.pat_ready!==true;
   shopierInfo.textContent=state.webhook_ready
-   ?"Shopier bildirim bağlantısı kurulu. Sipariş doğrulama açık; otomatik üyelik aktivasyonu henüz kapalı."
+   ?"✓ Shopier bildirim bağlantısı kurulu. Otomatik abonelik aktivasyonu: "+(state.automatic_activation===true?"AÇIK":state.automatic_activation===false?"KAPALI":"DOĞRULANAMADI")+"."
    :state.pat_ready?"Shopier anahtarı hazır. Bağlantıyı kurmak için düğmeye bas.":"Shopier anahtarı sunucuda bulunamadı.";
  }catch(e){shopierConnectBtn.disabled=true;shopierInfo.textContent=e.message}
 }
@@ -304,7 +305,7 @@ async function shopierConnect(){
  try{
   const state=await shopierStatusRequest("POST");
   if(state.webhook_ready!==true)throw Error("Bağlantı doğrulanamadı.");
-  shopierInfo.textContent="Shopier bildirim bağlantısı kuruldu. Abonelik aktivasyonu henüz kapalı.";
+  shopierInfo.textContent="Shopier bildirim bağlantısı kuruldu. Otomatik abonelik aktivasyonu: "+(state.automatic_activation===true?"AÇIK":state.automatic_activation===false?"KAPALI":"DOĞRULANAMADI")+".";
   shopierConnectBtn.hidden=true;
  }catch(e){shopierInfo.textContent="Kurulum tamamlanamadı: "+e.message;shopierConnectBtn.disabled=false}
 }
