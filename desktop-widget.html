@@ -63,6 +63,22 @@ form{display:grid;gap:10px;margin-top:12px}
 .authRow:last-child{border-bottom:0}.authRow small{color:#6e8193;font-size:10px;white-space:nowrap}
 .authLink{display:inline-block;margin-top:9px;font-size:11px;background:#edf4fc;color:#185777;padding:7px 9px;border-radius:8px;text-decoration:none;font-weight:800}
 @media(max-width:380px){.authStrip summary{gap:4px;padding:9px 7px;font-size:10px}.authStrip .authValue{font-size:9px;padding:3px}}
+
+/* Short desktop wallpaper viewport: keep every launcher shortcut above taskbar. */
+main{padding:10px 14px 22px;overflow-x:hidden}
+.column{gap:8px}
+.clock{padding:10px 14px;border-radius:14px}
+.card{padding:12px 14px;border-radius:14px}
+.card h2{font-size:15px}
+.card .entry{padding:7px 0}
+.summary{margin:6px 0}
+.launcher{padding:9px 10px;border-radius:13px}
+.launcher h2{margin-bottom:7px}
+.launchGrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.launchItem{min-height:48px;padding:5px 2px 4px;gap:3px}
+.launchItem .launchIcon{font-size:17px}
+.launchItem .launchLabel{font-size:9px;line-height:1.1}
+@media(max-width:360px){.launchGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style></head><body><main><div class="column">
 <header class="clock"><div class="brand">🏠 EmlakCRM <small>CANLI MASAÜSTÜ ÖZETİ</small></div><div class="time"><strong id="clock">--:--:--</strong><small id="today"></small></div></header>
 <section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
