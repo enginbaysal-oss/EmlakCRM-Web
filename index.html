@@ -542,6 +542,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <p class="mini" style="margin-top:10px">Ana sayfanın <b>Bugün Aranacaklar</b> ve <b>Teklif Takibi</b> kartlarını Windows masaüstüne taşı. Bu özellik isteğe bağlıdır ve hesaplar birbirinden ayrıdır.</p>
 <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
 <button type="button" id="widgetSyncToggle" aria-pressed="false" style="background:#126e92;color:#fff;font-weight:800">Senkronizasyonu Aç</button>
+<button type="button" id="widgetSyncRefresh" class="secondary" disabled style="font-weight:750">Şimdi Güncelle</button>
 <a id="widgetOpenLink" href="./desktop-widget.html" target="_blank" rel="noopener noreferrer" class="secondary" style="padding:10px 12px;text-decoration:none;border-radius:9px;font-weight:800">Widget Ekranını Aç</a>
 </div>
 <label class="mini" style="display:flex;align-items:center;gap:8px"><input id="widgetShowPhone" type="checkbox" style="width:18px;height:18px" disabled> Müşteri telefonlarını masaüstünde göster (varsayılan kapalı)</label>
@@ -734,6 +735,7 @@ const store=()=>{
   const raw=JSON.stringify(data);
   localStorage.setItem(key,raw);
   crmLastSavedRaw=raw;
+  window.dispatchEvent(new Event("emlakcrm:widget-source-changed"));
  }catch(err){
   showCrmDataSafety("Müşteri yönetimi/ajanda kaydi korunamadi: "+err.message+". Bu sekmenin yedegini indirin. Kayit basarili varsayilmamalidir.");
   alert("Kayit tamamlanamadi. Veriler kaybolmadan once bu sekmenin yedegini indirin. "+err.message);
@@ -838,6 +840,7 @@ function storePresented(){
    throw Error("Sunulan portföyler başka bir sekmede değişti. Sayfayı yenileyin.");
   localStorage.setItem(presentedKey,raw);
   presentedLastSavedRaw=raw;
+  window.dispatchEvent(new Event("emlakcrm:widget-source-changed"));
  }catch(err){
   try{presentedRecords=JSON.parse(presentedLastSavedRaw||"[]")}catch{presentedRecords=[]}
   alert("Sunulan portföy kaydı tamamlanamadı: "+err.message);
@@ -2171,7 +2174,7 @@ void (async()=>{
  catch(e){console.error("EmlakCRM kimlik doğrulama dönüş hatası",e.message)}
 })();
 
-</script><script defer src="./assets/desktop-widget-sync.js?v=20261114homewidget1"></script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
+</script><script defer src="./assets/desktop-widget-sync.js?v=20261114homewidget3"></script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
 <p><strong>Standart fiyat: 750 TL (KDV dâhil) / 12 ay.</strong> Onaylı RE/MAX İlyada 3 danışmanları için 500 TL (KDV dâhil) / 12 ay uygulanır. Dijital yazılım kullanım hakkıdır; fiziksel teslimat ve otomatik yenileme yoktur. <strong>Ödeme ve üyelik durumu abonelik ekranında kontrol edilir.</strong></p>
 <nav aria-label="Yasal belgeler" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0">
