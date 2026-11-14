@@ -72,6 +72,13 @@ main{max-width:1500px;padding:24px 22px 50px}
 #dashboard .notify-control button{background:#174f70}
 #dashboard .notice{margin:0}
 #dashboard .admin-main>section,#dashboard .admin-main>details{scroll-margin-top:18px;margin:0!important}
+.admin-quick{order:0;background:#fff;border:1px solid #e0e9f2;border-radius:15px;padding:17px 20px}
+.admin-quick strong{display:block;margin-bottom:12px}
+.admin-quick-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.admin-quick-links a{display:block;text-decoration:none;background:#fff7f1;color:#8e4310;border:1px solid #ffdfc6;border-radius:11px;padding:12px 10px;text-align:center;font-weight:750;font-size:13px}
+.admin-quick-links a:hover,.admin-quick-links a:focus-visible{background:#f47724;color:#fff}
+@media(max-width:1050px){.admin-quick-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.admin-quick-links{grid-template-columns:1fr 1fr}.admin-quick-links a{font-size:12px;padding:10px 7px}}
 #dashboard #announcementAdmin{order:2}#dashboard #userTablePanel{order:1}
 #dashboard #approvalAlert{order:3}#dashboard .notify-control{order:4}
 #dashboard #shopierIntegrationPanel{order:5}#dashboard #shopierOfficeProductPanel{order:6}
@@ -108,7 +115,12 @@ main{max-width:1500px;padding:24px 22px 50px}
 <a href="#officePackagePanel">🎁 RE/MAX Şablonları</a>
 </nav></aside>
 <div class="admin-main">
-<div class="admin-hero" id="adminOverview"><h2>Yönetim Paneline Hoş Geldiniz</h2><p class="muted">Kullanıcıları, abonelikleri, duyuruları ve onayları tek ekrandan yönetin. Kartlardaki sayılar canlı kayıtlardan yüklenir.</p></div><details class="card" id="announcementAdmin" style="margin:12px 0">
+<div class="admin-hero" id="adminOverview"><h2>Yönetim Paneline Hoş Geldiniz</h2><p class="muted">Kullanıcıları, abonelikleri, duyuruları ve onayları tek ekrandan yönetin. Kartlardaki sayılar canlı kayıtlardan yüklenir.</p></div><div class="admin-quick" aria-label="Hızlı işlemler"><strong>⚡ Hızlı İşlemler</strong><div class="admin-quick-links">
+<a href="#userTablePanel">👥 Kullanıcıları Gör</a>
+<a href="#announcementAdmin" id="quickAnnouncement">📣 Duyuru Oluştur</a>
+<a href="#shopierIntegrationPanel">💳 Ödemeyi Kontrol Et</a>
+<a href="#officePackagePanel">🎁 Şablon Paketini Yönet</a>
+</div></div><details class="card" id="announcementAdmin" style="margin:12px 0">
 <summary class="foldHeading">📣 Duyurular <span class="muted">· Görmek ve düzenlemek için aç</span></summary>
 <div class="foldContent">
 <p class="muted">Yayımlanan duyurular kullanıcıların ana sayfasında görünür. Kişiye özel hedefleme için kullanıcı UUID değerlerini virgülle ayırın.</p>
@@ -184,7 +196,7 @@ main{max-width:1500px;padding:24px 22px 50px}
 </div></div></main>
 <script>
 "use strict";
-document.getElementById("announcementMenuLink")?.addEventListener("click",()=>{document.getElementById("announcementAdmin").open=true;});
+for(const id of ["announcementMenuLink","quickAnnouncement"]){document.getElementById(id)?.addEventListener("click",()=>{document.getElementById("announcementAdmin").open=true;});}
 const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co";
 const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const sessionKey="emlakcrm_auth_session_v1";
