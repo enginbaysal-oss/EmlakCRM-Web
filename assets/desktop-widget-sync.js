@@ -42,8 +42,28 @@
     status:txt(r.offerStatus),amount:Number.isFinite(Number(r.offerAmount))?Number(r.offerAmount):0,
     lastContact:txt(r.lastContactDate),feedback:txt(r.feedback)};
   });
+  // Portfolio records use the same account-scoped storage as portfoy-rapor.html.
+  // No personal phone numbers or full records are included in this read-only snapshot.
+  let portfolioRecords=null;
+  try{
+   const raw=localStorage.getItem("emlakcrm_portfoy_rapor_v1");
+   if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed?.portfolios))portfolioRecords=parsed.portfolios;}
+  }catch(_){}
+  const deadlineItems=portfolioRecords===null?[]:portfolioRecords.filter(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(p.authEnd||"")))
+   .map(p=>{
+    const due=String(p.authEnd).slice(0,10);
+    const days=Math.round((Date.parse(due+"T12:00:00")-Date.parse(today+"T12:00:00"))/86400000);
+    return {id:txt(p.id),title:txt(p.title||"Portföy"),date:due,days};
+   }).filter(p=>Number.isFinite(p.days)&&p.days<=30).sort((a,b)=>a.days-b.days);
+  const authorization={
+   available:portfolioRecords!==null,
+   expired:deadlineItems.filter(p=>p.days<0).length,
+   week:deadlineItems.filter(p=>p.days>=0&&p.days<=7).length,
+   month:deadlineItems.filter(p=>p.days>=8&&p.days<=30).length,
+   items:deadlineItems.slice(0,5)
+  };
   return {version:1,agendaSummary:{late,today:active.length-late,total:active.length},
-   offersSummary:{active:open.length,accepted:all.filter(r=>r.offerStatus==="Kabul edildi").length,
+   authorization,offersSummary:{active:open.length,accepted:all.filter(r=>r.offerStatus==="Kabul edildi").length,
     rejected:all.filter(r=>r.offerStatus==="Reddedildi").length},agenda,offers,
    sourceDate:today,generatedAt:new Date().toISOString(),phonesVisible:pPhone};
  }
