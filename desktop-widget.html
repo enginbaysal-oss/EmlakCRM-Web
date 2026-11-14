@@ -50,6 +50,19 @@ form{display:grid;gap:10px;margin-top:12px}
 .launchItem .launchIcon{font-size:19px;line-height:1}
 .launchItem .launchLabel{font-size:10px;font-weight:750;line-height:1.15}
 @media(max-width:350px){.launchItem .launchLabel{font-size:9px}.launchItem{min-height:54px}}
+
+.authStrip{background:#fff;border:1px solid #d9e7ef;border-radius:13px;box-shadow:0 6px 17px #0003;overflow:hidden}
+.authStrip summary{list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:#193e5d}
+.authStrip summary::-webkit-details-marker{display:none}
+.authStrip .authTitle{margin-right:auto;white-space:nowrap}
+.authStrip .authValue{font-size:11px;border-radius:7px;padding:4px 5px;white-space:nowrap;background:#f0f4f8}
+.authStrip .expired{color:#b93644}.authStrip .soon{color:#af6608}.authStrip .month{color:#116a9b}
+.authStrip .authArrow{color:#56748a}.authStrip[open] .authArrow{transform:rotate(180deg)}
+.authContent{border-top:1px solid #e8edf2;padding:7px 12px 11px}
+.authRow{display:flex;justify-content:space-between;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #e8edf2;font-size:12px;color:#24445e}
+.authRow:last-child{border-bottom:0}.authRow small{color:#6e8193;font-size:10px;white-space:nowrap}
+.authLink{display:inline-block;margin-top:9px;font-size:11px;background:#edf4fc;color:#185777;padding:7px 9px;border-radius:8px;text-decoration:none;font-weight:800}
+@media(max-width:380px){.authStrip summary{gap:4px;padding:9px 7px;font-size:10px}.authStrip .authValue{font-size:9px;padding:3px}}
 </style></head><body><main><div class="column">
 <header class="clock"><div class="brand">🏠 EmlakCRM <small>CANLI MASAÜSTÜ ÖZETİ</small></div><div class="time"><strong id="clock">--:--:--</strong><small id="today"></small></div></header>
 <section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
@@ -63,6 +76,10 @@ form{display:grid;gap:10px;margin-top:12px}
 <div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
 <section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><a class="link" id="agendaOpen" href="https://emlkcrm.com.tr/#agenda" target="_blank" rel="noopener noreferrer">Ajandayı Aç ↗</a><button class="link" type="button" id="agendaDetails">Özeti Gör</button></div></section>
 <section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><a class="link" id="offerOpen" href="https://emlkcrm.com.tr/#matching" target="_blank" rel="noopener noreferrer">Teklifleri Aç ↗</a><button class="link" type="button" id="offerDetails">Özeti Gör</button></div></section>
+<details id="authorizationCard" class="authStrip" hidden>
+<summary><span class="authTitle">🏠 Yetki Takibi</span><span class="authValue expired" id="authExpired">🔴 —</span><span class="authValue soon" id="authWeek">🟠 —</span><span class="authValue month" id="authMonth">🔵 —</span><span class="authArrow">⌄</span></summary>
+<div class="authContent"><div id="authList" aria-live="polite"></div><a class="authLink" href="https://emlkcrm.com.tr/portfoy-rapor.html#portfoyler" target="_blank" rel="noopener noreferrer">Portföy Yönetimini Aç ↗</a></div>
+</details>
 <section id="moduleLauncher" class="launcher" hidden aria-label="EmlakCRM hızlı modül erişimi">
 <h2>⚡ Hızlı Erişim</h2><nav class="launchGrid" aria-label="EmlakCRM modülleri">
 <a class="launchItem" href="https://emlkcrm.com.tr/#customers" target="_blank" rel="noopener noreferrer"><span class="launchIcon">👥</span><span class="launchLabel">Müşteriler</span></a>
@@ -116,6 +133,16 @@ function entry(title,lines,phone){
 function render(o,at){
  if(o?.version!==1||!Array.isArray(o.agenda)||!Array.isArray(o.offers))throw Error("Özet verileri doğrulanamadı.");
  lastSnapshot=o;
+ const authz=o.authorization;
+ if(authz?.available===true){
+  $("authExpired").textContent="🔴 "+(Number(authz.expired)||0)+" dolan";
+  $("authWeek").textContent="🟠 "+(Number(authz.week)||0)+" / 7g";
+  $("authMonth").textContent="🔵 "+(Number(authz.month)||0)+" / 30g";
+  rows("authList",authz.items,x=>{const el=text("div","","authRow");el.append(text("span",x.title||"Portföy"));el.append(text("small",x.days<0?"Süresi doldu":x.days===0?"Bugün bitiyor":x.days+" gün kaldı"));return el;},"30 gün içinde yetkisi dolacak portföy yok.");
+ }else{
+  $("authExpired").textContent="🔴 —";$("authWeek").textContent="🟠 —";$("authMonth").textContent="🔵 —";
+  $("authList").replaceChildren(text("div","Portföy yetki verileri henüz eşitlenmedi. EmlakCRM ana sayfasındaki eşitleme açık olmalı.","empty"));
+ }
  const a=o.agendaSummary||{},b=o.offersSummary||{};
  $("agendaBadge").textContent=(Number(a.late)||0)+" geciken";
  $("agendaSummary").textContent=(Number(a.late)||0)+" geciken · "+(Number(a.today)||0)+" bugünkü hatırlatma";
@@ -221,7 +248,7 @@ $("virtualToggle").addEventListener("click",()=>{
  if(!board.hidden){virtualTarget=virtualTarget||mailField;paintKeys();}
  $("virtualToggle").textContent=board.hidden?"⌨️ Lively'de yazamıyorum — Ekran Klavyesi":"⌨️ Ekran Klavyesini Gizle";
 });
-function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;$("moduleLauncher").hidden=!isLogged;}
+function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;$("moduleLauncher").hidden=!isLogged;$("authorizationCard").hidden=!isLogged;}
 function recover(){try{auth=JSON.parse(sessionStorage.getItem(saveKey)||"null")}catch{auth=null}}
 function store(){sessionStorage.setItem(saveKey,JSON.stringify(auth))}
 async function renew(){
