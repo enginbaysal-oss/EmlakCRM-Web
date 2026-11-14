@@ -2102,7 +2102,10 @@ async function showScreen(name){
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
  }
- if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261114navyarchive3");
+ if(selected==="assistant"){
+  const freshAssistant="emlakasistan.html?v=20261114navyvisible4";
+  if($("assistantFrame").getAttribute("src")!==freshAssistant)$("assistantFrame").setAttribute("src",freshAssistant);
+ }
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
  $("appNav").hidden=selected==="home";
