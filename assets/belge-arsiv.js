@@ -83,7 +83,8 @@ async function archive(){
 function image(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(Error("Belge görseli açılamadı"));im.src=src})}
 // The archived PDF is generated here (not by the HTML print stylesheet).
 // A4 output: 1240px raster is drawn onto a 595.28pt PDF page.
-const PDF_NAVY="#153f78";
+const PDF_NAVY="#1653A3";
+const PDF_RENDER_VERSION="Lacivert PDF v4";
 const PDF_WIDTH=1240,PDF_HEIGHT=1754,PDF_A4_PT=595.28;
 const PDF_POINT_SIZES=[12.5,12,11.5,11]; // Never reduce below 11pt.
 function wrappedText(ctx,text,width){
@@ -171,7 +172,13 @@ async function makePdf(){
 }
 let latest=null;
 $("print").textContent="PDF Oluştur";
-$("print").onclick=async()=>{const b=$("print");b.disabled=true;b.textContent="PDF hazırlanıyor…";try{const file=await makePdf(),name=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").slice(0,80)+".pdf";latest={id:String(Date.now())+"-"+Math.random(),name,time:new Date().toISOString(),file};await store("put",latest);$("pdfActions").hidden=false;$("status").textContent="PDF arşive kaydedildi.";await archive();$("pdfActions").scrollIntoView({block:"center"})}catch(e){alert("PDF oluşturulamadı: "+e.message)}finally{b.disabled=false;b.textContent="PDF Oluştur"}};
+const pdfVersionBadge=document.createElement("span");
+pdfVersionBadge.id="pdfRendererVersion";
+pdfVersionBadge.className="badge";
+pdfVersionBadge.style.cssText="display:inline-flex;align-items:center;gap:5px;color:#1653A3;background:#edf4ff;border:1px solid #93b8e6;font-weight:750";
+pdfVersionBadge.textContent="● "+PDF_RENDER_VERSION+" · en az 11 punto";
+$("print").after(pdfVersionBadge);
+$("print").onclick=async()=>{const b=$("print");b.disabled=true;b.textContent="PDF hazırlanıyor…";try{const file=await makePdf(),name=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").slice(0,80)+".pdf";latest={id:String(Date.now())+"-"+Math.random(),name,time:new Date().toISOString(),file};await store("put",latest);$("pdfActions").hidden=false;$("status").textContent="✓ Yeni PDF kaydedildi · Doldurulan yazılar lacivert (#1653A3) · En az 11 punto · "+PDF_RENDER_VERSION+". Önceden basılmış şablon metinleri kendi renginde kalır.";await archive();$("pdfActions").scrollIntoView({block:"center"})}catch(e){alert("PDF oluşturulamadı: "+e.message)}finally{b.disabled=false;b.textContent="PDF Oluştur"}};
 $("pdfSave").onclick=()=>latest&&save(latest).catch(e=>alert(e.message));
 $("pdfShare").onclick=()=>latest&&share(latest).catch(e=>alert(e.message));
 $("archiveOpen").onclick=async()=>{
