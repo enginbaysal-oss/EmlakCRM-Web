@@ -51,8 +51,8 @@ form{display:grid;gap:10px;margin-top:12px}
 </div>
 <p id="loginInfo" role="status">EmlakCRM'de masaüstü eşitlemesini de açmalısın.</p></section>
 <div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
-<section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><button class="link" type="button" id="agendaOpen">Ajandayı Aç</button></div></section>
-<section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><button class="link" type="button" id="offerOpen">Teklifleri Aç</button></div></section>
+<section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><a class="link" id="agendaOpen" href="https://emlkcrm.com.tr/#agenda" target="_blank" rel="noopener noreferrer">Ajandayı Aç ↗</a><button class="link" type="button" id="agendaDetails">Özeti Gör</button></div></section>
+<section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><a class="link" id="offerOpen" href="https://emlkcrm.com.tr/#matching" target="_blank" rel="noopener noreferrer">Teklifleri Aç ↗</a><button class="link" type="button" id="offerDetails">Özeti Gör</button></div></section>
 <div id="state" class="foot" role="status">Yalnızca EmlakCRM hesabına ait kayıtlar gösterilir.</div>
 </div>
 <section id="detailShade" class="detailShade" hidden aria-label="Widget ayrıntı görünümü">
@@ -119,8 +119,8 @@ function showDetails(kind){
  }
  $("detailShade").hidden=false;
 }
-$("agendaOpen").addEventListener("click",()=>showDetails("agenda"));
-$("offerOpen").addEventListener("click",()=>showDetails("offer"));
+$("agendaDetails").addEventListener("click",()=>showDetails("agenda"));
+$("offerDetails").addEventListener("click",()=>showDetails("offer"));
 $("detailClose").addEventListener("click",()=>{$("detailShade").hidden=true;});
 $("detailCopy").addEventListener("click",async()=>{
  const value=$("detailUrl").textContent;
