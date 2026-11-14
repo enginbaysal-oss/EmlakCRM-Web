@@ -84,9 +84,9 @@ function image(src){return new Promise((resolve,reject)=>{const im=new Image();i
 // The archived PDF is generated here (not by the HTML print stylesheet).
 // A4 output: 1240px raster is drawn onto a 595.28pt PDF page.
 const PDF_NAVY="#1653A3";
-const PDF_RENDER_VERSION="Lacivert PDF v6";
+const PDF_RENDER_VERSION="Lacivert PDF v7";
 const PDF_WIDTH=1240,PDF_HEIGHT=1754,PDF_A4_PT=595.28;
-const PDF_POINT_SIZES=[9]; // Exactly 9pt in the actual archived PDF renderer.
+// The PDF renderer uses exactly 9pt; no tiny-font fallback.
 function wrappedText(ctx,text,width){
  const lines=[];
  for(const paragraph of String(text).replace(/\r/g,"").split("\n")){
@@ -107,18 +107,64 @@ function wrappedText(ctx,text,width){
  }
  return lines;
 }
+// PDF layout is measured in A4 raster pixels, not the mobile preview's CSS pixels.
 function fieldLayout(ctx,text,width,height){
- const usableWidth=width-6,usableHeight=height-4;
+ const usableWidth=width-4,usableHeight=height-1;
  if(!Number.isFinite(usableWidth)||!Number.isFinite(usableHeight)||usableWidth<=0||usableHeight<=0)return null;
- for(const points of PDF_POINT_SIZES){
-  const pixels=points*PDF_WIDTH/PDF_A4_PT;
-  ctx.font="700 "+pixels+"px Arial";
-  const lines=wrappedText(ctx,text,usableWidth),lineHeight=pixels*1.13;
-  if(lines.length*lineHeight<=usableHeight+.5 && lines.every(line=>ctx.measureText(line).width<=usableWidth+.5)){
-   return {pixels,lineHeight,lines,points};
+ const points=9,pixels=points*PDF_WIDTH/PDF_A4_PT;
+ ctx.font="700 "+pixels+"px Arial";
+ const lines=wrappedText(ctx,text,usableWidth),lineHeight=pixels*1.02;
+ const neededHeight=pixels+(Math.max(0,lines.length-1)*lineHeight);
+ if(neededHeight<=usableHeight+.5&&lines.every(line=>ctx.measureText(line).width<=usableWidth+.5))
+  return {pixels,lineHeight,lines,points};
+ return null;
+}
+// Find an area on the same page for 9pt text without modifying the original template.
+// The rest of the template's fillable boxes remain reserved, even if they are empty.
+function autoFieldRect(ctx,field,content,allFields,alreadyPlaced){
+ const base={x:PDF_WIDTH*Number(field.xPct)/100,y:PDF_HEIGHT*Number(field.yPct)/100,
+   w:PDF_WIDTH*Number(field.wPct)/100,h:PDF_HEIGHT*Number(field.hPct)/100};
+ if(!Object.values(base).every(Number.isFinite)||base.w<=0||base.h<=0)return null;
+ const original=fieldLayout(ctx,content,base.w,base.h);
+ if(original)return {rect:base,layout:original,expanded:false};
+ const pixelSize=9*PDF_WIDTH/PDF_A4_PT;
+ ctx.font="700 "+pixelSize+"px Arial";
+ const obstacles=allFields.filter(o=>o.id!==field.id&&Number(o.page)===Number(field.page)).map(o=>({
+  x:PDF_WIDTH*Number(o.xPct)/100,
+  y:PDF_HEIGHT*Number(o.yPct)/100,
+  w:PDF_WIDTH*Number(o.wPct)/100,
+  h:PDF_HEIGHT*Number(o.hPct)/100
+ })).concat(alreadyPlaced);
+ function clashes(rect){
+  return obstacles.some(o=>[o.x,o.y,o.w,o.h].every(Number.isFinite)&&
+   rect.x<o.x+o.w+2&&rect.x+rect.w>o.x-2&&rect.y<o.y+o.h+2&&rect.y+rect.h>o.y-2);
+ }
+ let best=null;
+ const maxAdditionalW=Math.min(PDF_WIDTH*.30,PDF_WIDTH-base.w);
+ const maxAdditionalH=Math.min(PDF_HEIGHT*.065,PDF_HEIGHT-base.h);
+ for(let dw=0;dw<=maxAdditionalW+0.01;dw+=PDF_WIDTH*.01){
+  for(const horizontal of (dw===0?["right"]:["right","left"])){
+   const x=base.x-(horizontal==="left"?dw:0),w=base.w+dw;
+   if(x<5||x+w>PDF_WIDTH-5)continue;
+   const lines=wrappedText(ctx,content,w-4);
+   if(lines.some(line=>ctx.measureText(line).width>w-3))continue;
+   const needed=pixelSize+Math.max(0,lines.length-1)*pixelSize*1.02+1;
+   const dh=Math.max(0,needed-base.h);
+   if(dh>maxAdditionalH)continue;
+   for(const vertical of (dh<.5?["down"]:["down","up"])){
+    const y=base.y-(vertical==="up"?dh:0),height=base.h+dh;
+    if(y<5||y+height>PDF_HEIGHT-5)continue;
+    const rect={x,y,w,h:height};
+    if(clashes(rect))continue;
+    const layout=fieldLayout(ctx,content,w,height);
+    if(!layout)continue;
+    const score=dw/PDF_WIDTH+dh/PDF_HEIGHT*2+
+     (horizontal==="left"?.006:0)+(vertical==="up"?.004:0);
+    if(!best||score<best.score)best={rect,layout,expanded:true,score};
+   }
   }
  }
- return null;
+ return best;
 }
 async function navySignature(src,width,height){
  const img=await image(src);
@@ -132,7 +178,9 @@ async function navySignature(src,width,height){
  ink.globalCompositeOperation="source-over";
  return mask;
 }
+let lastAutoExpandedFields=0;
 async function makePdf(){
+ lastAutoExpandedFields=0;
  if(!window.PDFLib)throw Error("PDF motoru yüklenemedi");
  const t=templates[selected];
  if(!t)throw Error("Önce bir belge şablonu seçiniz.");
@@ -143,24 +191,31 @@ async function makePdf(){
   const ctx=canvas.getContext("2d");
   if(!ctx)throw Error("PDF çizim alanı oluşturulamadı.");
   ctx.drawImage(await image(t.pages[pi]),0,0,PDF_WIDTH,PDF_HEIGHT);
+  const plannedRects=[];
   for(const f of t.fields.filter(x=>Number(x.page)===pi&&values[x.id])){
    const pos=f.type==="signature"?signaturePositions[f.id]:null;
    const x=PDF_WIDTH*Number(pos?.xPct??f.xPct)/100,y=PDF_HEIGHT*Number(pos?.yPct??f.yPct)/100;
    const w=PDF_WIDTH*Number(f.wPct)/100,h=PDF_HEIGHT*Number(f.hPct)/100;
    if(![x,y,w,h].every(Number.isFinite)||w<=0||h<=0)throw Error("Şablonda geçersiz alan ölçüsü bulundu.");
    if(f.type==="signature"&&String(values[f.id]).startsWith("data:image/")){
+    const sigRect={x,y,w,h};
     // Recolor saved older signatures as well, without editing their stored originals.
     ctx.drawImage(await navySignature(values[f.id],w,h),x,y,w,h);
+    plannedRects.push(sigRect);
    }else{
-    const content=String(values[f.id]),layout=fieldLayout(ctx,content,w,h);
-    if(!layout){
+    const content=String(values[f.id]);
+    const plan=autoFieldRect(ctx,f,content,t.fields,plannedRects);
+    if(!plan){
      const label=String(f.label||"Belge alanı").slice(0,90);
-     throw Error("“"+label+"” yazısı 9 puntoyla bu alana sığmıyor. Yazıyı kısaltın veya alanı büyütün; okunmaz hâle getirmek için küçültülmedi. PDF oluşturulmadı.");
+     throw Error("“"+label+"” alanındaki metin 9 puntoda diğer alanlara taşmadan sığdırılamıyor. Lütfen metni kısaltın veya şablon alanını düzenleyin. PDF oluşturulmadı.");
     }
+    if(plan.expanded)lastAutoExpandedFields++;
+    const {rect,layout}=plan;
+    plannedRects.push(rect);
     ctx.save();
     ctx.font="700 "+layout.pixels+"px Arial";
     ctx.fillStyle=PDF_NAVY;ctx.textBaseline="top";
-    layout.lines.forEach((line,i)=>ctx.fillText(line,x+3,y+2+i*layout.lineHeight));
+    layout.lines.forEach((line,i)=>ctx.fillText(line,rect.x+2,rect.y+1+i*layout.lineHeight));
     ctx.restore();
    }
   }
@@ -176,9 +231,9 @@ const pdfVersionBadge=document.createElement("span");
 pdfVersionBadge.id="pdfRendererVersion";
 pdfVersionBadge.className="badge";
 pdfVersionBadge.style.cssText="display:inline-flex;align-items:center;gap:5px;color:#1653A3;background:#edf4ff;border:1px solid #93b8e6;font-weight:750";
-pdfVersionBadge.textContent="● "+PDF_RENDER_VERSION+" · sabit 9 punto";
+pdfVersionBadge.textContent="● "+PDF_RENDER_VERSION+" · 9 punto · otomatik sığdırma";
 $("print").after(pdfVersionBadge);
-$("print").onclick=async()=>{const b=$("print");b.disabled=true;b.textContent="PDF hazırlanıyor…";try{const file=await makePdf(),name=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").slice(0,80)+".pdf";latest={id:String(Date.now())+"-"+Math.random(),name,time:new Date().toISOString(),file};await store("put",latest);$("pdfActions").hidden=false;$("status").textContent="✓ Yeni PDF kaydedildi · Doldurulan yazılar lacivert (#1653A3) · Sabit 9 punto · "+PDF_RENDER_VERSION+". Önceden basılmış şablon metinleri kendi renginde kalır.";await archive();$("pdfActions").scrollIntoView({block:"center"})}catch(e){alert("PDF oluşturulamadı: "+e.message)}finally{b.disabled=false;b.textContent="PDF Oluştur"}};
+$("print").onclick=async()=>{const b=$("print");b.disabled=true;b.textContent="PDF hazırlanıyor…";try{const file=await makePdf(),name=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").slice(0,80)+".pdf";latest={id:String(Date.now())+"-"+Math.random(),name,time:new Date().toISOString(),file};await store("put",latest);$("pdfActions").hidden=false;$("status").textContent="✓ PDF kaydedildi · Sabit 9 punto · "+PDF_RENDER_VERSION+" · "+(lastAutoExpandedFields?lastAutoExpandedFields+" alan otomatik sığdırıldı. Belgeyi arşivden kontrol edin.":"Tüm alanlar sığdı.")+" Önceden basılmış şablon metinleri korunur.";await archive();$("pdfActions").scrollIntoView({block:"center"})}catch(e){alert("PDF oluşturulamadı: "+e.message)}finally{b.disabled=false;b.textContent="PDF Oluştur"}};
 $("pdfSave").onclick=()=>latest&&save(latest).catch(e=>alert(e.message));
 $("pdfShare").onclick=()=>latest&&share(latest).catch(e=>alert(e.message));
 $("archiveOpen").onclick=async()=>{
