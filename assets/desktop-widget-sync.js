@@ -6,7 +6,8 @@
  const phoneBox=document.getElementById("widgetShowPhone");
  const status=document.getElementById("widgetSyncStatus");
  const link=document.getElementById("widgetOpenLink");
- if(!btn||!phoneBox||!status||!link)return;
+ const refreshButton=document.getElementById("widgetSyncRefresh");
+ if(!btn||!phoneBox||!status||!link||!refreshButton)return;
  const optKey="emlakcrm_widget_sync_optin_v1",phoneKey="emlakcrm_widget_show_phone_v1";
  const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co/rest/v1/emlakcrm_desktop_widget_snapshots";
  const publicKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
@@ -53,10 +54,11 @@
   btn.setAttribute("aria-pressed",String(ok));
   phoneBox.checked=phoneEnabled();
   phoneBox.disabled=!ok;
+  refreshButton.disabled=!ok||busy;
   link.href="./desktop-widget.html";
   if(!owner()){
    btn.disabled=false;
-   btn.textContent="Giriş Yaparak Etkinleştir";
+   btn.textContent="Önce Giriş Yap";
    if(!busy)status.textContent=stickyNotice||"Bu Chrome penceresinde EmlakCRM oturumu doğrulanamadı. Önce hesabınıza giriş yapın.";
    return;
   }
@@ -78,8 +80,13 @@
   return JSON.stringify(copy);
  }
  async function push(force=false){
-  if(!enabled()||busy||disabled||crmDataSaveBlocked)return;
-  const content=snapshot();
+  if(!enabled()||busy||disabled)return;
+  if(crmDataSaveBlocked){
+   note("⚠ CRM verileri güvenlik nedeniyle kayıt korumasında. Ana sayfadaki veri güvenliği uyarısını çözmeden widget senkronizasyonu yapılmaz.");
+   return;
+  }
+  let content;
+  try{content=snapshot();}catch(err){note("⚠ Widget için kayıtlar okunamadı: "+String(err.message||err));return;}
   const hash=digest(content);
   if(!force&&hash===lastWritten)return;
   if(!force&&Date.now()-lastAttempt<4000)return;
@@ -94,7 +101,10 @@
      "Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},
     body:JSON.stringify({user_id:uid,snapshot:content,updated_at:new Date().toISOString()})
    });
-   if(!response.ok)throw Error("Bulut aktarımı yapılamadı ("+response.status+").");
+   if(!response.ok){
+    const issue=await response.json().catch(()=>({}));
+    throw Error("Bulut aktarımı yapılamadı (HTTP "+response.status+")"+(issue?.code?" · "+String(issue.code).slice(0,30):""));
+   }
    lastWritten=hash;
    note("✓ Masaüstü özeti güncellendi · "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+". Lively'de 15 saniye içinde görünebilir.");
   }catch(e){note("⚠ Senkronizasyon hatası: "+String(e.message||e).slice(0,160)+". Bu cihazdaki kayıtlar değişmedi.");}
@@ -113,6 +123,10 @@
   if(busy)return;
   btn.disabled=true;busy=true;
   try{
+   if(!owner()){
+    note("Önce bu Chrome penceresinde EmlakCRM hesabına giriş yapmalısın. Giriş ekranı açılıyor.");
+    location.hash="account";return;
+   }
    const goingOn=!enabled();
    if(goingOn){
     // Explicit user consent before sending any names or appointments.
@@ -142,7 +156,9 @@
    lastWritten="";void push(true);
   }catch(err){note("Telefon görünürlüğü değiştirilemedi: "+String(err.message||err));}
  });
- window.addEventListener("emlakcrm:session-ready",()=>{paint();if(enabled())void push(true);});
+ refreshButton.addEventListener("click",()=>{stickyNotice="";void push(true);});
+ window.addEventListener("emlakcrm:widget-source-changed",()=>{if(enabled())void push(true);});
+ window.addEventListener("emlakcrm:session-ready",()=>{stickyNotice="";paint();if(enabled())void push(true);});
  window.addEventListener("focus",()=>{paint();if(enabled())void push();});
  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&enabled())void push();});
  paint();
