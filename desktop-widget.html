@@ -40,6 +40,16 @@ form{display:grid;gap:10px;margin-top:12px}
 #loginInfo{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 [hidden]{display:none!important}
 @media(max-width:520px){main{padding:12px}.card{padding:14px}.time strong{font-size:21px}}
+
+/* Compact launcher: shortcuts only, no oversized module cards. */
+.launcher{background:#fff;border:1px solid #d9e7ef;border-radius:16px;padding:12px 13px;box-shadow:0 8px 23px #0003}
+.launcher h2{font-size:13px;margin:0 0 10px;color:#183e5e}
+.launchGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.launchItem{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:58px;padding:7px 3px 6px;border:1px solid #e3ebf3;border-radius:10px;background:#f5f9fd;color:#214661;text-decoration:none;text-align:center;gap:4px;transition:background .15s,border-color .15s}
+.launchItem:hover,.launchItem:focus-visible{background:#e7f3fd;border-color:#89b7d2}
+.launchItem .launchIcon{font-size:19px;line-height:1}
+.launchItem .launchLabel{font-size:10px;font-weight:750;line-height:1.15}
+@media(max-width:350px){.launchItem .launchLabel{font-size:9px}.launchItem{min-height:54px}}
 </style></head><body><main><div class="column">
 <header class="clock"><div class="brand">🏠 EmlakCRM <small>CANLI MASAÜSTÜ ÖZETİ</small></div><div class="time"><strong id="clock">--:--:--</strong><small id="today"></small></div></header>
 <section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
@@ -53,6 +63,19 @@ form{display:grid;gap:10px;margin-top:12px}
 <div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
 <section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><a class="link" id="agendaOpen" href="https://emlkcrm.com.tr/#agenda" target="_blank" rel="noopener noreferrer">Ajandayı Aç ↗</a><button class="link" type="button" id="agendaDetails">Özeti Gör</button></div></section>
 <section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><a class="link" id="offerOpen" href="https://emlkcrm.com.tr/#matching" target="_blank" rel="noopener noreferrer">Teklifleri Aç ↗</a><button class="link" type="button" id="offerDetails">Özeti Gör</button></div></section>
+<section id="moduleLauncher" class="launcher" hidden aria-label="EmlakCRM hızlı modül erişimi">
+<h2>⚡ Hızlı Erişim</h2><nav class="launchGrid" aria-label="EmlakCRM modülleri">
+<a class="launchItem" href="https://emlkcrm.com.tr/#customers" target="_blank" rel="noopener noreferrer"><span class="launchIcon">👥</span><span class="launchLabel">Müşteriler</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#agenda" target="_blank" rel="noopener noreferrer"><span class="launchIcon">📅</span><span class="launchLabel">Ajanda</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/portfoy-rapor.html#portfoyler" target="_blank" rel="noopener noreferrer"><span class="launchIcon">🏠</span><span class="launchLabel">Portföyler</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#matching" target="_blank" rel="noopener noreferrer"><span class="launchIcon">🤝</span><span class="launchLabel">Eşleştirme</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/ilan-asistani.html" target="_blank" rel="noopener noreferrer"><span class="launchIcon">🔎</span><span class="launchLabel">İlan Asistanı</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#assistant" target="_blank" rel="noopener noreferrer"><span class="launchIcon">📄</span><span class="launchLabel">Emlak Asistan</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#tapu" target="_blank" rel="noopener noreferrer"><span class="launchIcon">🧮</span><span class="launchLabel">TapuMatik</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#pdf" target="_blank" rel="noopener noreferrer"><span class="launchIcon">✍️</span><span class="launchLabel">PDF İmzala</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/drone-cekim.html" target="_blank" rel="noopener noreferrer"><span class="launchIcon">🚁</span><span class="launchLabel">Drone Çekim</span></a>
+<a class="launchItem" href="https://emlkcrm.com.tr/#account" target="_blank" rel="noopener noreferrer"><span class="launchIcon">⚙️</span><span class="launchLabel">Hesabım</span></a>
+</nav></section>
 <div id="state" class="foot" role="status">Yalnızca EmlakCRM hesabına ait kayıtlar gösterilir.</div>
 </div>
 <section id="detailShade" class="detailShade" hidden aria-label="Widget ayrıntı görünümü">
@@ -198,7 +221,7 @@ $("virtualToggle").addEventListener("click",()=>{
  if(!board.hidden){virtualTarget=virtualTarget||mailField;paintKeys();}
  $("virtualToggle").textContent=board.hidden?"⌨️ Lively'de yazamıyorum — Ekran Klavyesi":"⌨️ Ekran Klavyesini Gizle";
 });
-function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;}
+function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;$("moduleLauncher").hidden=!isLogged;}
 function recover(){try{auth=JSON.parse(sessionStorage.getItem(saveKey)||"null")}catch{auth=null}}
 function store(){sessionStorage.setItem(saveKey,JSON.stringify(auth))}
 async function renew(){
