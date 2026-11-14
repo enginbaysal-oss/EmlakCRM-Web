@@ -68,7 +68,7 @@
 </section>
 <section class="panel" id="invitesBox" hidden><h2>🔗 İmzacı Bağlantıları</h2><p class="notice warn">Özel imza bağlantılarını şimdi kopyala veya WhatsApp ile gönder. Güvenlik için bağlantıların tamamı daha sonra tekrar gösterilmez.</p><div id="invites"></div></section>
 <section class="panel">
-<div class="row" style="justify-content:space-between"><h2>📋 İmza Takibi · Belgelerim</h2><button class="secondary" id="refreshBtn">Şimdi Yenile ↻</button></div>
+<div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap"><h2>📋 İmza Takibi · Belgelerim</h2><div class="row" style="align-items:center;gap:9px;flex-wrap:wrap"><span id="refreshFeedback" class="miniNote" role="status" aria-live="polite" style="font-weight:700">Yenileme hazır</span><button type="button" class="secondary" id="refreshBtn">Şimdi Yenile ↻</button></div></div>
 <div class="row" style="margin:9px 0">
 <button type="button" class="secondary" id="notifyPermission">🔔 Tarayıcı Bildirimlerini Aç</button>
 <span id="autoCheckStatus" class="miniNote">Otomatik kontrol başlatılıyor...</span>
@@ -676,14 +676,14 @@ $("notifyPermission").onclick=async()=>{
 async function listDocs({silent=false}={}){
  if($("adminApp").hidden)return;
  if(signatureListBusy){
-  if(!silent){signatureRefreshQueued=true;tell("listStatus","Devam eden kontrol bitince yeniden sorgulanacak...");}
+  if(!silent){signatureRefreshQueued=true;$("refreshFeedback").textContent="⏳ Sıradaki kontrol bekleniyor";tell("listStatus","Devam eden kontrol bitince yeniden sorgulanacak...");}
   return;
  }
  signatureListBusy=true;
  const refreshButton=$("refreshBtn");
  refreshButton.disabled=true;
  refreshButton.textContent="Kontrol ediliyor…";
- if(!silent)tell("listStatus","Sunucudan güncel imza durumları sorgulanıyor...");
+ if(!silent){$("refreshFeedback").textContent="⏳ Kontrol ediliyor…";tell("listStatus","Sunucudan güncel imza durumları sorgulanıyor...");}
  try{
   const data=await call("list",{},true);
   if(!Array.isArray(data.documents))throw Error("Sunucudan geçerli belge listesi alınamadı.");
@@ -702,10 +702,10 @@ async function listDocs({silent=false}={}){
     '<button class="secondary" data-archive-doc="'+xss(d.id)+'">Listeden Sil</button>'+
     '</div></div>';
   }).join(""):'<p class="muted">Henüz oluşturulmuş belge yok.</p>';
-  if(!silent)tell("listStatus",changed?"✓ Sunucudan yenilendi. İmza durumunda değişiklik var.":"✓ Sunucudan kontrol edildi. Yeni imza/durum değişikliği yok.");
+  if(!silent){const result=changed?"✓ İmza durumu güncellendi":"✓ Kontrol edildi, değişiklik yok";$("refreshFeedback").textContent=result;tell("listStatus",changed?"✓ Sunucudan yenilendi. İmza durumunda değişiklik var.":"✓ Sunucudan kontrol edildi. Yeni imza/durum değişikliği yok.");}
   $("autoCheckStatus").textContent="✓ Başarılı kontrol: "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" · 30 sn'de bir";
  }catch(e){
-  tell("listStatus","⚠ İmza listesi güncellenemedi: "+e.message,true);
+  $("refreshFeedback").textContent="⚠ Kontrol başarısız";tell("listStatus","⚠ İmza listesi güncellenemedi: "+e.message,true);
   $("autoCheckStatus").textContent="⚠ Kontrol başarısız · "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
  }finally{
   signatureListBusy=false;
