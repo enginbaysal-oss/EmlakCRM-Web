@@ -15,6 +15,11 @@ h2{font-size:17px;line-height:1.25;color:#123a5b;margin:0;font-weight:850}
 .entry{padding:10px 0;border-top:1px solid #e9f0f5}.entry strong{font-size:14px;color:#163f5b;line-height:1.3;display:block;overflow-wrap:anywhere}
 .entry small{font-size:12px;line-height:1.4;color:#58738a;display:block;margin-top:3px;overflow-wrap:anywhere}.phone{font-weight:800;color:#0a8192}
 .empty{font-size:13px;color:#678396;padding:10px 0}.foot{color:#a1b7c8;font-size:11px;text-align:right;padding:0 4px}
+.detailShade{position:fixed;z-index:10;inset:0;background:#081625d9;display:flex;align-items:flex-start;justify-content:flex-end;padding:22px 24px;overflow-y:auto}
+.detailPanel{width:min(530px,100%);border-radius:18px;background:#fff;border:1px solid #b7cee3;box-shadow:0 12px 36px #0008;padding:19px}
+.detailPanel h2{font-size:20px}.detailTools{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.detailNote{font-size:12px;color:#58758b;margin:10px 0;line-height:1.45;overflow-wrap:anywhere}
+.detailPanel .entry{padding:12px 0}.detailUrl{font-size:12px;display:block;overflow-wrap:anywhere;background:#edf4fa;padding:10px;border-radius:9px;color:#173d63}
 .login{background:#12344f;color:white;border:1px solid #3c729c;border-radius:16px;padding:20px;box-shadow:0 9px 23px #0008}
 .login h2{color:#fff;margin-bottom:6px}.login p{font-size:12px;line-height:1.5;color:#bed4e9}
 label{font-size:12px;font-weight:650;display:grid;gap:5px}
@@ -32,17 +37,28 @@ form{display:grid;gap:10px;margin-top:12px}
 <section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
 <form id="loginForm"><label>E-posta<input name="email" type="email" required autocomplete="username"></label><label>Şifre<input name="password" type="password" required autocomplete="current-password"></label><button id="loginBtn" type="submit">Giriş Yap</button></form><p id="loginInfo" role="status">EmlakCRM'de masaüstü eşitlemesini de açmalısın.</p></section>
 <div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
-<section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><a class="link" target="_blank" rel="noopener noreferrer" href="https://emlkcrm.com.tr/#agenda">Ajandayı Aç</a></div></section>
-<section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><a class="link" target="_blank" rel="noopener noreferrer" href="https://emlkcrm.com.tr/#matching">Eşleştirmeyi Aç</a></div></section>
+<section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><button class="link" type="button" id="agendaOpen">Ajandayı Aç</button></div></section>
+<section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><button class="link" type="button" id="offerOpen">Teklifleri Aç</button></div></section>
 <div id="state" class="foot" role="status">Yalnızca EmlakCRM hesabına ait kayıtlar gösterilir.</div>
-</div></main><script>
+</div>
+<section id="detailShade" class="detailShade" hidden aria-label="Widget ayrıntı görünümü">
+ <div class="detailPanel">
+  <div class="detailTools"><h2 id="detailTitle">Ajanda</h2><button id="detailClose" type="button">Kapat</button></div>
+  <p class="detailNote">Bu bölüm EmlakCRM bilgilerinin masaüstündeki okunur kopyasıdır. Kayıt düzenleme ve tam ajanda için EmlakCRM'yi normal Chrome tarayıcısından açın.</p>
+  <div id="detailList"></div>
+  <p class="detailNote">Chrome'da açılacak adres:</p>
+  <code id="detailUrl" class="detailUrl"></code>
+  <div class="actions" style="margin-top:10px"><button id="detailCopy" type="button">Bağlantıyı Kopyala</button></div>
+  <p id="detailMessage" class="detailNote" role="status"></p>
+ </div>
+</section></main><script>
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
 const api="https://tffvwxskvjuxoekwgdef.supabase.co";
 const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const saveKey="emlakcrm_desktop_widget_session_v1";
-let auth=null,uid="",busy=false,lastEntitlement=0;
+let auth=null,uid="",busy=false,lastEntitlement=0,lastSnapshot=null;
 const datefmt=new Intl.DateTimeFormat("tr-TR",{dateStyle:"full"});
 const timefmt=new Intl.DateTimeFormat("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
 function tick(){const now=new Date();$("clock").textContent=timefmt.format(now);$("today").textContent=datefmt.format(now);}
@@ -62,6 +78,7 @@ function entry(title,lines,phone){
 }
 function render(o,at){
  if(o?.version!==1||!Array.isArray(o.agenda)||!Array.isArray(o.offers))throw Error("Özet verileri doğrulanamadı.");
+ lastSnapshot=o;
  const a=o.agendaSummary||{},b=o.offersSummary||{};
  $("agendaBadge").textContent=(Number(a.late)||0)+" geciken";
  $("agendaSummary").textContent=(Number(a.late)||0)+" geciken · "+(Number(a.today)||0)+" bugünkü hatırlatma";
@@ -74,6 +91,33 @@ function render(o,at){
  info("● EmlakCRM ile güncellendi: "+stamp+(age>3600000?" · Son eşitleme eski":""),
   age>3600000);
 }
+
+function showDetails(kind){
+ const body=$("detailList");body.replaceChildren();
+ const url=kind==="agenda"?"https://emlkcrm.com.tr/#agenda":"https://emlkcrm.com.tr/#matching";
+ $("detailTitle").textContent=kind==="agenda"?"📅 Bugünkü ve Geciken Görüşmeler":"🤝 Teklif ve Pazarlık Takibi";
+ $("detailUrl").textContent=url;$("detailMessage").textContent="";
+ if(!lastSnapshot){body.append(text("div","Senkronize kayıt bulunamadı.","empty"));}
+ else if(kind==="agenda"){
+  rows("detailList",lastSnapshot.agenda,x=>entry(x.title,[(x.late?"⚠️ Gecikti · ":"📅 Bugün · ")+String(x.date||"").replace("T"," ")+(x.clientName?" · "+x.clientName:"")],lastSnapshot.phonesVisible?x.phone:""),"Bugün veya gecikmiş görüşme yok.");
+ }else{
+  rows("detailList",lastSnapshot.offers,x=>entry(x.title,[(x.clientName||"Müşteri")+" · "+(x.status||"")+(Number(x.amount)>0?" · "+Number(x.amount).toLocaleString("tr-TR")+" TL":""),x.lastContact?"Son görüşme: "+x.lastContact:""],""),"Henüz aktif teklif veya pazarlık yok.");
+ }
+ $("detailShade").hidden=false;
+}
+$("agendaOpen").addEventListener("click",()=>showDetails("agenda"));
+$("offerOpen").addEventListener("click",()=>showDetails("offer"));
+$("detailClose").addEventListener("click",()=>{$("detailShade").hidden=true;});
+$("detailCopy").addEventListener("click",async()=>{
+ const value=$("detailUrl").textContent;
+ try{
+  if(!navigator.clipboard?.writeText)throw Error("Kopyalama izni yok");
+  await navigator.clipboard.writeText(value);
+  $("detailMessage").textContent="✓ Adres kopyalandı. Chrome'un adres çubuğuna yapıştırabilirsin.";
+ }catch(_){
+  $("detailMessage").textContent="Lively kopyalamaya izin vermedi. Adresi Chrome'a yazabilirsin: "+value;
+ }
+});
 function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;}
 function recover(){try{auth=JSON.parse(sessionStorage.getItem(saveKey)||"null")}catch{auth=null}}
 function store(){sessionStorage.setItem(saveKey,JSON.stringify(auth))}
