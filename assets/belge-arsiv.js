@@ -5,7 +5,81 @@ function store(mode,item){return new Promise((resolve,reject)=>{const req=indexe
 function b64(bytes){let result="";for(let i=0;i<bytes.length;i+=8192)result+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(result)}
 async function save(doc){const bytes=new Uint8Array(await doc.file.arrayBuffer());if(window.EmlakCRMAndroid?.savePdf)window.EmlakCRMAndroid.savePdf(b64(bytes),doc.name);else{const url=URL.createObjectURL(doc.file),a=document.createElement("a");a.href=url;a.download=doc.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}}
 async function share(doc){const bytes=new Uint8Array(await doc.file.arrayBuffer());if(window.EmlakCRMAndroid?.sharePdf){window.EmlakCRMAndroid.sharePdf(b64(bytes),doc.name);return}const f=new File([bytes],doc.name,{type:"application/pdf"});if(navigator.canShare?.({files:[f]}))await navigator.share({files:[f]});else alert("Önce Kaydet ile PDF'yi indirip WhatsApp'ta belge olarak gönderin.")}
-async function archive(){const panel=$("pdfArchiveItems");panel.textContent="";const docs=(await store("all")).sort((a,b)=>b.time.localeCompare(a.time));if(!docs.length){panel.textContent="Henüz kayıtlı PDF yok.";return}for(const doc of docs){const line=document.createElement("p");line.textContent=doc.name+" · "+new Date(doc.time).toLocaleString("tr-TR")+" ";for(const [label,fn] of [["Kaydet",()=>save(doc)],["WhatsApp",()=>share(doc)],["Sil",async()=>{if(confirm("Arşiv belgesi silinsin mi?")){await store("del",doc.id);await archive()}}]]){const b=document.createElement("button");b.textContent=label;b.onclick=()=>Promise.resolve(fn()).catch(e=>alert(e.message));line.appendChild(b)}panel.appendChild(line)}}
+let archivePreviewUrl=null;
+function closeArchivePreview(){
+ const target=$("archivePreview");
+ if(target){target.replaceChildren();target.hidden=true;}
+ if(archivePreviewUrl){URL.revokeObjectURL(archivePreviewUrl);archivePreviewUrl=null;}
+}
+function previewArchivedDocument(doc){
+ const panel=$("archivePreview");
+ closeArchivePreview();
+ if(!(doc.file instanceof Blob)){alert("Arşiv belgesi bu cihazda okunamadı.");return;}
+ archivePreviewUrl=URL.createObjectURL(doc.file);
+ const heading=document.createElement("div");
+ heading.className="archiveHeader";
+ const title=document.createElement("strong");title.textContent=doc.name||"PDF Belgesi";
+ const open=document.createElement("a");
+ open.textContent="Yeni sekmede aç";open.href=archivePreviewUrl;open.target="_blank";open.rel="noopener noreferrer";
+ const close=document.createElement("button");close.type="button";close.textContent="Önizlemeyi Kapat";
+ close.className="archiveClose";close.onclick=closeArchivePreview;
+ heading.append(title,open,close);
+ const iframe=document.createElement("iframe");
+ iframe.title=(doc.name||"PDF")+" — arşiv önizleme";
+ iframe.src=archivePreviewUrl;
+ panel.append(heading,iframe);panel.hidden=false;
+ panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function archive(){
+ const panel=$("pdfArchiveItems"),status=$("archiveStatus"),count=$("archiveCount");
+ panel.replaceChildren();status.textContent="Kayıtlı belgeler yükleniyor…";
+ try{
+  const docs=(await store("all")).sort((a,b)=>String(b.time||"").localeCompare(String(a.time||"")));
+  count.textContent=docs.length+" belge";
+  if(!docs.length){
+   status.textContent="Bu hesap için bu cihazda henüz kayıtlı PDF bulunamadı.";
+   return;
+  }
+  status.textContent=docs.length+" kayıt bulundu. Açmak istediğin belgeyi aşağıdan seç.";
+  for(const doc of docs){
+   const row=document.createElement("article");row.className="archiveRow";
+   const meta=document.createElement("div");meta.className="archiveMeta";
+   const title=document.createElement("div");title.className="archiveName";
+   title.textContent=doc.name||"İsimsiz PDF";
+   const date=document.createElement("small");date.className="archiveDate";
+   const parsed=new Date(doc.time);
+   date.textContent=Number.isNaN(parsed.getTime())?"Tarih kaydı yok":parsed.toLocaleString("tr-TR",{dateStyle:"short",timeStyle:"short"});
+   if(typeof doc.file?.size==="number")date.textContent+=" · "+Math.max(1,Math.round(doc.file.size/1024))+" KB";
+   meta.append(title,date);
+   const actions=document.createElement("div");actions.className="archiveActions";
+   const choices=[
+    ["Görüntüle",()=>previewArchivedDocument(doc),false],
+    ["İndir",()=>save(doc),false],
+    ["WhatsApp",()=>share(doc),false],
+    ["Sil",async()=>{
+     if(!confirm((doc.name||"Bu belge")+" arşivden kalıcı olarak silinsin mi?"))return;
+     if(latest?.id===doc.id){latest=null;$("pdfActions").hidden=true;}
+     closeArchivePreview();
+     await store("del",doc.id);
+     await archive();
+    },true]
+   ];
+   for(const [label,task,danger] of choices){
+    const button=document.createElement("button");button.type="button";button.textContent=label;
+    if(danger)button.className="archiveDelete";
+    button.onclick=async()=>{
+     button.disabled=true;
+     try{await task()}catch(error){status.textContent="Belge işlemi yapılamadı: "+String(error?.message||error)}
+     finally{button.disabled=false;}
+    };
+    actions.append(button);
+   }
+   row.append(meta,actions);panel.append(row);
+  }
+ }catch(error){
+  status.textContent="Arşiv listelenemedi: "+String(error?.message||error);
+ }
+}
 function image(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(Error("Belge görseli açılamadı"));im.src=src})}
 // The archived PDF is generated here (not by the HTML print stylesheet).
 // A4 output: 1240px raster is drawn onto a 595.28pt PDF page.
@@ -100,5 +174,17 @@ $("print").textContent="PDF Oluştur";
 $("print").onclick=async()=>{const b=$("print");b.disabled=true;b.textContent="PDF hazırlanıyor…";try{const file=await makePdf(),name=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").slice(0,80)+".pdf";latest={id:String(Date.now())+"-"+Math.random(),name,time:new Date().toISOString(),file};await store("put",latest);$("pdfActions").hidden=false;$("status").textContent="PDF arşive kaydedildi.";await archive();$("pdfActions").scrollIntoView({block:"center"})}catch(e){alert("PDF oluşturulamadı: "+e.message)}finally{b.disabled=false;b.textContent="PDF Oluştur"}};
 $("pdfSave").onclick=()=>latest&&save(latest).catch(e=>alert(e.message));
 $("pdfShare").onclick=()=>latest&&share(latest).catch(e=>alert(e.message));
-$("archiveOpen").onclick=async()=>{$("pdfArchive").hidden=!$("pdfArchive").hidden;if(!$("pdfArchive").hidden)await archive()};
+$("archiveOpen").onclick=async()=>{
+ const panel=$("pdfArchive"),button=$("archiveOpen");
+ panel.hidden=false;button.setAttribute("aria-expanded","true");
+ button.textContent="📂 Belge Arşivi Açık";
+ closeArchivePreview();await archive();
+ panel.scrollIntoView({behavior:"smooth",block:"start"});
+};
+$("archiveClose").onclick=()=>{
+ const panel=$("pdfArchive"),button=$("archiveOpen");
+ panel.hidden=true;button.setAttribute("aria-expanded","false");
+ button.textContent="📂 Belge Arşivini Aç";
+ closeArchivePreview();
+};
 })();
