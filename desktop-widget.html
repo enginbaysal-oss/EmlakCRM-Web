@@ -20,6 +20,14 @@ h2{font-size:17px;line-height:1.25;color:#123a5b;margin:0;font-weight:850}
 .detailPanel h2{font-size:20px}.detailTools{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .detailNote{font-size:12px;color:#58758b;margin:10px 0;line-height:1.45;overflow-wrap:anywhere}
 .detailPanel .entry{padding:12px 0}.detailUrl{font-size:12px;display:block;overflow-wrap:anywhere;background:#edf4fa;padding:10px;border-radius:9px;color:#173d63}
+.virtualToggle{border:1px solid #568baa;background:#1b527c;color:#fff;width:100%;margin-top:10px}
+.virtualBoard{margin-top:9px;padding:9px;border-radius:12px;border:1px solid #4d7d9d;background:#10243b}
+.virtualBoard p{margin:2px 0 9px!important}
+.keyLine{display:flex;justify-content:center;gap:3px;margin:4px 0;flex-wrap:nowrap}
+.keyLine button{min-width:0;flex:1 1 0;background:#2d6388;border:1px solid #4781a4;border-radius:6px;padding:8px 0;color:#fff;font:650 13px system-ui;touch-action:manipulation}
+.keyLine button.special{background:#19537d;flex:2.2}
+.keyLine button:active{background:#0e9aaa}
+.fieldTarget{color:#9bdcff;font-weight:850}
 .login{background:#12344f;color:white;border:1px solid #3c729c;border-radius:16px;padding:20px;box-shadow:0 9px 23px #0008}
 .login h2{color:#fff;margin-bottom:6px}.login p{font-size:12px;line-height:1.5;color:#bed4e9}
 label{font-size:12px;font-weight:650;display:grid;gap:5px}
@@ -35,7 +43,13 @@ form{display:grid;gap:10px;margin-top:12px}
 </style></head><body><main><div class="column">
 <header class="clock"><div class="brand">🏠 EmlakCRM <small>CANLI MASAÜSTÜ ÖZETİ</small></div><div class="time"><strong id="clock">--:--:--</strong><small id="today"></small></div></header>
 <section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
-<form id="loginForm"><label>E-posta<input name="email" type="email" required autocomplete="username"></label><label>Şifre<input name="password" type="password" required autocomplete="current-password"></label><button id="loginBtn" type="submit">Giriş Yap</button></form><p id="loginInfo" role="status">EmlakCRM'de masaüstü eşitlemesini de açmalısın.</p></section>
+<form id="loginForm"><label>E-posta<input name="email" type="email" required autocomplete="username"></label><label>Şifre<input name="password" type="password" required autocomplete="current-password"></label><button id="loginBtn" type="submit">Giriş Yap</button></form>
+<button id="virtualToggle" class="virtualToggle" type="button">⌨️ Lively'de yazamıyorum — Ekran Klavyesi</button>
+<div id="virtualBoard" class="virtualBoard" hidden>
+<p>E-posta veya şifre kutusuna dokun, ardından harflere tıkla. <span class="fieldTarget" id="fieldTarget">E-posta</span> alanına yazılıyor.</p>
+<div id="virtualKeys"></div>
+</div>
+<p id="loginInfo" role="status">EmlakCRM'de masaüstü eşitlemesini de açmalısın.</p></section>
 <div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
 <section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><button class="link" type="button" id="agendaOpen">Ajandayı Aç</button></div></section>
 <section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><button class="link" type="button" id="offerOpen">Teklifleri Aç</button></div></section>
@@ -117,6 +131,72 @@ $("detailCopy").addEventListener("click",async()=>{
  }catch(_){
   $("detailMessage").textContent="Lively kopyalamaya izin vermedi. Adresi Chrome'a yazabilirsin: "+value;
  }
+});
+
+let virtualTarget=null,uppercase=false;
+const loginForm=$("loginForm");
+const mailField=loginForm.elements.email;
+const passField=loginForm.elements.password;
+for(const input of [mailField,passField]){
+ input.addEventListener("focus",()=>{
+  virtualTarget=input;
+  $("fieldTarget").textContent=input===passField?"Şifre":"E-posta";
+ });
+ input.addEventListener("click",()=>{
+  virtualTarget=input;
+  $("fieldTarget").textContent=input===passField?"Şifre":"E-posta";
+ });
+}
+function keyboardInsert(value){
+ const input=virtualTarget||mailField;
+ const original=input.value||"";
+ if(original.length>250)return;
+ if(value==="del"){
+  if(input.type==="password"&&input.selectionStart!==null){
+   const a=input.selectionStart,b=input.selectionEnd;
+   const from=a===b?Math.max(0,a-1):a;
+   input.setRangeText("",from,b,"end");
+  }else input.value=original.slice(0,-1);
+ }else{
+  let char=value==="space"?" ":value;
+  if(uppercase&&/^[a-züğışöç]$/i.test(char))char=char.toLocaleUpperCase("tr-TR");
+  if(input.type==="password"&&input.selectionStart!==null)input.setRangeText(char,input.selectionStart,input.selectionEnd,"end");
+  else input.value=original+char;
+ }
+ input.dispatchEvent(new Event("input",{bubbles:true}));
+ input.focus();
+}
+function paintKeys(){
+ const board=$("virtualKeys");board.replaceChildren();
+ const rows=[
+  Array.from("1234567890"),
+  Array.from("qwertyuıopğü"),
+  Array.from("asdfghjklşi"),
+  Array.from("zxcvbnmöç"),
+  ["@","!",".","-","_","+","/","?","*","#"],
+  ["caps","space","del"]
+ ];
+ rows.forEach(keys=>{
+  const row=document.createElement("div");row.className="keyLine";
+  keys.forEach(value=>{
+   const b=document.createElement("button");b.type="button";b.dataset.key=value;
+   const special=["caps","space","del"].includes(value);
+   if(special)b.className="special";
+   b.textContent=value==="caps"?(uppercase?"⇧ BÜYÜK":"⇧ Büyük"):value==="space"?"Boşluk":value==="del"?"⌫ Sil":uppercase&&/^[a-züğışöç]$/i.test(value)?value.toLocaleUpperCase("tr-TR"):value;
+   b.addEventListener("pointerdown",e=>e.preventDefault());
+   b.addEventListener("click",()=>{
+    if(value==="caps"){uppercase=!uppercase;paintKeys();return;}
+    keyboardInsert(value);
+   });
+   row.append(b);
+  });
+  board.append(row);
+ });
+}
+$("virtualToggle").addEventListener("click",()=>{
+ const board=$("virtualBoard");board.hidden=!board.hidden;
+ if(!board.hidden){virtualTarget=virtualTarget||mailField;paintKeys();}
+ $("virtualToggle").textContent=board.hidden?"⌨️ Lively'de yazamıyorum — Ekran Klavyesi":"⌨️ Ekran Klavyesini Gizle";
 });
 function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;}
 function recover(){try{auth=JSON.parse(sessionStorage.getItem(saveKey)||"null")}catch{auth=null}}
