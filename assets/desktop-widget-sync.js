@@ -49,7 +49,7 @@
    const raw=localStorage.getItem("emlakcrm_portfoy_rapor_v1");
    if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed?.portfolios))portfolioRecords=parsed.portfolios;}
   }catch(_){}
-  const deadlineItems=portfolioRecords===null?[]:portfolioRecords.filter(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(p.authEnd||"")))
+  const deadlineItems=portfolioRecords===null?[]:portfolioRecords.filter(p=>/^\d{4}-\d{2}-\d{2}$/.test(String(p.authEnd||"")))
    .map(p=>{
     const due=String(p.authEnd).slice(0,10);
     const days=Math.round((Date.parse(due+"T12:00:00")-Date.parse(today+"T12:00:00"))/86400000);
