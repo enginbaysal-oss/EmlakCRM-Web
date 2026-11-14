@@ -1,0 +1,146 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>EmlakCRM | Canlı Masaüstü</title>
+<style>
+:root{font-family:system-ui,"Segoe UI",Arial,sans-serif;color:#203d56;background:#101112}*{box-sizing:border-box}html,body{margin:0;min-height:100vh}body{background:#101112}body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 80% 4%,#16344b42,transparent 50%);pointer-events:none}
+main{position:relative;padding:22px 24px;min-height:100vh;display:flex;justify-content:flex-end;align-items:flex-start}
+.column{width:min(460px,100%);display:grid;gap:12px}
+.clock{background:linear-gradient(128deg,#0c5dc7,#003d8e);color:#fff;border-radius:17px;box-shadow:0 7px 25px #0008;border-bottom:4px solid #ea3351;padding:14px 17px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.brand{font-weight:850;font-size:17px}.brand small{display:block;font-size:10px;letter-spacing:.12em;margin-top:4px;opacity:.85}
+.time{text-align:right;white-space:nowrap}.time strong{font-size:26px;line-height:1;display:block;font-variant-numeric:tabular-nums}.time small{display:block;margin-top:5px;font-size:11px}
+.card{background:#fff;border:1px solid #d9e7ef;box-shadow:0 8px 23px #0004;border-radius:17px;padding:18px}
+.cardHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h2{font-size:17px;line-height:1.25;color:#123a5b;margin:0;font-weight:850}
+.chip{font-size:11px;font-weight:800;color:#147585;background:#e6f4f7;border-radius:50px;padding:5px 9px;white-space:nowrap}
+.chip.alert{background:#fff0ef;color:#bb3650}
+.summary{font-size:12px;color:#5d778b;margin:9px 0}
+.entry{padding:10px 0;border-top:1px solid #e9f0f5}.entry strong{font-size:14px;color:#163f5b;line-height:1.3;display:block;overflow-wrap:anywhere}
+.entry small{font-size:12px;line-height:1.4;color:#58738a;display:block;margin-top:3px;overflow-wrap:anywhere}.phone{font-weight:800;color:#0a8192}
+.empty{font-size:13px;color:#678396;padding:10px 0}.foot{color:#a1b7c8;font-size:11px;text-align:right;padding:0 4px}
+.login{background:#12344f;color:white;border:1px solid #3c729c;border-radius:16px;padding:20px;box-shadow:0 9px 23px #0008}
+.login h2{color:#fff;margin-bottom:6px}.login p{font-size:12px;line-height:1.5;color:#bed4e9}
+label{font-size:12px;font-weight:650;display:grid;gap:5px}
+input{width:100%;padding:10px;border:1px solid #7ea0b8;background:#10283d;border-radius:9px;color:#fff;font:inherit;outline-offset:2px}
+button,.action{border:0;border-radius:8px;padding:9px 12px;background:#13849c;color:white;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none}
+button:disabled{opacity:.5}
+form{display:grid;gap:10px;margin-top:12px}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.link{font-size:11px;background:#ebf4ff;color:#135c84;padding:7px 9px;border-radius:9px;text-decoration:none;font-weight:800}
+#loginInfo{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+[hidden]{display:none!important}
+@media(max-width:520px){main{padding:12px}.card{padding:14px}.time strong{font-size:21px}}
+</style></head><body><main><div class="column">
+<header class="clock"><div class="brand">🏠 EmlakCRM <small>CANLI MASAÜSTÜ ÖZETİ</small></div><div class="time"><strong id="clock">--:--:--</strong><small id="today"></small></div></header>
+<section class="login" id="loginPanel"><h2>🔒 EmlakCRM hesabın</h2><p>Lively ayrı bir tarayıcı kullandığı için hesabına burada da giriş yapmalısın. Şifreyi kaydetmiyoruz; bilgiler yalnızca senin hesabından okunur.</p>
+<form id="loginForm"><label>E-posta<input name="email" type="email" required autocomplete="username"></label><label>Şifre<input name="password" type="password" required autocomplete="current-password"></label><button id="loginBtn" type="submit">Giriş Yap</button></form><p id="loginInfo" role="status">EmlakCRM'de masaüstü eşitlemesini de açmalısın.</p></section>
+<div id="connected" class="actions" hidden><span style="color:#bed4e9;font-size:11px">🔒 Sadece kendi kayıtların</span><button id="logout" type="button" style="background:#294657">Çıkış</button></div>
+<section id="agendaCard" class="card" hidden><div class="cardHeader"><h2>📅 Bugün aranacaklar ve geciken görüşmeler</h2><span id="agendaBadge" class="chip alert">0 geciken</span></div><p id="agendaSummary" class="summary"></p><div id="agendaList"></div><div class="actions"><a class="link" target="_blank" rel="noopener noreferrer" href="https://emlkcrm.com.tr/#agenda">Ajandayı Aç</a></div></section>
+<section id="offerCard" class="card" hidden><div class="cardHeader"><h2>🤝 Teklif ve Pazarlık Takibi</h2><span id="offerBadge" class="chip">0 aktif</span></div><p id="offerSummary" class="summary"></p><div id="offerList"></div><div class="actions"><a class="link" target="_blank" rel="noopener noreferrer" href="https://emlkcrm.com.tr/#matching">Eşleştirmeyi Aç</a></div></section>
+<div id="state" class="foot" role="status">Yalnızca EmlakCRM hesabına ait kayıtlar gösterilir.</div>
+</div></main><script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const api="https://tffvwxskvjuxoekwgdef.supabase.co";
+const key="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+const saveKey="emlakcrm_desktop_widget_session_v1";
+let auth=null,uid="",busy=false,lastEntitlement=0;
+const datefmt=new Intl.DateTimeFormat("tr-TR",{dateStyle:"full"});
+const timefmt=new Intl.DateTimeFormat("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+function tick(){const now=new Date();$("clock").textContent=timefmt.format(now);$("today").textContent=datefmt.format(now);}
+tick();setInterval(tick,1000);
+function info(s,bad=false){$("state").textContent=s;$("state").style.color=bad?"#ffbf9b":"#a1b7c8";}
+function text(tag,value,cls){const el=document.createElement(tag);el.textContent=String(value??"");if(cls)el.className=cls;return el;}
+function rows(id,source,fn,empty){
+ const target=$(id);target.replaceChildren();
+ if(!Array.isArray(source)||!source.length){target.append(text("div",empty,"empty"));return;}
+ for(const item of source.slice(0,8))target.append(fn(item));
+}
+function entry(title,lines,phone){
+ const box=text("article","","entry");box.append(text("strong",title||"Kayıt"));
+ for(const line of lines){if(line)box.append(text("small",line));}
+ if(phone)box.append(text("small","📞 "+phone,"phone"));
+ return box;
+}
+function render(o,at){
+ if(o?.version!==1||!Array.isArray(o.agenda)||!Array.isArray(o.offers))throw Error("Özet verileri doğrulanamadı.");
+ const a=o.agendaSummary||{},b=o.offersSummary||{};
+ $("agendaBadge").textContent=(Number(a.late)||0)+" geciken";
+ $("agendaSummary").textContent=(Number(a.late)||0)+" geciken · "+(Number(a.today)||0)+" bugünkü hatırlatma";
+ $("offerBadge").textContent=(Number(b.active)||0)+" aktif";
+ $("offerSummary").textContent=(Number(b.active)||0)+" aktif teklif / pazarlık · "+(Number(b.accepted)||0)+" kabul · "+(Number(b.rejected)||0)+" ret";
+ rows("agendaList",o.agenda,x=>entry(x.title,[(x.late?"⚠️ Gecikti · ":"📅 Bugün · ")+String(x.date||"").replace("T"," ")+(x.clientName?" · "+x.clientName:"")],o.phonesVisible?x.phone:""),"Bugün veya gecikmiş görüşme yok.");
+ rows("offerList",o.offers,x=>entry(x.title,[(x.clientName||"Müşteri")+" · "+(x.status||"")+(Number(x.amount)>0?" · "+Number(x.amount).toLocaleString("tr-TR")+" TL":""),x.lastContact?"Son görüşme: "+x.lastContact:""],""),"Henüz aktif teklif veya pazarlık yok.");
+ const date=new Date(at||o.generatedAt);const age=Date.now()-date.getTime();
+ const stamp=Number.isNaN(date.getTime())?"tarih yok":date.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+ info("● EmlakCRM ile güncellendi: "+stamp+(age>3600000?" · Son eşitleme eski":""),
+  age>3600000);
+}
+function logged(isLogged){$("loginPanel").hidden=isLogged;$("connected").hidden=!isLogged;$("agendaCard").hidden=!isLogged;$("offerCard").hidden=!isLogged;}
+function recover(){try{auth=JSON.parse(sessionStorage.getItem(saveKey)||"null")}catch{auth=null}}
+function store(){sessionStorage.setItem(saveKey,JSON.stringify(auth))}
+async function renew(){
+ if(!auth?.refresh_token)throw Error("Lütfen yeniden giriş yapın.");
+ const r=await fetch(api+"/auth/v1/token?grant_type=refresh_token",{method:"POST",cache:"no-store",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:auth.refresh_token})});
+ if(!r.ok)throw Error("Oturum yenilenemedi; tekrar giriş yapın.");
+ const d=await r.json();if(!d.access_token||!d.refresh_token)throw Error("Oturum yanıtı eksik.");
+ auth={...auth,...d,expires_at:Date.now()+Number(d.expires_in||3600)*1000};store();
+}
+async function validate(){
+ if(!auth?.access_token)throw Error("Önce giriş yapın.");
+ if(Number(auth.expires_at)<Date.now()+120000)await renew();
+ let r=await fetch(api+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+auth.access_token},cache:"no-store"});
+ if(r.status===401){await renew();r=await fetch(api+"/auth/v1/user",{headers:{apikey:key,Authorization:"Bearer "+auth.access_token},cache:"no-store"});}
+ if(!r.ok)throw Error("Oturum doğrulanamadı.");
+ const user=await r.json();
+ if(!user?.id||(auth.user?.id&&auth.user.id!==user.id))throw Error("Oturum hesabı uyuşmuyor.");
+ uid=user.id;return user;
+}
+async function entitlement(){
+ const r=await fetch(api+"/rest/v1/rpc/emlakcrm_entitlement_status",{method:"POST",cache:"no-store",headers:{apikey:key,Authorization:"Bearer "+auth.access_token,"Content-Type":"application/json"},body:"{}"});
+ if(!r.ok)throw Error("Üyelik kontrolü yapılamadı.");
+ const d=await r.json();if(d?.allowed!==true)throw Error("Abonelik veya deneme hakkı aktif değil.");
+ lastEntitlement=Date.now();
+}
+async function refresh(){
+ if(busy||!auth)return;
+ busy=true;
+ try{
+  await validate();
+  if(!lastEntitlement||Date.now()-lastEntitlement>600000)await entitlement();
+  const r=await fetch(api+"/rest/v1/emlakcrm_desktop_widget_snapshots?select=snapshot,updated_at&user_id=eq."+encodeURIComponent(uid)+"&limit=1",
+   {cache:"no-store",headers:{apikey:key,Authorization:"Bearer "+auth.access_token}});
+  if(!r.ok)throw Error("Özet alınamadı ("+r.status+").");
+  const list=await r.json();if(!Array.isArray(list))throw Error("Sunucu yanıtı geçersiz.");
+  logged(true);
+  if(list.length)render(list[0].snapshot,list[0].updated_at);
+  else{
+   $("agendaList").replaceChildren(text("div","EmlakCRM'de masaüstü eşitlemesini aç.","empty"));
+   $("offerList").replaceChildren(text("div","İlk senkronizasyon bekleniyor.","empty"));
+   $("agendaBadge").textContent="—";$("offerBadge").textContent="—";
+   info("EmlakCRM ana sayfasında Masaüstü Widget eşitlemesini aç.",true);
+  }
+ }catch(err){
+  const message=String(err?.message||err);info(message,true);
+  if(/oturum|giriş|hesabı uyuşmuyor/i.test(message)){auth=null;uid="";sessionStorage.removeItem(saveKey);logged(false);$("loginInfo").textContent=message;}
+ }finally{busy=false;}
+}
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();const form=e.currentTarget;
+ const email=String(form.elements.email.value||"").trim();
+ const password=String(form.elements.password.value||"");
+ $("loginBtn").disabled=true;$("loginInfo").textContent="Bağlanılıyor…";
+ try{
+  const r=await fetch(api+"/auth/v1/token?grant_type=password",{method:"POST",cache:"no-store",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  if(!r.ok)throw Error("Giriş yapılamadı ("+r.status+"). E-posta ve şifreyi kontrol edin.");
+  const d=await r.json();if(!d.access_token||!d.refresh_token)throw Error("Giriş yanıtı geçersiz.");
+  auth={...d,expires_at:Date.now()+Number(d.expires_in||3600)*1000};
+  form.elements.password.value="";store();
+  await validate();await entitlement();await refresh();
+ }catch(err){$("loginInfo").textContent=String(err.message||err);auth=null;sessionStorage.removeItem(saveKey);}
+ finally{$("loginBtn").disabled=false;}
+});
+$("logout").addEventListener("click",()=>{auth=null;uid="";sessionStorage.removeItem(saveKey);logged(false);info("Oturum kapatıldı.");});
+recover();if(auth){void refresh();}else{logged(false);}
+setInterval(()=>{if(auth)void refresh();},15000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&auth)void refresh();});
+})();
+</script></body></html>
