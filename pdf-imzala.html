@@ -628,7 +628,7 @@ $("invites").onclick=async e=>{
  try{await navigator.clipboard.writeText(btn.dataset.copyLink);btn.textContent="✓ Kopyalandı"}
  catch{window.prompt("Bağlantıyı kopyala:",btn.dataset.copyLink)}
 };
-let signatureSnapshot=null,signatureMonitorTimer=null,signatureListBusy=false;
+let signatureSnapshot=null,signatureMonitorTimer=null,signatureListBusy=false,signatureRefreshQueued=false,lastSignatureListDigest=null;
 function stopSignatureMonitoring(){
  if(signatureMonitorTimer){clearInterval(signatureMonitorTimer);signatureMonitorTimer=null}
 }
@@ -674,12 +674,23 @@ $("notifyPermission").onclick=async()=>{
  }catch(e){tell("listStatus","Tarayıcı bildirimleri açılamadı: "+e.message,true)}
 };
 async function listDocs({silent=false}={}){
- if(signatureListBusy||$("adminApp").hidden)return;
+ if($("adminApp").hidden)return;
+ if(signatureListBusy){
+  if(!silent){signatureRefreshQueued=true;tell("listStatus","Devam eden kontrol bitince yeniden sorgulanacak...");}
+  return;
+ }
  signatureListBusy=true;
- if(!silent)tell("listStatus","Liste yenileniyor...");
+ const refreshButton=$("refreshBtn");
+ refreshButton.disabled=true;
+ refreshButton.textContent="Kontrol ediliyor…";
+ if(!silent)tell("listStatus","Sunucudan güncel imza durumları sorgulanıyor...");
  try{
   const data=await call("list",{},true);
-  notifyNewSignatures(data.documents||[]);
+  if(!Array.isArray(data.documents))throw Error("Sunucudan geçerli belge listesi alınamadı.");
+  const currentDigest=JSON.stringify(data.documents.map(d=>[d.id,d.status,(d.signers||[]).map(p=>[p.slot,p.status])]));
+  const changed=lastSignatureListDigest!==null&&lastSignatureListDigest!==currentDigest;
+  lastSignatureListDigest=currentDigest;
+  notifyNewSignatures(data.documents);
   $("documentsList").innerHTML=data.documents.length?data.documents.map(d=>{
    const signed=(d.signers||[]).filter(s=>s.status==="signed").length;
    return '<div class="card"><div class="row" style="justify-content:space-between"><strong>'+xss(d.title)+'</strong><span class="chip '+(signed<(d.signers||[]).length?"wait":"")+'">'+signed+'/'+(d.signers||[]).length+' imza · '+(d.status==="cancelled"?"Durduruldu":d.status==="complete"?"Tamamlandı":signed===(d.signers||[]).length?"PDF hazırlanıyor":"Bekleniyor")+'</span></div><p class="miniNote">'+new Date(d.created_at).toLocaleString("tr-TR")+'</p>'+
@@ -691,12 +702,17 @@ async function listDocs({silent=false}={}){
     '<button class="secondary" data-archive-doc="'+xss(d.id)+'">Listeden Sil</button>'+
     '</div></div>';
   }).join(""):'<p class="muted">Henüz oluşturulmuş belge yok.</p>';
-  if(!silent)tell("listStatus","");
-  $("autoCheckStatus").textContent="✓ Son kontrol: "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" · 30 sn'de bir";
+  if(!silent)tell("listStatus",changed?"✓ Sunucudan yenilendi. İmza durumunda değişiklik var.":"✓ Sunucudan kontrol edildi. Yeni imza/durum değişikliği yok.");
+  $("autoCheckStatus").textContent="✓ Başarılı kontrol: "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" · 30 sn'de bir";
  }catch(e){
-  if(!silent)tell("listStatus",e.message,true);
-  $("autoCheckStatus").textContent="Kontrol başarısız; tekrar denenecek";
- }finally{signatureListBusy=false}
+  tell("listStatus","⚠ İmza listesi güncellenemedi: "+e.message,true);
+  $("autoCheckStatus").textContent="⚠ Kontrol başarısız · "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+ }finally{
+  signatureListBusy=false;
+  refreshButton.disabled=false;
+  refreshButton.textContent="Şimdi Yenile ↻";
+  if(signatureRefreshQueued){signatureRefreshQueued=false;void listDocs();}
+ }
 }
 $("refreshBtn").onclick=()=>void listDocs();
 $("documentsList").onclick=async e=>{
