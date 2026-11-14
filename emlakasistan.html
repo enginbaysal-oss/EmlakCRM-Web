@@ -350,7 +350,7 @@ sigCanvas.addEventListener("pointermove",e=>{if(!signing)return;const p=canvasPo
 $("signatureClear").onclick=clearSign;$("signatureCancel").onclick=()=>$("signatureDialog").close();
 $("signatureSave").onclick=()=>{if(!hasInk){alert("Önce imza çiziniz.");return}values[activeSignId]=sigCanvas.toDataURL("image/png");$("signatureDialog").close();render()};
 
-// Print at the same A4 size as the measurement model. Use a readable auto-fit range for narrow template fields.
+// Print at A4 size using a consistent, legible 9-point form font.
 let printFitWarnings=[];
 function pdfFieldLineCount(text,ctx,maxWidth){
  let total=0;
@@ -373,18 +373,16 @@ function pdfFieldLineCount(text,ctx,maxWidth){
  return total;
 }
 function pdfFieldFont(text,field){
+ const pt=9;
  const width=793.7*Number(field.wPct)/100-4;
  const height=1122.5*Number(field.hPct)/100-2;
- if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)return {pt:6,fits:false};
+ if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)return {pt,fits:false};
  const ctx=document.createElement("canvas").getContext("2d");
- if(!ctx)return {pt:6,fits:false};
- for(const pt of [9.5,9,8.5,8,7.5,7,6.5,6]){
-  const pixels=pt*96/72;
-  ctx.font="700 "+pixels+"px Arial";
-  if(pdfFieldLineCount(text,ctx,width)*pixels*1.14<=height)return {pt,fits:true};
- }
- return {pt:6,fits:false};
+ if(!ctx)return {pt,fits:false};
+ const pixels=pt*96/72;
+ ctx.font="700 "+pixels+"px Arial";
+ return {pt,fits:pdfFieldLineCount(text,ctx,width)*pixels*1.14<=height};
 }
 function buildPrint(){printFitWarnings=[];const t=templates[selected];if(!t)return;const root=$("printAll");root.innerHTML="";t.pages.forEach((imageSrc,i)=>{const sheet=document.createElement("div");sheet.className="page";const img=document.createElement("img");img.src=imageSrc;img.alt="Belge sayfası "+(i+1);sheet.appendChild(img);t.fields.filter(f=>Number(f.page)===i&&values[f.id]).forEach(f=>{const value=document.createElement("div");value.className="printValue";if(f.type==="signature"&&String(values[f.id]).startsWith("data:image/png")){const image=document.createElement("img");image.className="sigPrint";image.src=values[f.id];value.appendChild(image);image.style.width="100%";image.style.height="100%"}else{value.textContent=String(values[f.id]);const fit=pdfFieldFont(values[f.id],f);value.style.fontSize=fit.pt+"pt";if(!fit.fits)printFitWarnings.push(String(f.label||f.id||"Belge alanı"))}["left","top","width","height"].forEach((k,j)=>{const key=["xPct","yPct","wPct","hPct"][j];const n=Number(f.type==="signature"&&signaturePositions[f.id]?.[key]!==undefined?signaturePositions[f.id][key]:f[key]);value.style[k]=(Number.isFinite(n)?Math.max(0,Math.min(100,n)):0)+"%"});sheet.appendChild(value)});root.appendChild(sheet)})}
-$("print").onclick=async()=>{if(!templates[selected])return;const documentName=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();document.title=documentName||"Belge";const button=$("print");button.disabled=true;const label=button.textContent;button.textContent="Tüm sayfalar yükleniyor…";try{buildPrint();if(printFitWarnings.length){const unique=[...new Set(printFitWarnings)];const warning="PDF okunurluğu korundu: "+unique.slice(0,5).join(", ")+(unique.length>5?" ve "+(unique.length-5)+" alan daha":"")+" alanına metin 6 puntoda bile sığmıyor. Bu alan çok dar; lütfen metni kısaltın veya şablon alanını genişletin."; $("status").textContent=warning;alert(warning);return;}const images=[...$("printAll").querySelectorAll(".page img")];const results=await Promise.all(images.map(async img=>{if(!img.complete)await new Promise((resolve,reject)=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",reject,{once:true})});if(!img.naturalWidth)throw Error("Sayfa görseli okunamadı.");return true}));if($("printAll").querySelectorAll(":scope > .page").length!==templates[selected].pages.length)throw Error("Belge sayfaları oluşturulamadı.");await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));if(window.EmlakCRMAndroid&&typeof window.EmlakCRMAndroid.printDocument==="function"){window.EmlakCRMAndroid.printDocument(documentName||"EmlakCRM Belge")}else{window.print()}$("status").textContent=images.length+" sayfa PDF olarak kaydetmeye hazırlandı. Android yazdırma ekranında PDF olarak kaydet seçeneğini kullanın."}catch(e){$("status").textContent="PDF oluşturma hatası: "+e.message;alert("Bazı sayfalar yüklenemedi. PDF kaydı durduruldu: "+e.message)}finally{button.disabled=false;button.textContent=label}};
+$("print").onclick=async()=>{if(!templates[selected])return;const documentName=String(templates[selected].name||"Belge").replace(/[\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();document.title=documentName||"Belge";const button=$("print");button.disabled=true;const label=button.textContent;button.textContent="Tüm sayfalar yükleniyor…";try{buildPrint();if(printFitWarnings.length){const unique=[...new Set(printFitWarnings)];const warning="PDF okunurluğu korundu: "+unique.slice(0,5).join(", ")+(unique.length>5?" ve "+(unique.length-5)+" alan daha":"")+" alanına metin 9 puntoda sığmıyor. Okunurluk için yazı daha fazla küçültülmedi; lütfen metni kısaltın veya şablon alanını genişletin."; $("status").textContent=warning;alert(warning);return;}const images=[...$("printAll").querySelectorAll(".page img")];const results=await Promise.all(images.map(async img=>{if(!img.complete)await new Promise((resolve,reject)=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",reject,{once:true})});if(!img.naturalWidth)throw Error("Sayfa görseli okunamadı.");return true}));if($("printAll").querySelectorAll(":scope > .page").length!==templates[selected].pages.length)throw Error("Belge sayfaları oluşturulamadı.");await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));if(window.EmlakCRMAndroid&&typeof window.EmlakCRMAndroid.printDocument==="function"){window.EmlakCRMAndroid.printDocument(documentName||"EmlakCRM Belge")}else{window.print()}$("status").textContent=images.length+" sayfa PDF olarak kaydetmeye hazırlandı. Android yazdırma ekranında PDF olarak kaydet seçeneğini kullanın."}catch(e){$("status").textContent="PDF oluşturma hatası: "+e.message;alert("Bazı sayfalar yüklenemedi. PDF kaydı durduruldu: "+e.message)}finally{button.disabled=false;button.textContent=label}};
 </script><script src="assets/belge-arsiv.js?v=20261114navyvisible4"></script></body></html>
