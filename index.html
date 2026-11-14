@@ -569,7 +569,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(standart · KDV dahil / 12 ay)</span></p><p style="font-size:13px;color:#22637d;margin:3px 0 8px"><strong>İlyada 3 danışmanları:</strong> Ofis onayından sonra 500 TL (KDV dahil / 12 ay).</p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
-<p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a> <a href="./eski-kayit-kurtarma.html" style="display:inline-block;background:#eaf3f7;color:#134a66;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px;margin-top:8px">🔍 Eski Yerel Kayıtları Kontrol Et</a></p>
+<p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html?v=20261114unified1" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a> <a href="./eski-kayit-kurtarma.html" style="display:inline-block;background:#eaf3f7;color:#134a66;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px;margin-top:8px">🔍 Eski Yerel Kayıtları Kontrol Et</a></p>
 <p style="margin:12px 0"><a href="abonelik-satin-al.html" style="display:inline-block;background:#ef8926;color:#1b3346;padding:12px 16px;border-radius:11px;text-decoration:none;font-weight:800">Abonelik İşlemlerine Geç →</a></p>
 <p class="muted" style="font-size:13px">12 ay kullanım, tek ödeme, otomatik yenileme yok. Abonelik güvenli ödeme sonrasında etkinleşir.</p>
 </section>
@@ -2102,7 +2102,7 @@ async function showScreen(name){
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},700);
   setTimeout(()=>{if(document.body.dataset.screen==="pdf")void sendPdfSession()},1800);
  }
- if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261108h");
+ if(selected==="assistant"&&!$("assistantFrame").getAttribute("src"))$("assistantFrame").setAttribute("src","emlakasistan.html?v=20261114officeauto1");
  document.body.dataset.screen=selected;
  appScreens.forEach(k=>{const el=$(k+"View");if(!el)return;el.hidden=k!==selected;el.style.display=k===selected?"block":"none"});
  $("appNav").hidden=selected==="home";
