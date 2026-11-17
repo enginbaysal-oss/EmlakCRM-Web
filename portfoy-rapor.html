@@ -1526,15 +1526,44 @@ function remaxParsePage(html,source){
  }
  throw Error("Bu sayfada desteklenen RE/MAX ilan listesi bulunamadı");
 }
+// RE/MAX için Cloudflare servisi çalışmazsa kimlik doğrulamalı Supabase servisini kullan.
+let remaxPreferBridge=false;
+async function remaxFetchWithFallback(target,decode){
+ const worker="https://sesliportfoy-proxy.engin-baysal.workers.dev/?url="+encodeURIComponent(target.href);
+ const bridge=externalSourceProject+"/functions/v1/emlakcrm-remax-bridge?url="+encodeURIComponent(target.href);
+ const token=externalSourceSession()?.access_token||"";
+ const routes=remaxPreferBridge?["bridge","worker"]:["worker","bridge"],failures=[];
+ for(const route of routes){
+  if(route==="bridge"&&!token){failures.push("Yedek servis için oturum bulunamadı");continue}
+  try{
+   const endpoint=route==="bridge"?bridge:worker;
+   const headers=route==="bridge"?{apikey:externalSourceApiKey,Authorization:"Bearer "+token}:{};
+   const response=await fetch(endpoint,{mode:"cors",credentials:"omit",headers,signal:AbortSignal.timeout(route==="bridge"?16000:7500)});
+   if(!response.ok){
+    const body=(await response.text()).slice(0,150);
+    let msg="HTTP "+response.status;
+    try{const detail=JSON.parse(body);if(detail.error)msg+=" ("+detail.error+")"}catch{}
+    throw Error(msg);
+   }
+   const html=await response.text();
+   if(!/<html\b|<!doctype\s+html/i.test(html))throw Error("Kaynak HTML döndürmedi");
+   const parsed=decode(html);
+   if(Array.isArray(parsed)&&!parsed.length&&Number(target.searchParams.get("page")||"1")===1)throw Error("İlk sayfada ilan bulunamadı");
+   remaxPreferBridge=route==="bridge";
+   return parsed;
+  }catch(e){
+   if(route==="worker")remaxPreferBridge=true;
+   failures.push((route==="bridge"?"Yedek servis":"Ana servis")+": "+(e instanceof TypeError?"bağlantı kurulamadı":e?.name==="TimeoutError"?"zaman aşımı":String(e?.message||e)));
+  }
+ }
+ throw Error("RE/MAX sayfası okunamadı. "+failures.join(" | "));
+}
 // İlan liste verisinde cep telefonu yoksa RE/MAX ayrıntı sayfasını kontrol et.
 async function remaxDetailMobile(listingUrl){
  try{
   const u=new URL(listingUrl);
   if(!["remax.com.tr","www.remax.com.tr"].includes(u.hostname)||!/^\/tr\/portfoy\/P\d+/i.test(u.pathname))return {phone:"",reason:"Geçersiz ilan adresi"};
-  const proxy="https://sesliportfoy-proxy.engin-baysal.workers.dev/?url="+encodeURIComponent(u.href);
-  const response=await fetch(proxy,{mode:"cors",credentials:"omit",signal:AbortSignal.timeout(16000)});
-  if(!response.ok)return {phone:"",reason:"HTTP "+response.status};
-  const html=await response.text();
+  const html=await remaxFetchWithFallback(u,html=>html);
   const flight=remaxFlightData(html)||"";
   const decoded=html.replace(/\\u002[bB]/g,"+").replace(/\\u003[aA]/g,":").replace(/\\u0020/g," ").replace(/&nbsp;|&#160;/gi," ").replace(/&#43;|&plus;/gi,"+");
   const phonePattern=/(?:\+?90[\s.()-]*)?0?5\d{2}[\s.()-]*\d{3}[\s.()-]*\d{2}[\s.()-]*\d{2}/g;
@@ -1570,10 +1599,7 @@ async function externalFetchOne(url){
   const all=[],seen=new Set();
   for(let page=1;page<=20;page++){
    const target=new URL(url);target.searchParams.set("page",String(page));
-   const proxy="https://sesliportfoy-proxy.engin-baysal.workers.dev/?url="+encodeURIComponent(target.href);
-   const response=await fetch(proxy,{mode:"cors",credentials:"omit",signal:AbortSignal.timeout(16000)});
-   if(!response.ok)throw Error("RE/MAX veri servisi HTTP "+response.status);
-   const html=await response.text();const list=remaxParsePage(html,url);let added=0;
+   const list=await remaxFetchWithFallback(target,html=>remaxParsePage(html,url));let added=0;
    for(const p of list){if(!seen.has(p.url)){seen.add(p.url);all.push(p);added++}}
    if(list.length<10||added===0)break;
   }
@@ -1597,10 +1623,32 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
  const found=[],errors=[];
  for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
- const phoneCheck=await remaxFillMissingMobiles(found,status);
- const existing=externalRead(),index=new Map(existing.map((x,i)=>[x.url+"|"+x.title,i]));
- for(const p of found){const k=p.url+"|"+p.title;if(index.has(k)){const i=index.get(k);existing[i]={...existing[i],...p,phone:externalPhone(p.phone)||existing[i].phone||""}}else{index.set(k,existing.length);existing.push(p)}}
- try{localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));externalDraw();status.textContent=found.length+" kayıt okundu; telefon kontrolü: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+(Object.keys(phoneCheck.reasons).length?" Bulunamayanların nedeni: "+Object.entries(phoneCheck.reasons).map(([k,v])=>k+" ("+v+")").join(", ")+".":"")+" "+errors.length+" bağlantı okunamadı."+(invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"")+(errors.length?" Ayrıntı: "+errors.slice(0,3).join(" | "):"")}catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
+ const unique=[...new Map(found.map(p=>[p.url,p])).values()];
+ const existing=externalRead(),index=new Map(existing.map((x,i)=>[x.url,i]));
+ for(const p of unique){
+  if(index.has(p.url)){const i=index.get(p.url);existing[i]={...existing[i],...p,phone:externalPhone(p.phone)||existing[i].phone||""}}
+  else{index.set(p.url,existing.length);existing.push(p)}
+ }
+ const seen=new Set(unique.map(p=>p.url));
+ const notSeen=errors.length?0:existing.filter(p=>urls.includes(p.source)&&!seen.has(p.url)).length;
+ try{
+  localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));
+  externalDraw();
+  status.textContent=unique.length+" güncel ilan okundu, mevcut kayıtlar korundu."+
+   (notSeen?" Daha önce kayıtlı "+notSeen+" ilan bu çekimde bulunamadı; silinmedi.":"")+
+   (errors.length?" "+errors.length+" bağlantı okunamadı. Ayrıntı: "+errors.slice(0,2).join(" | "):"")+
+   (invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"");
+  // Telefon kontrolünden önce ilanlar kaydedilir: yarım kalan ağ isteği veri kaybına neden olmaz.
+  if(unique.length){
+   const phoneCheck=await remaxFillMissingMobiles(unique,status);
+   for(const p of unique){const i=index.get(p.url);if(i!==undefined&&externalPhone(p.phone))existing[i].phone=externalPhone(p.phone)}
+   localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));
+   externalDraw();
+   status.textContent=unique.length+" ilan okundu, kayıtlar korundu; cep telefonu: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+
+    (notSeen?" "+notSeen+" eski kayıt kontrol edilmeli (silinmedi).":"")+
+    (errors.length?" Hata: "+errors.slice(0,2).join(" | "):"");
+  }
+ }catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
  btn.disabled=false;
 };
 // Çekilen portföy bulut yedeği: bağımsız betik yüklenmese de doğrudan güvenli kayıt.
