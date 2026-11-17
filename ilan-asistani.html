@@ -86,7 +86,9 @@ button,.btn{font:inherit;border:1px solid #cbd2d3;background:var(--white);border
 button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #d6a968;outline-offset:2px}
 button:hover,.btn:hover{border-color:var(--bronze)}
 .home-back-btn{background:#e56b24;color:#fff;border-color:#c75517;font-weight:700}.home-back-btn:hover{background:#ca571a;border-color:#b54b11;color:#fff}.home-back-btn:focus-visible{outline:3px solid #f3ad72;outline-offset:2px}
-button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+button.primary,.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+#listingActionControls>*{min-width:150px;min-height:44px}
+@media(max-width:480px){#listingActionControls>*{flex:1 1 100%}}
 button:disabled{opacity:.5;cursor:not-allowed}
 input,select,textarea{width:100%;border:1px solid #cbd2d3;border-radius:9px;padding:11px;background:#fff;color:var(--ink);font:inherit}
 textarea{resize:vertical;min-height:90px;line-height:1.55}
@@ -541,6 +543,21 @@ function targetUrl(link){
     return m?{url:u.origin+u.pathname,id:m[1],path:u.pathname}:null;
   }catch(e){return null;}
 }
+// Gerçek ilan adresini kullan: boş sekme açmak Android uygulama bağlantısını bozar.
+function listingOpenLinks(raw){
+ const valid=targetUrl(raw);
+ if(!valid)return null;
+ const browser=valid.url;
+ const android=/Android/i.test(navigator.userAgent||'');
+ if(!android)return {browser,app:browser,android:false};
+ const u=new URL(browser);
+ // Chrome Android: sahibinden'in gerçek paketine doğrudan yönel, kurulu değilse
+ // yalnızca açık bir kullanıcı tıklamasıyla aynı HTTPS ilana geri dön.
+ const app='intent://'+u.host+u.pathname+
+   '#Intent;scheme=https;package=com.sahibinden;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;'+
+   'S.browser_fallback_url='+encodeURIComponent(browser)+';end';
+ return {browser,app,android:true};
+}
 function guessDeal(s){const x=normalize(s);if(/kiralik|kiralama|kiraya/.test(x))return 'kiralik';if(/satilik|satisa|satis/.test(x))return 'satilik';return 'belirsiz';}
 function importMail(body){
  const labelMatch=body.match(/["“]([^"”\n]{1,100})["”]\s+adlı\s+Favori Arama/i)||body.match(/^\s*\(([^)\n]{1,100})\)\s*Favori Arama için Sonuçlar/im);
@@ -667,6 +684,8 @@ function showDetail(){
  const message=r.type==='kiralik'?RENT:r.type==='satilik'?SALE:'Önce satılık/kiralık türünü seçin.';
  const canPrepare=r.status==='ready';
  const locked=['sent','positive','negative','manual','blockedReply','excluded'].includes(r.status);
+ const links=listingOpenLinks(String(r.url||''));
+ const canCopy=['ready','sent','positive','manual'].includes(r.status)&&['satilik','kiralik'].includes(r.type);
  $('detail').innerHTML=
  '<div class="eyebrow">İlan #'+r.id+'</div><div class="detail-title">'+escapeHtml(r.title)+'</div>'+
  '<div class="detail-meta"><span>'+escapeHtml(r.price)+'</span><span>'+typeName+'</span><span class="pill '+cssStatus(r.status)+'">'+escapeHtml(label(r))+'</span></div>'+
@@ -674,24 +693,21 @@ function showDetail(){
  '<div class="note" id="notice">'+escapeHtml(r.notice||'Açıklama kontrolü zorunlu değil.')+'</div>'+
  '<label for="dealType">İlan türü</label><select id="dealType" '+(locked?'disabled':'')+'><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option><option value="belirsiz">Belirsiz</option></select>'+
  '<hr><h2>İlan sahibine ilk mesaj</h2><textarea class="message" id="initialMessage" readonly spellcheck="false" aria-label="İlan sahibine gönderilecek mesaj" style="min-height:112px;display:block;">'+escapeHtml(message)+'</textarea>'+
- '<div class="controls" style="margin-top:10px"><button id="copyAndOpen" class="primary">'+(canPrepare?'Mesajı Kopyala ve İlanı Aç ↗':'İlanı Tekrar Aç ↗')+'</button><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button></div><div class="controls" style="margin-top:8px"><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
- '<div class="small" style="margin-top:7px"><b>Sıra:</b> “Mesajı Kopyala ve İlanı Aç” düğmesine basın. Mesaj kopyalanır ve ilan yeni sekmede açılır. İletişim istemeyenlere yazmayın; uygunsa Ctrl + V ile yapıştırın. Mesaj otomatik gönderilmez. İletişim istemeyenlere yazmayın. “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
+ '<div class="controls" id="listingActionControls" style="margin-top:10px">'+
+ (canCopy?'<button type="button" id="copyListingMessage" class="primary">📋 Mesajı Kopyala</button>':'')+
+ (links?'<a id="openListingApp" class="btn primary" href="'+escapeHtml(links.app)+'"'+(links.android?'':' target="_blank" rel="noopener noreferrer"')+'>'+(links.android?'📱 Sahibinden Uygulamasında Aç ↗':'İlanı Aç ↗')+'</a>':'<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
+ (links&&links.android?'<a id="openListingBrowser" class="btn" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 Tarayıcıda Aç ↗</a>':'')+
+ '</div><div class="controls" style="margin-top:10px"><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
+ '<div class="small" style="margin-top:7px"><b>Sıra:</b> Mesajı kopyalayın, ardından ilanı açın. Android telefonlarda uygulama seçeneği önce sahibinden uygulamasını dener; uygulama kullanılamıyorsa ilan tarayıcıda açılabilir. Açılmazsa “Tarayıcıda Aç” seçeneğini kullanın. İletişim istemeyenlere yazmayın. Mesaj otomatik gönderilmez; “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
  '<div class="small" style="margin-top:8px">Yanıtları ve görüşmeleri sahibinden.com üzerinden takip edebilirsiniz.</div>';
  $('dealType').value=r.type;
  $('dealType').addEventListener('change',e=>{if(locked)return;r.type=e.target.value;prepare(r);save();});
- $('copyAndOpen').addEventListener('click',async()=>{
-  // Previously handled or excluded listings remain viewable without changing their status.
-  const destination=String(r.url||'');
-  if(!/^https:\/\/(?:www\.)?sahibinden\.com\/ilan\//i.test(destination)){toast('Geçerli sahibinden.com ilan bağlantısı bulunamadı.');return;}
-  const tab=window.open('about:blank','_blank');
-  if(tab)tab.opener=null;
-  if(r.status==='ready'){
-   const ok=await copy(r.type==='kiralik'?RENT:SALE,$('copyAndOpen'));
-   if(!ok){if(tab)tab.close();return;}
-  }
-  if(tab)tab.location.replace(destination);
-  else toast('Açılır pencere engellendi. Tarayıcıda bu site için izin verin.');
+ if(canCopy)$('copyListingMessage').addEventListener('click',()=>{
+  void copy(r.type==='kiralik'?RENT:SALE,$('copyListingMessage'));
  });
+ // İlan açma gerçek <a href> tıklamasıdır: JS içinde about:blank/popup açılmaz.
+ // Böylece Android App Link/Intent kullanıcının doğrudan hareketiyle işlenir.
+
  $('excludeListing').addEventListener('click',()=>{if(r.status==='excluded'){r.status=r.previousStatus||'ready';delete r.previousStatus;r.notice='Tercih geri alındı.';}else{r.previousStatus=r.status;r.status='excluded';r.notice='Tercih edilmiyor; ilan gizlendi.';}closeDetails();save();});
  $('markSent').addEventListener('click',()=>{if(r.status!=='ready')return;r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';try{rememberSent(r.id);}catch(e){toast('Gönderim kaydı saklanamadı; tarayıcı depolama iznini kontrol edin.');}save();recordSentCloud(r.id);});
 
