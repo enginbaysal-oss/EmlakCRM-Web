@@ -549,7 +549,16 @@ function targetUrl(link){
 function listingOpenLinks(raw){
  const valid=targetUrl(raw);
  if(!valid)return null;
- return {browser:valid.url,android:/Android/i.test(navigator.userAgent||'')};
+ const android=/Android/i.test(navigator.userAgent||'');
+ // Deneme sürümünde sadece gerçek kullanıcı dokunuşu ile sahibinden Pro paketini hedefle.
+ // Desteklenmezse Chrome, doğrudan HTTPS ilan sayfasına geri dönebilir.
+ const testPro=android&&new URLSearchParams(location.search).get('proTest')==='1';
+ const u=new URL(valid.url);
+ const proIntent=testPro?
+  'intent://'+u.host+u.pathname+
+  '#Intent;scheme=https;package=com.sahibinden.pro;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;'+
+  'S.browser_fallback_url='+encodeURIComponent(valid.url)+';end':null;
+ return {browser:valid.url,android,proIntent};
 }
 
 function guessDeal(s){const x=normalize(s);if(/kiralik|kiralama|kiraya/.test(x))return 'kiralik';if(/satilik|satisa|satis/.test(x))return 'satilik';return 'belirsiz';}
@@ -689,15 +698,31 @@ function showDetail(){
  '<hr><h2>İlan sahibine ilk mesaj</h2><textarea class="message" id="initialMessage" readonly spellcheck="false" aria-label="İlan sahibine gönderilecek mesaj" style="min-height:112px;display:block;">'+escapeHtml(message)+'</textarea>'+
  '<div class="controls" id="listingActionControls" style="margin-top:10px">'+
  (links?(canCopy?
-   '<button type="button" id="copyAndOpen" class="primary">📋 Mesajı Kopyala ve İlanı Aç ↗</button>':
+   (links.proIntent?
+    '<a id="copyAndOpenPro" class="btn primary" href="'+escapeHtml(links.proIntent)+'">📋 Mesajı Kopyala ve Sahibinden Pro ile Aç ↗</a>':
+    '<button type="button" id="copyAndOpen" class="primary">📋 Mesajı Kopyala ve İlanı Aç ↗</button>'):
    '<a id="openListingBrowser" class="btn primary" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 İlanı Aç ↗</a>'):
    '<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
  '</div><div class="controls" style="margin-top:10px"><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
- '<div class="small" style="margin-top:7px">Tek dokunuşta mesaj panoya kopyalanır ve doğru ilan tarayıcıda açılır. Sahibinden uygulaması mesaj ekranını yanlış açarsa bu EmlakCRM bağlantısından bağımsızdır. Mesaj otomatik gönderilmez; gönderme işlemini siz yaparsınız.</div>'+
+ '<div class="small" style="margin-top:7px">'+(links?.proIntent?'Deneme: Tek dokunuşta mesaj kopyalanır ve Sahibinden Pro uygulamasında aynı ilan açılmaya çalışılır. Uygulama bu bağlantıyı desteklemiyorsa tarayıcıya dönülebilir. Mesaj otomatik gönderilmez.':'Tek dokunuşta mesaj panoya kopyalanır ve doğru ilan tarayıcıda açılır. Mesaj otomatik gönderilmez; gönderme işlemini siz yaparsınız.')+'</div>'+
  '<div class="small" style="margin-top:8px">Yanıtları ve görüşmeleri sahibinden.com üzerinden takip edebilirsiniz.</div>';
  $('dealType').value=r.type;
  $('dealType').addEventListener('change',e=>{if(locked)return;r.type=e.target.value;prepare(r);save();});
- if(canCopy&&links){
+ if(canCopy&&links?.proIntent){
+  $('copyAndOpenPro').addEventListener('click',event=>{
+   // Android'in harici uygulamayı açması için dokunulan <a> gerçek bir intent bağlantısı olmalı.
+   // Kopyalama önce senkron yapılır; await sonrası intent yönlendirmesi Chrome'da engellenebilir.
+   const msg=r.type==='kiralik'?RENT:SALE;
+   if(copyMessageSynchronously(msg)){
+    toast('Mesaj kopyalandı. Sahibinden Pro içinde ilan açılmaya çalışılıyor.');
+    return;
+   }
+   // Synchronous panoya yazma engellendiğinde kullanıcının gerçek mesajını kaybetme.
+   event.preventDefault();
+   void copy(msg,$('copyAndOpenPro')).then(ok=>{if(ok)window.location.assign(links.browser)});
+  });
+ }
+ if(canCopy&&links&&!links.proIntent){
   $('copyAndOpen').addEventListener('click',async()=>{
    const button=$('copyAndOpen');
    if(button.disabled)return;
@@ -719,6 +744,22 @@ function showDetail(){
  $('excludeListing').addEventListener('click',()=>{if(r.status==='excluded'){r.status=r.previousStatus||'ready';delete r.previousStatus;r.notice='Tercih geri alındı.';}else{r.previousStatus=r.status;r.status='excluded';r.notice='Tercih edilmiyor; ilan gizlendi.';}closeDetails();save();});
  $('markSent').addEventListener('click',()=>{if(r.status!=='ready')return;r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';try{rememberSent(r.id);}catch(e){toast('Gönderim kaydı saklanamadı; tarayıcı depolama iznini kontrol edin.');}save();recordSentCloud(r.id);});
 
+}
+function copyMessageSynchronously(value){
+ const field=document.createElement('textarea');
+ field.value=value;
+ field.setAttribute('readonly','');
+ field.style.cssText='position:fixed;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px';
+ document.body.appendChild(field);
+ let ok=false;
+ try{
+  field.focus({preventScroll:true});
+  field.select();
+  field.setSelectionRange(0,field.value.length);
+  ok=!!document.execCommand('copy');
+ }catch(e){console.warn('Synchronous copy was rejected',e)}
+ finally{field.remove()}
+ return ok;
 }
 async function copy(s,button,successMessage,numberMode=false){
  let copied=false;
