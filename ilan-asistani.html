@@ -688,22 +688,33 @@ function showDetail(){
  '<label for="dealType">İlan türü</label><select id="dealType" '+(locked?'disabled':'')+'><option value="satilik">Satılık</option><option value="kiralik">Kiralık</option><option value="belirsiz">Belirsiz</option></select>'+
  '<hr><h2>İlan sahibine ilk mesaj</h2><textarea class="message" id="initialMessage" readonly spellcheck="false" aria-label="İlan sahibine gönderilecek mesaj" style="min-height:112px;display:block;">'+escapeHtml(message)+'</textarea>'+
  '<div class="controls" id="listingActionControls" style="margin-top:10px">'+
- (canCopy?'<button type="button" id="copyListingMessage" class="primary">📋 Mesajı Kopyala</button>':'')+
- (links?'<a id="openListingBrowser" class="btn primary" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 İlanı Tarayıcıda Aç ↗</a>':'<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
- (links&&links.android?'<button type="button" id="copyListingNumber" title="Sahibinden uygulamasında ilan numarasıyla arayın">🔢 İlan No '+escapeHtml(r.id)+' Kopyala</button>':'')+
+ (links?(canCopy?
+   '<button type="button" id="copyAndOpen" class="primary">📋 Mesajı Kopyala ve İlanı Aç ↗</button>':
+   '<a id="openListingBrowser" class="btn primary" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 İlanı Aç ↗</a>'):
+   '<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
  '</div><div class="controls" style="margin-top:10px"><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
- '<div class="small" style="margin-top:7px"><b>İşlem:</b> Mesajı kopyalayın ve ilanı tarayıcıda açın. Mesaj gönderince Sahibinden uygulaması ana sayfaya dönüyorsa aşağıdaki yöntemi kullanın. Mesaj otomatik gönderilmez; “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
- (links&&links.android?'<details class="note" style="margin-top:9px"><summary style="cursor:pointer;font-weight:750">Uygulama ilan yerine ana sayfaya mı açılıyor?</summary><p>“İlan No Kopyala” düğmesine dokunun. Sahibinden uygulamasının arama kutusuna ilan numarasını yapıştırıp ilanı açın. Ardından EmlakCRM\'ye dönüp mesajı kopyalayarak Sahibinden\'de ilgili ilana gönderebilirsiniz.</p><p>Tarayıcıda devam etmek için telefonunuzun Ayarlar → Uygulamalar → sahibinden → Varsayılan olarak aç kısmından “Desteklenen bağlantıları aç” seçeneğini kapatmayı deneyebilirsiniz. Sahibinden\'in kendi mesaj düğmesi uygulamaya özel yönlendiriyorsa bu ayar işe yaramayabilir.</p></details>':'')+
+ '<div class="small" style="margin-top:7px">Tek dokunuşta mesaj panoya kopyalanır ve doğru ilan tarayıcıda açılır. Sahibinden uygulaması mesaj ekranını yanlış açarsa bu EmlakCRM bağlantısından bağımsızdır. Mesaj otomatik gönderilmez; gönderme işlemini siz yaparsınız.</div>'+
  '<div class="small" style="margin-top:8px">Yanıtları ve görüşmeleri sahibinden.com üzerinden takip edebilirsiniz.</div>';
  $('dealType').value=r.type;
  $('dealType').addEventListener('change',e=>{if(locked)return;r.type=e.target.value;prepare(r);save();});
- if(canCopy)$('copyListingMessage').addEventListener('click',()=>{
-  void copy(r.type==='kiralik'?RENT:SALE,$('copyListingMessage'));
- });
- if(links?.android)$('copyListingNumber').addEventListener('click',()=>{
-  void copy(r.id,$('copyListingNumber'),'İlan numarası kopyalandı. Sahibinden uygulamasında arama alanına yapıştırın.',true);
- });
- // İlan için uygulamaya özel intent kullanma; yalnızca doğrulanmış HTTPS link açılır.
+ if(canCopy&&links){
+  $('copyAndOpen').addEventListener('click',async()=>{
+   const button=$('copyAndOpen');
+   if(button.disabled)return;
+   button.disabled=true;
+   const original=button.textContent;
+   try{
+    // Aynı pencerede HTTPS ilanına git: mobile popup/boş sekme yok.
+    const copied=await copy(r.type==='kiralik'?RENT:SALE,button);
+    if(copied)window.location.assign(links.browser);
+   }finally{
+    // Navigation may be blocked: keep the button usable for retry.
+    button.disabled=false;
+    if(document.getElementById('copyAndOpen')===button)button.textContent=original;
+   }
+  });
+ }
+ // Bloke / hariç tutulmuş ilanlarda mesaj kopyalanmaz, sadece görüntüleme yapılabilir.
 
  $('excludeListing').addEventListener('click',()=>{if(r.status==='excluded'){r.status=r.previousStatus||'ready';delete r.previousStatus;r.notice='Tercih geri alındı.';}else{r.previousStatus=r.status;r.status='excluded';r.notice='Tercih edilmiyor; ilan gizlendi.';}closeDetails();save();});
  $('markSent').addEventListener('click',()=>{if(r.status!=='ready')return;r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';try{rememberSent(r.id);}catch(e){toast('Gönderim kaydı saklanamadı; tarayıcı depolama iznini kontrol edin.');}save();recordSentCloud(r.id);});
