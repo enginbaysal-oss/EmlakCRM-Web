@@ -19,8 +19,8 @@ function allowed(input: URL): boolean {
       [...input.searchParams.keys()].some((key) => key !== "page")) return false;
   const rawPage = input.searchParams.get("page");
   if (rawPage !== null && (!/^[1-9][0-9]?$/.test(rawPage) || Number(rawPage) > 20)) return false;
-  return /^\\/tr\\/ofis\\/detay\\/[a-z0-9-]+\\/?$/i.test(input.pathname)
-    || /^\\/tr\\/portfoy\\/P[0-9]+\\/?$/i.test(input.pathname);
+  return new RegExp("^/tr/ofis/detay/[a-z0-9-]+/?$", "i").test(input.pathname)
+    || new RegExp("^/tr/portfoy/P[0-9]+/?$", "i").test(input.pathname);
 }
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -59,7 +59,7 @@ Deno.serve(async (request: Request) => {
     if (length > 3_500_000) return jsonError("RE/MAX sayfası boyut sınırını aştı", 502);
     const html = await response.text();
     if (html.length > 3_500_000) return jsonError("RE/MAX sayfası çok büyük", 502);
-    if (!html || !/<html|self\\.__next_f|__NEXT_DATA__/i.test(html))
+    if (!html || !(html.includes("<html") || html.includes("self.__next_f") || html.includes("__NEXT_DATA__")))
       return jsonError("RE/MAX beklenen HTML verisini sunmadı", 502);
     return new Response(html, {
       status: 200,
