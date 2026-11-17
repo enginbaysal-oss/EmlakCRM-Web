@@ -543,21 +543,15 @@ function targetUrl(link){
     return m?{url:u.origin+u.pathname,id:m[1],path:u.pathname}:null;
   }catch(e){return null;}
 }
-// Gerçek ilan adresini kullan: boş sekme açmak Android uygulama bağlantısını bozar.
+// Yalnızca onaylanmış sahibinden ilan sayfasını aç.
+// Uygulamanın ilan detayını açması Sahibinden'in kendi deep-link davranışına bağlı.
+// Doğrulanmamış intent bağlantıları kullanıcıyı ana sayfaya götürdüğü için kullanılmaz.
 function listingOpenLinks(raw){
  const valid=targetUrl(raw);
  if(!valid)return null;
- const browser=valid.url;
- const android=/Android/i.test(navigator.userAgent||'');
- if(!android)return {browser,app:browser,android:false};
- const u=new URL(browser);
- // Chrome Android: sahibinden'in gerçek paketine doğrudan yönel, kurulu değilse
- // yalnızca açık bir kullanıcı tıklamasıyla aynı HTTPS ilana geri dön.
- const app='intent://'+u.host+u.pathname+
-   '#Intent;scheme=https;package=com.sahibinden;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;'+
-   'S.browser_fallback_url='+encodeURIComponent(browser)+';end';
- return {browser,app,android:true};
+ return {browser:valid.url,android:/Android/i.test(navigator.userAgent||'')};
 }
+
 function guessDeal(s){const x=normalize(s);if(/kiralik|kiralama|kiraya/.test(x))return 'kiralik';if(/satilik|satisa|satis/.test(x))return 'satilik';return 'belirsiz';}
 function importMail(body){
  const labelMatch=body.match(/["“]([^"”\n]{1,100})["”]\s+adlı\s+Favori Arama/i)||body.match(/^\s*\(([^)\n]{1,100})\)\s*Favori Arama için Sonuçlar/im);
@@ -695,24 +689,27 @@ function showDetail(){
  '<hr><h2>İlan sahibine ilk mesaj</h2><textarea class="message" id="initialMessage" readonly spellcheck="false" aria-label="İlan sahibine gönderilecek mesaj" style="min-height:112px;display:block;">'+escapeHtml(message)+'</textarea>'+
  '<div class="controls" id="listingActionControls" style="margin-top:10px">'+
  (canCopy?'<button type="button" id="copyListingMessage" class="primary">📋 Mesajı Kopyala</button>':'')+
- (links?'<a id="openListingApp" class="btn primary" href="'+escapeHtml(links.app)+'"'+(links.android?'':' target="_blank" rel="noopener noreferrer"')+'>'+(links.android?'📱 Sahibinden Uygulamasında Aç ↗':'İlanı Aç ↗')+'</a>':'<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
- (links&&links.android?'<a id="openListingBrowser" class="btn" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 Tarayıcıda Aç ↗</a>':'')+
+ (links?'<a id="openListingBrowser" class="btn primary" href="'+escapeHtml(links.browser)+'" target="_blank" rel="noopener noreferrer">🌐 İlanı Tarayıcıda Aç ↗</a>':'<span class="small">Geçerli ilan bağlantısı bulunamadı.</span>')+
+ (links&&links.android?'<button type="button" id="copyListingNumber" title="Sahibinden uygulamasında ilan numarasıyla arayın">🔢 İlan No '+escapeHtml(r.id)+' Kopyala</button>':'')+
  '</div><div class="controls" style="margin-top:10px"><button id="excludeListing">'+(r.status==='excluded'?'Tercihimi Geri Al':'Tercih Etmiyorum')+'</button><button id="markSent" '+(canPrepare?'':'disabled')+'>Gönderdim, Kaydet</button></div>'+
- '<div class="small" style="margin-top:7px"><b>Sıra:</b> Mesajı kopyalayın, ardından ilanı açın. Android telefonlarda uygulama seçeneği önce sahibinden uygulamasını dener; uygulama kullanılamıyorsa ilan tarayıcıda açılabilir. Açılmazsa “Tarayıcıda Aç” seçeneğini kullanın. İletişim istemeyenlere yazmayın. Mesaj otomatik gönderilmez; “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
+ '<div class="small" style="margin-top:7px"><b>İşlem:</b> Mesajı kopyalayın ve ilanı tarayıcıda açın. Mesaj gönderince Sahibinden uygulaması ana sayfaya dönüyorsa aşağıdaki yöntemi kullanın. Mesaj otomatik gönderilmez; “Gönderdim” yalnızca sizin tuttuğunuz kayıttır.</div>'+
+ (links&&links.android?'<details class="note" style="margin-top:9px"><summary style="cursor:pointer;font-weight:750">Uygulama ilan yerine ana sayfaya mı açılıyor?</summary><p>“İlan No Kopyala” düğmesine dokunun. Sahibinden uygulamasının arama kutusuna ilan numarasını yapıştırıp ilanı açın. Ardından EmlakCRM\'ye dönüp mesajı kopyalayarak Sahibinden\'de ilgili ilana gönderebilirsiniz.</p><p>Tarayıcıda devam etmek için telefonunuzun Ayarlar → Uygulamalar → sahibinden → Varsayılan olarak aç kısmından “Desteklenen bağlantıları aç” seçeneğini kapatmayı deneyebilirsiniz. Sahibinden\'in kendi mesaj düğmesi uygulamaya özel yönlendiriyorsa bu ayar işe yaramayabilir.</p></details>':'')+
  '<div class="small" style="margin-top:8px">Yanıtları ve görüşmeleri sahibinden.com üzerinden takip edebilirsiniz.</div>';
  $('dealType').value=r.type;
  $('dealType').addEventListener('change',e=>{if(locked)return;r.type=e.target.value;prepare(r);save();});
  if(canCopy)$('copyListingMessage').addEventListener('click',()=>{
   void copy(r.type==='kiralik'?RENT:SALE,$('copyListingMessage'));
  });
- // İlan açma gerçek <a href> tıklamasıdır: JS içinde about:blank/popup açılmaz.
- // Böylece Android App Link/Intent kullanıcının doğrudan hareketiyle işlenir.
+ if(links?.android)$('copyListingNumber').addEventListener('click',()=>{
+  void copy(r.id,$('copyListingNumber'),'İlan numarası kopyalandı. Sahibinden uygulamasında arama alanına yapıştırın.',true);
+ });
+ // İlan için uygulamaya özel intent kullanma; yalnızca doğrulanmış HTTPS link açılır.
 
  $('excludeListing').addEventListener('click',()=>{if(r.status==='excluded'){r.status=r.previousStatus||'ready';delete r.previousStatus;r.notice='Tercih geri alındı.';}else{r.previousStatus=r.status;r.status='excluded';r.notice='Tercih edilmiyor; ilan gizlendi.';}closeDetails();save();});
  $('markSent').addEventListener('click',()=>{if(r.status!=='ready')return;r.status='sent';r.notice='Mesaj gönderildi olarak kaydedildi.';try{rememberSent(r.id);}catch(e){toast('Gönderim kaydı saklanamadı; tarayıcı depolama iznini kontrol edin.');}save();recordSentCloud(r.id);});
 
 }
-async function copy(s,button){
+async function copy(s,button,successMessage,numberMode=false){
  let copied=false;
  // The copy button never opens another tab; changing focus before copying
  // can make the Clipboard API reject with NotAllowedError in Chrome.
@@ -739,12 +736,16 @@ async function copy(s,button){
    field.remove();
  }
  if(copied){
-   if(button)button.textContent='✓ Mesaj kopyalandı';
-   toast('Mesaj kopyalandı. Şimdi “İlanı Aç” ile devam edin.');
+   if(button)button.textContent=numberMode?'✓ İlan No Kopyalandı':'✓ Mesaj kopyalandı';
+   toast(successMessage||'Mesaj kopyalandı. İlanı açıp gönderme alanına yapıştırın.');
  }else{
-   const field=$('initialMessage');
-   if(field){field.focus();field.select();field.setSelectionRange(0,field.value.length);}
-   toast('Tarayıcı kopyalamayı engelledi. Metin seçildi; Ctrl + C ile kopyalayın.');
+   if(numberMode){
+     toast('İlan numarası kopyalanamadı. Numarayı yukarıdan elle seçebilirsiniz: '+s);
+   }else{
+     const field=$('initialMessage');
+     if(field){field.focus();field.select();field.setSelectionRange(0,field.value.length);}
+     toast('Tarayıcı kopyalamayı engelledi. Metin seçildi; Ctrl + C ile kopyalayın.');
+   }
  }
  return copied;
 }
