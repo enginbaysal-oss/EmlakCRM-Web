@@ -1630,22 +1630,36 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
   else{index.set(p.url,existing.length);existing.push(p)}
  }
  const seen=new Set(unique.map(p=>p.url));
- const notSeen=errors.length?0:existing.filter(p=>urls.includes(p.source)&&!seen.has(p.url)).length;
+ const oldSourceCount=existing.filter(p=>urls.includes(p.source)).length;
+ const stale=existing.filter(p=>urls.includes(p.source)&&!seen.has(p.url));
+ // Yalnızca hatasız ve büyük ölçüde tam bir RE/MAX ofis çekiminde eski kayıtları sil.
+ // Başarısız/eksik/kısmi çekim sırasında var olan tüm portföyler korunur.
+ const sourceUrl=urls.length===1?new URL(urls[0]):null;
+ const verifiedRemaxOffice=!!sourceUrl&&["remax.com.tr","www.remax.com.tr"].includes(sourceUrl.hostname)&&
+  /^\/tr\/ofis\/detay\/[a-z0-9-]+\/?$/i.test(sourceUrl.pathname);
+ const pruneSafe=verifiedRemaxOffice&&errors.length===0&&invalid.length===0&&
+  unique.length>=10&&unique.length>=Math.ceil(oldSourceCount*0.9);
+ const prunedCount=pruneSafe?stale.length:0;
+ const active=pruneSafe?existing.filter(p=>!urls.includes(p.source)||seen.has(p.url)):existing;
  try{
-  localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));
+  localStorage.setItem(externalPortfolioKey,JSON.stringify(active.slice(-1000)));
   externalDraw();
-  status.textContent=unique.length+" güncel ilan okundu, mevcut kayıtlar korundu."+
-   (notSeen?" Daha önce kayıtlı "+notSeen+" ilan bu çekimde bulunamadı; silinmedi.":"")+
+  status.textContent=unique.length+" güncel ilan okundu, "+prunedCount+" eski kayıt listeden kaldırıldı."+
+   (!pruneSafe&&stale.length?" Eksik/veri kaybı riski olan çekimde "+stale.length+" eski kayıt korundu.":"")+
    (errors.length?" "+errors.length+" bağlantı okunamadı. Ayrıntı: "+errors.slice(0,2).join(" | "):"")+
    (invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"");
-  // Telefon kontrolünden önce ilanlar kaydedilir: yarım kalan ağ isteği veri kaybına neden olmaz.
+  // Telefon kontrolü sırasında veriler saklı kalır, silme ikinci kez tetiklenmez.
   if(unique.length){
    const phoneCheck=await remaxFillMissingMobiles(unique,status);
-   for(const p of unique){const i=index.get(p.url);if(i!==undefined&&externalPhone(p.phone))existing[i].phone=externalPhone(p.phone)}
-   localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));
+   for(const p of unique){
+    if(!externalPhone(p.phone))continue;
+    const row=active.find(x=>x.url===p.url);
+    if(row)row.phone=externalPhone(p.phone);
+   }
+   localStorage.setItem(externalPortfolioKey,JSON.stringify(active.slice(-1000)));
    externalDraw();
-   status.textContent=unique.length+" ilan okundu, kayıtlar korundu; cep telefonu: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+
-    (notSeen?" "+notSeen+" eski kayıt kontrol edilmeli (silinmedi).":"")+
+   status.textContent=unique.length+" ilan okundu, "+prunedCount+" eski kayıt kaldırıldı; cep telefonu: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+
+    (!pruneSafe&&stale.length?" "+stale.length+" kayıt güvenlik nedeniyle korundu.":"")+
     (errors.length?" Hata: "+errors.slice(0,2).join(" | "):"");
   }
  }catch(e){status.textContent="Kayıt yapılamadı: "+e.message}
