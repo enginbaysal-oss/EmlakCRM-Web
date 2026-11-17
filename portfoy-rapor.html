@@ -635,6 +635,10 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" id="externalPortfolioCloudBackup" class="light">☁️ Çekilenleri Buluta Yedekle</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
 <p class="hint" id="externalPortfolioStatus" role="status" aria-live="polite"></p>
+<div class="row" id="externalArchiveActions" style="margin:8px 0">
+ <button type="button" id="externalArchiveStale" class="light" style="display:none">Eski kayıtları arşivle</button>
+ <button type="button" id="externalRestoreArchive" class="light" style="display:none">↩ Arşivden geri al</button>
+</div>
 <h4>Çekilen Portföyler <span id="externalPortfolioCount"></span></h4>
 <div class="portfolioFilters" id="externalPortfolioFilters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0">
 <select id="externalCityFilter" aria-label="İl"><option value="">Tüm iller</option></select>
@@ -1338,6 +1342,49 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(extern
 void externalSourceLoad();
 
 const externalRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalPortfolioKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
+const externalArchiveKey="emlakcrm_external_portfolio_archive_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");
+const externalArchivedRead=()=>{try{const v=JSON.parse(localStorage.getItem(externalArchiveKey)||"[]");return Array.isArray(v)?v:[]}catch{return []}};
+let externalPendingArchive=null;
+function externalUpdateArchiveActions(){
+ const staleBtn=document.getElementById("externalArchiveStale");
+ const restoreBtn=document.getElementById("externalRestoreArchive");
+ staleBtn.style.display=externalPendingArchive?.urls?.length?"":"none";
+ if(externalPendingArchive?.urls?.length)staleBtn.textContent=externalPendingArchive.urls.length+" eski kaydı arşivle";
+ restoreBtn.style.display=externalArchivedRead().length?"":"none";
+}
+externalUpdateArchiveActions();
+document.getElementById("externalArchiveStale").onclick=()=>{
+ const status=document.getElementById("externalPortfolioStatus");
+ const pending=externalPendingArchive;
+ if(!pending||!pending.urls?.length)return;
+ if(Date.now()-pending.createdAt>30*60*1000){externalPendingArchive=null;externalUpdateArchiveActions();status.textContent="Eşleştirme süresi doldu; önce portföyleri yeniden çek.";return}
+ const current=externalRead(),stale=new Set(pending.urls);
+ const toArchive=current.filter(p=>stale.has(p.url)&&pending.sourceUrls.includes(p.source));
+ if(toArchive.length!==stale.size){externalPendingArchive=null;externalUpdateArchiveActions();status.textContent="Liste değişti; yanlış arşivlememek için yeniden portföy çek.";return}
+ if(!confirm(toArchive.length+" eski kayıt, yalnızca 'Çekilen Portföyler' listesinden kaldırılıp geri alınabilir arşive taşınacak. Devam edilsin mi?"))return;
+ const archive=externalArchivedRead(),batch={archivedAt:new Date().toISOString(),records:toArchive,sourceUrls:pending.sourceUrls};
+ try{
+  // Önce arşiv kaydedilir. Arşiv yazılamazsa aktif listeye dokunulmaz.
+  localStorage.setItem(externalArchiveKey,JSON.stringify([batch,...archive].slice(0,8)));
+  const remaining=current.filter(p=>!stale.has(p.url)||!pending.sourceUrls.includes(p.source));
+  localStorage.setItem(externalPortfolioKey,JSON.stringify(remaining));
+  externalPendingArchive=null;externalDraw();externalUpdateArchiveActions();
+  status.textContent=toArchive.length+" eski kayıt arşive taşındı; "+remaining.length+" portföy listeleniyor. Arşivden geri alınabilir.";
+ }catch(e){status.textContent="Arşivleme yapılamadı; kayıtlar korundu. "+String(e.message||e)}
+};
+document.getElementById("externalRestoreArchive").onclick=()=>{
+ const archive=externalArchivedRead(),batch=archive[0];if(!batch?.records?.length)return;
+ if(!confirm(batch.records.length+" arşivlenmiş kaydı tekrar çekilen portföyler listesine eklemek istiyor musun?"))return;
+ const existing=externalRead(),seen=new Set(existing.map(p=>p.url));
+ const restored=batch.records.filter(p=>p.url&&!seen.has(p.url));
+ try{
+  // Önce aktif listeye geri eklenir, ancak kayıt tamamlanınca arşivden çıkarılır.
+  localStorage.setItem(externalPortfolioKey,JSON.stringify([...existing,...restored]));
+  localStorage.setItem(externalArchiveKey,JSON.stringify(archive.slice(1)));
+  externalDraw();externalUpdateArchiveActions();
+  document.getElementById("externalPortfolioStatus").textContent=restored.length+" kayıt arşivden geri alındı.";
+ }catch(e){document.getElementById("externalPortfolioStatus").textContent="Geri alma tamamlanamadı: "+String(e.message||e)}
+};
 const externalEsc=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function externalPrice(value){
  const s=String(value||"").trim();if(!s)return "";
@@ -1620,6 +1667,7 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  const candidates=[...new Set(raw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean))].slice(0,20);
  const urls=[],invalid=[];for(const s of candidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();urls.push(u.href)}catch{invalid.push(s)}}
  if(!urls.length){status.textContent="En az bir geçerli http/https bağlantısı gir.";return}
+ externalPendingArchive=null;externalUpdateArchiveActions();
  btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
  const found=[],errors=[];
  for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
@@ -1630,7 +1678,15 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
   else{index.set(p.url,existing.length);existing.push(p)}
  }
  const seen=new Set(unique.map(p=>p.url));
- const notSeen=errors.length?0:existing.filter(p=>urls.includes(p.source)&&!seen.has(p.url)).length;
+ const stale=(!errors.length&&!invalid.length&&unique.length>0)?
+  existing.filter(p=>urls.includes(p.source)&&!seen.has(p.url)):[];
+ const notSeen=stale.length;
+ // Başarısız/çok eksik çekimler gerçekte aktif ilanları arşivlemesin.
+ const sourceCount=existing.filter(p=>urls.includes(p.source)).length;
+ if(stale.length&&unique.length>=Math.ceil(sourceCount*0.85)){
+  externalPendingArchive={createdAt:Date.now(),urls:stale.map(p=>p.url),sourceUrls:[...urls]};
+ }
+ externalUpdateArchiveActions();
  try{
   localStorage.setItem(externalPortfolioKey,JSON.stringify(existing.slice(-1000)));
   externalDraw();
@@ -1686,7 +1742,7 @@ document.getElementById("externalPortfolioCloudBackup").onclick=async()=>{
  }catch(err){status.textContent="⚠️ Bulut yedekleme hatası: "+String(err?.message||err)}
  finally{btn.disabled=false}
 };
-document.getElementById("externalPortfolioClear").onclick=()=>{if(!confirm("Yalnızca çekilen portföy listesini temizlemek istiyor musun?"))return;localStorage.removeItem(externalPortfolioKey);externalDraw();document.getElementById("externalPortfolioStatus").textContent="Çekilen liste temizlendi; kendi portföylerin değişmedi."};
+document.getElementById("externalPortfolioClear").onclick=()=>{if(!confirm("Yalnızca çekilen portföy listesini temizlemek istiyor musun?"))return;localStorage.removeItem(externalPortfolioKey);externalPendingArchive=null;externalDraw();externalUpdateArchiveActions();document.getElementById("externalPortfolioStatus").textContent="Çekilen liste temizlendi; kendi portföylerin değişmedi."};
 // Kendi portfoylerim her zaman ustte; cekilen ilanlar varsayilan kapali.
 document.getElementById("selectArea").after(document.getElementById("externalPortfolioPanel"));
 function portfolioSwitchView(view){
