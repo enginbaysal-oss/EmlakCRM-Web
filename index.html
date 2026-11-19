@@ -1,6 +1,24 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EmlakCRM</title>
 <script>
+/* Tanıtım yönlendirmesi: yalnızca hiç kaydı/oturumu olmayan, düz adresle gelen
+   ilk ziyaretçiyi tanıtım sayfasına gönderir. Android (?apk), giriş/kayıt
+   bağlantıları (?giris, ?kayit, ?checkout), e-posta bağlantıları (#...) ve
+   yüklü uygulama (standalone) her zaman doğrudan panele gelir. */
+(function(){
+ try{
+  if(location.search||location.hash)return;
+  if(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)return;
+  if(navigator.standalone)return;
+  for(var i=0;i<localStorage.length;i++){
+   var k=localStorage.key(i)||"";
+   if(k.indexOf("emlakcrm")===0||k.indexOf("sb-")===0||k.indexOf("supabase")>=0)return;
+  }
+  location.replace("emlak-crm-programi.html");
+ }catch(e){}
+})();
+</script>
+<script>
 /* Isolated recovery redirect: hand the email one-time token to its own page
    BEFORE CRM account initialization. No local storage/session changes. */
 (function(){
