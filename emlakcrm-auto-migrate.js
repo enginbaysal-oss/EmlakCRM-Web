@@ -8,6 +8,10 @@ export const MIGRATION_ORIGIN="https://emlkcrm.com.tr";
 export const API="https://tffvwxskvjuxoekwgdef.supabase.co";
 export const PUBLIC_KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const prefixes={clients:"emlakcrm_demo_v1__owner_",portfolios:"emlakcrm_portfoy_rapor_v1__owner_",external_portfolios:"emlakcrm_external_portfolios_v1__owner_"};
+// Device storage records. Ajanda (tasks) backups are merged into the clients CRM record
+// and are optional: an account without agenda backups is not "partially" migrated.
+const STORE_KINDS=["clients","portfolios","external_portfolios"];
+const storeOf=kind=>kind==="tasks"?"clients":kind;
 const parse=s=>{try{return JSON.parse(s)}catch{return null}};
 const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
@@ -71,7 +75,7 @@ async function getLatest(kind,auth,deps){
 }
 function ownLocal(uid,storage){
  const raw={},data={};
- for(const kind of KINDS){
+ for(const kind of STORE_KINDS){
   raw[kind]=storage.getItem(prefixes[kind]+uid);
   data[kind]=raw[kind]===null?null:parse(raw[kind]);
   if(raw[kind]!==null&&data[kind]===null)throw Error("Bu cihazın "+kind+" verisi okunamadı, üzerine yazılmayacak.");
@@ -88,7 +92,7 @@ function ownLocal(uid,storage){
 }
 export async function syncOnce(deps={fetch:globalThis.fetch,sessionStorage:globalThis.sessionStorage,localStorage:globalThis.localStorage,scope:globalThis.emlakcrmAccountDataScope}){
  const auth=await accountAuth(deps);
- if(!auth)return {status:"not_signed_in",added:0,missing:KINDS.slice()};
+ if(!auth)return {status:"not_signed_in",added:0,missing:STORE_KINDS.slice()};
  const markerKey="emlakcrm_auto_migration_v1__owner_"+auth.uid;
  const oldMarker=deps.localStorage.getItem(markerKey);
  const marker=parse(oldMarker);
@@ -99,7 +103,7 @@ export async function syncOnce(deps={fetch:globalThis.fetch,sessionStorage:globa
   // A category is complete only through the exact snapshot ID last imported.
   // More recent snapshots from the original domain may contain new records.
   const row=await getLatest(kind,auth,deps);
-  if(!row){backup[kind]=[];missing.push(kind);continue}
+  if(!row){backup[kind]=[];if(kind!=="tasks")missing.push(kind);continue}
   if(completed[kind]===row.id){backup[kind]=[];continue}
   backup[kind]=row.payload;
   versions[kind]=row.id;
@@ -111,10 +115,10 @@ export async function syncOnce(deps={fetch:globalThis.fetch,sessionStorage:globa
  if(!verified||verified.uid!==auth.uid)throw Error("İşlem sırasında hesap değişti.");
  const local=ownLocal(auth.uid,deps.localStorage);
  const joined=mergeAll(local.data,backup);
- const keys=Object.fromEntries(KINDS.map(kind=>[kind,prefixes[kind]+auth.uid]));
- for(const kind of KINDS)if(deps.localStorage.getItem(keys[kind])!==local.raw[kind])
+ const keys=Object.fromEntries(STORE_KINDS.map(kind=>[kind,prefixes[kind]+auth.uid]));
+ for(const kind of STORE_KINDS)if(deps.localStorage.getItem(keys[kind])!==local.raw[kind])
   throw Error("Bu sırada cihaz kayıtları değişti; veriler korunuyor.");
- const writes=newKinds.map(kind=>[kind,JSON.stringify(joined.updated[kind])]);
+ const writes=[...new Set(newKinds.map(storeOf))].map(kind=>[kind,JSON.stringify(joined.updated[kind])]);
  const written=[];
  try{
   for(const [kind,value] of writes){
