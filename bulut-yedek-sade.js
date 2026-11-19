@@ -1,4 +1,6 @@
-import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js?v=20261111fix2";
+import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js?v=20261119ajanda1";
+// Device storage records. Ajanda (tasks) is stored inside the clients CRM record.
+const STORE_KINDS=["clients","portfolios","external_portfolios"];
 const API="https://tffvwxskvjuxoekwgdef.supabase.co";
 const KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const $=id=>document.getElementById(id);
@@ -49,7 +51,7 @@ function updateSelection(){
  if(!selected){$("detail").textContent="";return;}
  $("detail").textContent=
  "Bu tarihe kadar alınan son yedekler: "+selected.counts[0]+" müşteri · "+
- selected.counts[1]+" portföy · "+selected.counts[2]+" çekilen portföy.";
+ selected.counts[1]+" portföy · "+selected.counts[2]+" çekilen portföy · "+selected.counts[3]+" ajanda kaydı.";
 }
 async function load(){
  const btn=$("reload");btn.disabled=true;
@@ -88,7 +90,7 @@ async function load(){
 }
 function readCurrent(uid){
  const raw={};const data={};
- for(const kind of KINDS){
+ for(const kind of STORE_KINDS){
   const key=KEY_PREFIX[kind]+uid;
   raw[kind]=localStorage.getItem(key);
   data[kind]=raw[kind]===null?null:parse(raw[kind]);
@@ -119,7 +121,7 @@ async function restoreAll(){
   const auth=await identify();
   if(auth.uid!==account.uid)throw Error("Hesap değişti.");
   const backups={};
-  // Fetch and check ALL THREE categories before any local writes.
+  // Fetch and check ALL categories before any local writes.
   for(const kind of KINDS){
    const version=point.snapshots[kind];
    if(!version)continue; // Bu kategoride yedek yok; mevcut verileri olduğu gibi koru.
@@ -143,7 +145,8 @@ async function restoreAll(){
   saveSafetyDownload(auth.uid,local.raw);
   const summary=combined.stats.clients.added+" müşteri, "+
    combined.stats.portfolios.added+" portföy, "+
-   combined.stats.external_portfolios.added+" çekilen portföy";
+   combined.stats.external_portfolios.added+" çekilen portföy, "+
+   combined.stats.tasks.added+" ajanda kaydı";
   if(!confirm("Önce cihazın güvenlik yedeği İndirilenler'e gönderildi. Dosyayı kontrol edin.\n\n"+
    summary+" hesabınıza eklenecek. Mevcut kayıtlar silinmeyecek veya üzerine yazılmayacak. Devam edilsin mi?")){
    status("Geri yükleme iptal edildi. Mevcut kayıtlar değiştirilmedi.","notice");
@@ -152,7 +155,7 @@ async function restoreAll(){
   const second=await identify();
   if(second.uid!==auth.uid)throw Error("Hesap değişti; hiçbir kayıt eklenmedi.");
   const next={};const keyNames={};
-  const availableKinds=KINDS.filter(kind=>point.snapshots[kind]);
+  const availableKinds=STORE_KINDS.filter(kind=>point.snapshots[kind]||(kind==="clients"&&point.snapshots.tasks));
   for(const kind of availableKinds){
    keyNames[kind]=KEY_PREFIX[kind]+auth.uid;
    if(localStorage.getItem(keyNames[kind])!==local.raw[kind])

@@ -1,5 +1,5 @@
 /* EmlakCRM: date/time recovery point planning and safe, non-destructive merging. */
-export const KINDS=["clients","portfolios","external_portfolios"];
+export const KINDS=["clients","portfolios","external_portfolios","tasks"];
 const normal=s=>String(s??"").trim().toLocaleLowerCase("tr-TR");
 const obj=x=>x!==null&&typeof x==="object"&&!Array.isArray(x);
 const validDate=x=>typeof x==="string"&&Number.isFinite(Date.parse(x));
@@ -38,7 +38,7 @@ export function validateBackupRow(row,version){
   throw Error("Yedek sürümü doğrulanamadı: "+version.kind);
  if(row.payload.length>(row.kind==="external_portfolios"?1000:20000)||
     row.payload.some(x=>!obj(x)))throw Error("Yedekte geçersiz kayıt var: "+version.kind);
- if(row.kind!=="external_portfolios"&&row.payload.some(x=>!validID(x.id)))
+ if(row.kind!=="external_portfolios"&&row.kind!=="tasks"&&row.payload.some(x=>!validID(x.id)))
   throw Error("Yedekte kimliksiz kayıt var: "+version.kind);
  if(row.kind==="external_portfolios"&&row.payload.some(x=>!normal(x.url)&&!normal(x.title)))
   throw Error("Yedekte geçersiz çekilen ilan var.");
@@ -67,6 +67,20 @@ function mergeById(local,incoming,kind){
  }
  return {data:result,added:added.length,duplicates:duplicates.length};
 }
+// Ajanda: never overwrite or delete; add only tasks missing on this device.
+function taskKey(t){
+ return validID(t.id)?"id:"+String(t.id):"t:"+normal(t.title)+"|"+String(t.date??"")+"|"+String(t.clientId??"");
+}
+function mergeTasks(local,incoming){
+ const result=local.slice(),keys=new Set(result.filter(obj).map(taskKey));
+ let added=0,duplicates=0;
+ for(const v of incoming){
+  const k=taskKey(v);
+  if(keys.has(k)){duplicates++;continue}
+  result.push(v);keys.add(k);added++;
+ }
+ return {data:result,added,duplicates};
+}
 function mergeExternal(local,incoming){
  const result=local.slice(),keys=new Set(result.filter(obj).map(x=>String(x.url||"")+"|"+String(x.title||"")));
  let added=0,duplicates=0;
@@ -89,13 +103,14 @@ export function mergeAll(local,backups){
  const c=Array.isArray(backups.clients)?mergeById(crm.clients,backups.clients,"clients"):{data:crm.clients,added:0,duplicates:0};
  const p=Array.isArray(backups.portfolios)?mergeById(portfolio.portfolios,backups.portfolios,"portfolios"):{data:portfolio.portfolios,added:0,duplicates:0};
  const e=Array.isArray(backups.external_portfolios)?mergeExternal(external,backups.external_portfolios):{data:external,added:0,duplicates:0};
+ const t=Array.isArray(backups.tasks)?mergeTasks(crm.tasks,backups.tasks):{data:crm.tasks,added:0,duplicates:0};
  return {
   updated:{
-   clients:{...crm,clients:c.data},
+   clients:{...crm,clients:c.data,tasks:t.data},
    portfolios:{...portfolio,portfolios:p.data},
    external_portfolios:e.data
   },
-  stats:{clients:c,portfolios:p,external_portfolios:e},
-  added:c.added+p.added+e.added
+  stats:{clients:c,portfolios:p,external_portfolios:e,tasks:t},
+  added:c.added+p.added+e.added+t.added
  };
 }
