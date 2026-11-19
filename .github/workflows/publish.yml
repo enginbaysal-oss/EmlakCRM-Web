@@ -47,7 +47,7 @@ jobs:
               shutil.copy2(legacy, legacy_dest / "index.html")
           # Publish public PWA and client-side scripts used by mobile and backup features.
           # Keep the allowlist narrow: never publish private files or JSON backups.
-          for pattern in ("*.js", "*.css", "*.webmanifest"):
+          for pattern in ("*.js", "*.css", "*.webmanifest", "robots.txt", "sitemap.xml"):
               for src in Path(".").glob(pattern):
                   shutil.copy2(src, dest / src.name)
           # Publish static image assets used by legal and payment sections.
