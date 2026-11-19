@@ -1,0 +1,16 @@
+# EmlakCRM - https://emlkcrm.com.tr
+User-agent: *
+Allow: /
+
+# Yönetim, kurtarma ve yardımcı ekranlar arama sonuçlarında görünmesin
+Disallow: /super-yonetici.html
+Disallow: /admin-abonelik-test.html
+Disallow: /eski-kayit-kurtarma.html
+Disallow: /guvenli-kurtarma.html
+Disallow: /sifre-yenile.html
+Disallow: /desktop-widget.html
+Disallow: /sandbox-odeme-test.html
+Disallow: /sandbox-odeme-sonuc.html
+Disallow: /odeme-sonucu.html
+
+Sitemap: https://emlkcrm.com.tr/sitemap.xml
