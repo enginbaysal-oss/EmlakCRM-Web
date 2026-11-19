@@ -22,6 +22,11 @@ main{max-width:740px;margin:19px auto;padding:0 16px 30px}
 .panel{padding:23px;border:1px solid #e0ebf3;box-shadow:0 6px 22px #0e416217;margin:12px 0}
 .panel h2{font-size:19px;color:#17384e}
 .product{border-left:4px solid #ef8926}
+.includes{margin-top:16px;padding-top:14px;border-top:1px solid #e6eef5}
+.includes-title{margin:0 0 8px;font-size:13px;font-weight:800;color:#0c617e;letter-spacing:.3px;text-transform:uppercase}
+.includes-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;font-size:15px;font-weight:600;color:#17384e}
+.includes-note{margin:10px 0 0;font-size:13px;color:#637c90}
+@media(max-width:520px){.includes-list{grid-template-columns:1fr}}
 .product-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .product small,.tiny{font-size:12px;color:#637c90}
 .price{font-size:32px;white-space:nowrap}
@@ -60,6 +65,20 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   <div class="product-head">
     <div><div class="eyebrow">TEK PAKET · TÜM MODÜLLER</div><h2 style="margin-bottom:4px">EmlakCRM Yıllık Abonelik</h2><span class="muted">12 ay kullanım · Tek ödeme · Otomatik yenileme yok</span></div>
     <div class="price-wrap"><div class="price" id="displayPrice">750 TL</div><div class="tiny">KDV dahil</div></div>
+  </div>
+  <div class="includes">
+    <p class="includes-title">Pakete dahil olanlar</p>
+    <ul class="includes-list">
+      <li>👥 Müşteri Yönetimi + Ajanda</li>
+      <li>🏢 Portföy Yönetimi</li>
+      <li>🔔 İlan Asistanı</li>
+      <li>🚁 Drone Çekim</li>
+      <li>📄 EmlakAsistan</li>
+      <li>🧮 TapuMatik</li>
+      <li>✍️ PDF İmzala</li>
+      <li>☁️ Otomatik bulut yedeği</li>
+    </ul>
+    <p class="includes-note">Ek modül ücreti yok · Destek: <a href="mailto:destek@emlkcrm.com.tr">destek@emlkcrm.com.tr</a> ve WhatsApp</p>
   </div>
   <p id="officeGift" class="gift" hidden>🎁 İlyada 3 danışmanlarına özel: 7 RE/MAX EmlakAsistan JSON şablonu hediye!</p>
 </section>
