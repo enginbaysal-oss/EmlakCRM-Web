@@ -567,7 +567,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <p id="widgetSyncStatus" class="mini" role="status" aria-live="polite">Senkronizasyon kapalıdır.</p>
 <p class="mini">EmlakCRM açıkken değişiklikler güvenli bulut özetine gönderilir. Lively sayfası bu özeti düzenli aralıklarla yeniler. Lively ayrı tarayıcı olduğundan ilk kullanımda EmlakCRM hesabıyla giriş gerekir.</p>
 </details>
-<p class="homeLocalHint">Veriler öncelikle bu tarayıcıdadır. Düzenli olarak <b>Yedek indir</b> kullan.</p>
+<p class="homeLocalHint">Kayıtların otomatik olarak buluta yedeklenir. Ek güvenlik için ara sıra <b>Yedek indir</b> ile dosya yedeği de alabilirsin.</p>
 <section id="portfolioExpiryHome" class="portfolioExpiryNotice" hidden aria-live="polite">
   <h3>⚠️ Portföy Yetki Hatırlatmaları</h3>
   <div id="portfolioExpiryHomeItems"></div>
@@ -603,7 +603,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <p style="margin:12px 0"><a href="abonelik-satin-al.html" style="display:inline-block;background:#ef8926;color:#1b3346;padding:12px 16px;border-radius:11px;text-decoration:none;font-weight:800">Abonelik İşlemlerine Geç →</a></p>
 <p class="muted" style="font-size:13px">12 ay kullanım, tek ödeme, otomatik yenileme yok. Abonelik güvenli ödeme sonrasında etkinleşir.</p>
 </section>
-<p class="accountNotice">Kayıt ve giriş Supabase üzerinden yapılır. CRM verileri öncelikle bu tarayıcıda saklanır. Başka bir cihaza taşımak veya güvenli bir kopya oluşturmak için Ayarlar bölümündeki Yedeği İndir seçeneğini kullan. Otomatik eşitleme henüz mevcut değildir; canlı ödeme durumunu abonelik sayfası gösterir.</p>
+<p class="accountNotice">Giriş ve kayıt güvenli EmlakCRM hesabınla yapılır. Kayıtların bu tarayıcıda tutulur ve değiştikçe otomatik olarak buluta yedeklenir. Başka bir cihazda devam etmek için orada giriş yapıp <b>Buluttan Geri Yükle</b>'yi kullan. Abonelik durumunu abonelik sayfasında görebilirsin.</p>
 <div class="accountCloud" id="crmInlineAuth">
 <h3>EmlakCRM Giriş / Kayıt</h3><p class="muted">Yeni kayıtlar için 7 gün tam erişimli ücretsiz deneme. Kredi kartı gerekmez; deneme bitince kayıtlar silinmez.</p>
 <div class="row" style="gap:8px"><button type="button" id="crmLoginTab" aria-pressed="true">Giriş Yap</button><button type="button" class="secondary" id="crmRegisterTab" aria-pressed="false">Hesap Oluştur</button></div>
@@ -703,7 +703,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <a href="portfoy-rapor.html?v=20261117staleprune#portfoyler">Portföyleri Aç →</a>
 </section>
 <section class="card"><div id="taskForm" class="hide"><div class="form"><input id="taskTitle" maxlength="120" placeholder="Hatırlatma konusu" aria-label="Hatırlatma konusu"><input id="taskDate" type="datetime-local" aria-label="Tarih saat"><select id="taskClient" class="full" aria-label="İlgili müşteri"><option value="">Genel hatırlatma (müşterisiz)</option></select><button id="saveTask" class="full">Hatırlatmayı kaydet</button><button id="cancelTaskEdit" type="button" class="secondary full hide">Vazgeç</button></div><hr></div><div class="row" style="margin:12px 0"><button type="button" class="secondary" data-task-view="all">Tümü</button><button type="button" class="secondary" data-task-view="today">Bugün</button><button type="button" class="secondary" data-task-view="late">Gecikenler</button><button type="button" class="secondary" data-task-view="upcoming">Yaklaşanlar</button><button type="button" class="secondary" data-task-view="done">Tamamlananlar</button></div><input id="taskSearch" type="search" placeholder="Hatırlatma veya müşteri ara..." aria-label="Ajandada hatırlatma ara" style="width:100%;margin:4px 0 12px"><p id="taskSummary" class="mini"></p><div id="taskList"></div></section>
-</div><p class="notice" id="demoNotice"><b>Veri güvenliği:</b> Müşteri ve ajanda kayıtları öncelikle bu tarayıcıda tutulur. Ayarlar bölümünden tam yerel yedeğinizi indirebilir, bulut yedekleme ve geri yükleme işlemlerini kullanabilirsiniz. Bulut yedekleme otomatik cihaz eşitlemesi değildir. Ofis Yönetimi ve onaylı ofis portföy paylaşımı kullanılabilir. Drone Çekim'de sanal uçuş kullanılabilir; gerçek drone veya otomatik kadastro sorgusu değildir.</p></main>
+</div><p class="notice" id="demoNotice"><b>Veri güvenliği:</b> Müşteri ve ajanda kayıtları bu tarayıcıda tutulur ve değiştikçe otomatik olarak buluta yedeklenir. Başka bir cihazda kayıtlarınızı Ayarlar → <b>Buluttan Geri Yükle</b> ile getirebilir, isterseniz tam yedeği dosya olarak da indirebilirsiniz. Ofis Yönetimi ve onaylı ofis portföy paylaşımı kullanılabilir. Drone Çekim'de sanal uçuş kullanılabilir; gerçek drone veya otomatik kadastro sorgusu değildir.</p></main>
 <script>
 "use strict";
 const key="emlakcrm_demo_v1__owner_"+(window.emlakcrmAccountDataScope?.currentUserId()||"anonymous");let data;
