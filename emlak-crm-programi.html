@@ -124,8 +124,7 @@
   .mod-link:hover{color:var(--accent-d)}
 
   /* Videos */
-  .vids{display:grid;grid-template-columns:repeat(5,minmax(0,196px));gap:20px;justify-content:center}
-  @media(max-width:1100px) and (min-width:821px){.vids{grid-template-columns:repeat(3,minmax(0,240px))}}
+  .vids{display:grid;grid-template-columns:repeat(3,minmax(0,260px));gap:36px 32px;justify-content:center}
   .vid{margin:0;text-align:center}
   .vid video{width:100%;aspect-ratio:9/16;display:block;border-radius:22px;background:var(--navy);box-shadow:0 20px 44px rgba(16,46,80,.22);border:6px solid var(--navy)}
   .vid figcaption{margin-top:14px}
@@ -275,7 +274,7 @@
     </div>
     <div class="mods">
       <div class="mod"><div class="ic">👥</div><h3>Müşteri Yönetimi + Ajanda</h3><p>Müşteri kartları, görüşme notları, hatırlatmalar, teklif ve pazarlık takibi. Müşteriye uygun portföyü otomatik eşleştirir.</p><a class="mod-link" href="#videolar">▶ 40 saniyede izleyin</a></div>
-      <div class="mod"><div class="ic">🏢</div><h3>Portföy Yönetimi</h3><p>Tüm ilanlarınız, yetki süreleri ve portföy raporları tek listede.</p></div>
+      <div class="mod"><div class="ic">🏢</div><h3>Portföy Yönetimi</h3><p>Tüm ilanlarınız, yetki süreleri ve portföy raporları tek listede.</p><a class="mod-link" href="#videolar">▶ 30 saniyede izleyin</a></div>
       <div class="mod"><div class="ic">🔔</div><h3>İlan Asistanı</h3><p>Favori aramalarınızı kaydedin, yeni çıkan ilanları kaçırmayın.</p></div>
       <div class="mod"><div class="ic">🚁</div><h3>Drone Çekim</h3><p>Parsel üzerinde sanal uçuş ve video planı hazırlayın; müşteriye arsayı havadan gösterin.</p><a class="mod-link" href="#videolar">▶ 30 saniyede izleyin</a></div>
       <div class="mod"><div class="ic">📄</div><h3>EmlakAsistan</h3><p>Belgelerinizi ve sözleşmelerinizi tek yerde hazırlayın ve düzenleyin.</p></div>
@@ -289,7 +288,7 @@
   <div class="wrap">
     <div class="sec-head">
       <h2>Modülleri 40 saniyede izleyin</h2>
-      <p>Müşteri takibinden TapuMatik'e, Drone Çekim'e kadar.</p>
+      <p>Müşteri takibinden portföy raporuna, TapuMatik'ten Drone Çekim'e kadar.</p>
     </div>
     <div class="vids">
       <figure class="vid">
@@ -297,6 +296,12 @@
           <source src="assets/videos/musteri-ajanda.mp4" type="video/mp4">
         </video>
         <figcaption><b>Müşteri + Ajanda</b><span>Hiçbir aramayı unutmayın</span></figcaption>
+      </figure>
+      <figure class="vid">
+        <video controls playsinline preload="none" poster="assets/videos/portfoy-rapor.jpg" aria-label="Portföy Yönetimi videosu">
+          <source src="assets/videos/portfoy-rapor.mp4" type="video/mp4">
+        </video>
+        <figcaption><b>Portföy Yönetimi</b><span>Mülk sahibine haftalık rapor</span></figcaption>
       </figure>
       <figure class="vid">
         <video controls playsinline preload="none" poster="assets/videos/tapumatik-ters-hesap.jpg" aria-label="TapuMatik ters hesap videosu">
