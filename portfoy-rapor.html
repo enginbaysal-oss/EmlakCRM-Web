@@ -631,7 +631,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 <details id="externalPortfolioDetails"><summary style="cursor:pointer;font-weight:800;padding:10px 4px;font-size:17px">🔗 Çekilen Portföyler <span id="externalPortfolioSummaryCount"></span> — Aç / Kapat</summary><div style="padding-top:12px">
 <p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
 <label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label><p class="hint">Bağlantılar otomatik kaydedilir. Siz değiştirmedikçe burada kalır; yeniden çekmek için tekrar yazmanız gerekmez.</p><p class="hint" id="externalSourceCloudStatus" role="status" aria-live="polite">☁️ Bulut bağlantısı kontrol ediliyor…</p>
-<textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://ornek.com/manisa"></textarea>
+<textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://remax.com.tr/tr/emlak/manisa"></textarea>
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
 <div class="row"><button type="button" id="externalPortfolioFetch">Bağlantılardan Portföy Çek</button><button type="button" id="externalPortfolioCloudBackup" class="light">☁️ Çekilenleri Buluta Yedekle</button><button type="button" class="light" id="externalPortfolioClear">Çekilenleri Temizle</button></div>
 <p class="hint" id="externalPortfolioStatus" role="status" aria-live="polite"></p>
@@ -1473,15 +1473,48 @@ function remaxBalancedObject(text,from){
  return null;
 }
 function remaxFlightRows(flight){
- const rows={};const lines=flight.split("\n");
- for(const line of lines){const m=line.match(/^([0-9a-fA-F]+):(.*)$/);if(!m)continue;
- try{rows[m[1]]=JSON.parse(m[2])}catch{rows[m[1]]=m[2]}}
+ // React Server Components akışı: "id:JSON\n" satırları ve "id:T<onaltılık bayt uzunluğu>,<metin>"
+ // biçiminde satır sonu olmayan metin satırları. Metin satırından sonra gelen satır aynı
+ // "satıra" yapışık durur; bu yüzden satır satır değil, uzunluğa göre okunur.
+ const rows={},n=flight.length;let i=0;
+ const utf8Len=cp=>cp<0x80?1:cp<0x800?2:cp<0x10000?3:4;
+ while(i<n){
+  const head=/^([0-9a-fA-F]+):/.exec(flight.slice(i,i+24));
+  if(!head){const nl=flight.indexOf("\n",i);if(nl<0)break;i=nl+1;continue}
+  const id=head[1];i+=head[0].length;
+  if(flight[i]==="T"){
+   const comma=flight.indexOf(",",i);if(comma<0)break;
+   let bytes=parseInt(flight.slice(i+1,comma),16);let j=comma+1;
+   if(!Number.isFinite(bytes)){i=comma+1;continue}
+   while(j<n&&bytes>0){const cp=flight.codePointAt(j);bytes-=utf8Len(cp);j+=cp>0xffff?2:1}
+   rows[id]=flight.slice(comma+1,j);i=j;
+  }else{
+   let nl=flight.indexOf("\n",i);if(nl<0)nl=n;
+   const body=flight.slice(i,nl);
+   try{rows[id]=JSON.parse(body)}catch{rows[id]=body}
+   i=nl+1;
+  }
+ }
  return rows;
 }
 function remaxResolveRefs(value,rows,seen=new Set()){
  if(Array.isArray(value))return value.map(v=>remaxResolveRefs(v,rows,seen));
  if(value&&typeof value==="object")return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,remaxResolveRefs(v,rows,seen)]));
- if(typeof value==="string"&&/^\$L?[0-9a-fA-F]+$/.test(value)){const id=value.replace(/^\$L?/,"");if(Object.hasOwn(rows,id)&&!seen.has(id)){const next=new Set(seen);next.add(id);return remaxResolveRefs(rows[id],rows,next)}}
+ // "$4c" satırın tamamına, "$4c:props:children:0:..." o satırın içindeki bir yola işaret eder
+ // (şehir arama sayfaları ilan listesini bu yol başvurusuyla verir).
+ const m=typeof value==="string"&&/^\$L?([0-9a-fA-F]+)((?::[^:]+)*)$/.exec(value);
+ if(m&&Object.hasOwn(rows,m[1])&&!seen.has(value)){
+  let cur=rows[m[1]];
+  for(const seg of m[2].split(":").slice(1)){
+   if(typeof cur==="string"&&cur.startsWith("$"))cur=remaxResolveRefs(cur,rows,new Set([...seen,value]));
+   if(Array.isArray(cur)&&cur[0]==="$"&&seg==="props")cur=cur[3];
+   else if(Array.isArray(cur))cur=cur[Number(seg)];
+   else cur=cur&&typeof cur==="object"?cur[seg]:undefined;
+   if(cur===undefined)return value;
+  }
+  const next=new Set(seen);next.add(value);
+  return remaxResolveRefs(cur,rows,next);
+ }
  return value;
 }
 function remaxItems(data){
@@ -1509,7 +1542,9 @@ function remaxParsePage(html,source){
   let data;try{data=remaxResolveRefs(JSON.parse(raw),rows)}catch{continue}
   const items=remaxItems(data);if(!items)continue;
   return items.filter(x=>x&&typeof x==="object"&&x.code).map(x=>{
-   const city=x.cityName||x.city?.name||"",town=x.townName||x.town?.name||x.districtName||"",neighborhood=x.neighborhoodName||x.neighborhood?.name||"";
+   // Şehir arama sayfalarında il/ilçe adları yok, yalnızca "Manisa/Soma/Atatürk Mah." adresi var.
+   const addr=String(x.address||"").split("/").map(v=>v.trim());
+   const city=x.cityName||x.city?.name||addr[0]||"",town=x.townName||x.town?.name||x.districtName||addr[1]||"",neighborhood=x.neighborhoodName||x.neighborhood?.name||addr[2]||"";
    const title=remaxText(x.title)||"RE/MAX Portföyü";
    const price=x.priceInfo?.amount?String(x.priceInfo.amount)+" "+String(x.priceInfo.amountTypeSymbol||""):"";
    const photoValue=x.photo;
