@@ -100,7 +100,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   </form>
   <p id="signedInEmail" class="muted" hidden></p>
   <div class="office-check">
-    <p class="office-label">RE/MAX İlyada 3 ofisi danışmanı mısınız?</p>
+    <p class="office-label">En az 3 danışmanı olan bir ofiste mi çalışıyorsunuz? (Ofis Paketi)</p>
     <p class="office-help">Cevabınız <strong>“Evet”</strong> ise lütfen ofis onayınızın tamamlanmasını bekleyiniz. Onaylandıktan sonra ödeme işlemine geçebilirsiniz.</p>
     <div class="office-actions" id="officeActions">
       <button type="button" id="officeYes" class="office-choice">Evet</button>
@@ -192,8 +192,8 @@ function render(){
  byId("officeActions").hidden=["pending","approved","rejected"].includes(officeStatus)||officeDeclined;
  byId("officeYes").disabled=officeBusy;
  byId("officeNo").disabled=officeBusy;
- byId("officeAnswer").textContent=pending?"İlyada 3 ofis onayınız bekleniyor. Henüz ödeme yapmayın."
- :officeStatus==="approved"?"İlyada 3 onayınız tamamlandı. Özel fiyat uygulanacak."
+ byId("officeAnswer").textContent=pending?"Ofis onayınız bekleniyor. Henüz ödeme yapmayın."
+ :officeStatus==="approved"?"Ofis onayınız tamamlandı. Özel fiyat uygulanacak."
  :officeStatus==="rejected"?"Standart abonelik geçerlidir."
  :officeDeclined?"Standart abonelikle devam edebilirsiniz.":"";
  const amount=officeStatus==="approved"?500:750;
