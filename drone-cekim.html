@@ -734,7 +734,10 @@ function renderNativeMap(rebuild=false){
  if(mapReady||!parcel?.features?.length)return;
  const desiredZ=nativeState.zoom,center=nativeState.center;
  const pixel=mercatorPoint(center[0],center[1],desiredZ);
- const desiredRadius=Math.min(6,Math.max(3,Math.ceil(Math.max(innerWidth,innerHeight)/(512*Math.max(.7,nativeState.flightScale||1.12)))+1));
+ // Yaricapi olcege degil sabit en kucuk olcege (1.12) gore hesapla: yaklasirken
+ // olcek her karede degistigi icin yaricap da degisiyor, yuklenmekte olan
+ // karolar iptal edilip bastan isteniyordu; yeni seviye hic ekrana gelmiyordu.
+ const desiredRadius=Math.min(6,Math.max(3,Math.ceil(Math.max(innerWidth,innerHeight)/(512*1.12))+1));
  const bx=Math.floor(pixel.x/256)-desiredRadius,by=Math.floor(pixel.y/256)-desiredRadius;
  const shownZ=nativeState.displayedZoom===null?desiredZ:nativeState.displayedZoom;
  const shown=mercatorPoint(center[0],center[1],shownZ);
@@ -824,8 +827,8 @@ function useParcel(input,title){
   map.getSource("parcels").setData(parcel);
   if(map.getSource("parcel-labels"))map.getSource("parcel-labels").setData(parcelLabelData());
   map.getSource("route").setData(routeData(parcelCenter,info.dx,info.dy));
-  map.fitBounds(info.bounds,{padding:{top:110,bottom:Math.min(300,Math.floor(innerHeight*.35)),left:55,right:55},duration:900,maxZoom:17});
-  map.once("moveend",()=>{orbitZoom=Math.min(17,Math.max(13,map.getZoom()));});
+  map.fitBounds(info.bounds,{padding:{top:110,bottom:Math.min(300,Math.floor(innerHeight*.35)),left:55,right:55},duration:900,maxZoom:18});
+  map.once("moveend",()=>{orbitZoom=Math.min(18,Math.max(13,map.getZoom()));});
   $("fallbackMap").hidden=true;$("rasterMap").hidden=true;
   status(next.features.length+" parsel 3D haritada hazır. Uçuşu başlatabilirsin.");
   setButtons();
@@ -839,44 +842,70 @@ function smoothFlightStep(value){
  const t=Math.max(0,Math.min(1,value));
  return t*t*(3-2*t);
 }
+// Asamalar: yaklasma %0-42, 360° tur %42-74, yakin plan %74-100.
+// Yakin plan eskiden yalnizca %15 sureydi; 2+ zoom seviyesi bu kadar kisa
+// surede yuklenemedigi icin parsel bulanik kalip "odaklanamiyor" gibiydi.
+const FLIGHT_APPROACH_END=0.42,FLIGHT_ORBIT_END=0.74;
 function flightStage(p){
- if(p<0.50)return "approach";
- if(p<0.85)return "orbit";
+ if(p<FLIGHT_APPROACH_END)return "approach";
+ if(p<FLIGHT_ORBIT_END)return "orbit";
  return "final";
+}
+// Parseli ekrana sigdiran zoom. Eskiden yakin plan parsel buyuklugunden
+// bagimsiz olarak her zaman 17.8-18.2 idi; buyuk parseller ekrandan tasiyor,
+// kamera parselin sadece ortasina "yapisiyordu". Sonuc parsel ve ekran
+// boyutuna gore onbelleklenir (her karede yeniden hesaplanmaz).
+let flightFitCache={parcel:null,key:"",zoom:16};
+function flightFitZoom(){
+ const key=(mapReady?"m":"n")+":"+innerWidth+"x"+innerHeight;
+ if(flightFitCache.parcel===parcel&&flightFitCache.key===key)return flightFitCache.zoom;
+ const info=coordinateStats(parcel);
+ let z;
+ if(mapReady){
+  try{
+   const cam=map.cameraForBounds(info.bounds,{padding:{top:110,bottom:Math.min(300,Math.floor(innerHeight*.35)),left:55,right:55}});
+   z=cam&&Number.isFinite(cam.zoom)?cam.zoom:orbitZoom;
+  }catch(_){z=orbitZoom}
+ }else{
+  // Yerel uydu gorunumu 1.12 olcekle cizilir; +0.1 ile ayni cerceveye denk gelir.
+  z=nativeZoomForParcel(info)+0.1;
+ }
+ z=Math.min(18.2,Math.max(12,z));
+ flightFitCache={parcel,key,zoom:z};
+ return z;
 }
 function flightCamera(p){
  // Sarmal inis yerine 3 adimli sinematik cekim:
- // 0-50% dogrudan yaklasma; 50-85% SABIT mesafede tek 360° cevre turu;
- // 85-100% sabit dogrultuda parsel uzerine yakin plan.
+ // dogrudan yaklasma -> SABIT mesafede tek 360° cevre turu ->
+ // sabit dogrultuda parsel uzerine yakin plan. Tum zoomlar parsel boyutuna gore.
  const t=Math.max(0,Math.min(1,Number(p)||0));
  const stage=flightStage(t);
  const finalAngle=Math.max(30,Math.min(80,Number($("pitch").value)||75));
  const turnAngle=Math.min(68,finalAngle);
- const turnZoom=15.65;
- const startZoom=10.5;
- const finalZoom=Math.min(18.2,Math.max(17.8,orbitZoom+1.5));
- const finalNativeZoom=Math.min(18.2,Math.max(17.8,nativeZoomForParcel(coordinateStats(parcel))+1.65));
- let bearing,pitch,mapZoom,continuousZoom;
+ const fitZoom=flightFitZoom();
+ // Yuksek egimde parselin uzak kenari ufka kacar; hafif geri durarak cercevede tut.
+ const finalZoom=Math.min(18.2,fitZoom+(finalAngle>=70?0.15:0.35));
+ const turnZoom=Math.max(12,Math.min(16.2,finalZoom-1.8));
+ const startZoom=Math.min(10.5,turnZoom-4);
+ let bearing,pitch,zoom;
  if(stage==="approach"){
-  const e=smoothFlightStep(t/0.50);
+  const e=smoothFlightStep(t/FLIGHT_APPROACH_END);
   bearing=0;
   pitch=12+(46-12)*e;
-  mapZoom=startZoom+(turnZoom-startZoom)*e;
-  continuousZoom=startZoom+(turnZoom-startZoom)*e;
+  zoom=startZoom+(turnZoom-startZoom)*e;
  }else if(stage==="orbit"){
-  const k=(t-0.50)/0.35;
+  const k=(t-FLIGHT_APPROACH_END)/(FLIGHT_ORBIT_END-FLIGHT_APPROACH_END);
   const rotation=smoothFlightStep(k);
   bearing=360*rotation; // Yalnizca bir cevre turu.
   pitch=46+(turnAngle-46)*smoothFlightStep(Math.min(1,k*2.5));
-  mapZoom=turnZoom;
-  continuousZoom=turnZoom;
+  zoom=turnZoom;
  }else{
-  const e=smoothFlightStep((t-0.85)/0.15);
-  bearing=360; // Tam turdan sonra ilk yöne geri dön.
+  const e=smoothFlightStep((t-FLIGHT_ORBIT_END)/(1-FLIGHT_ORBIT_END));
+  bearing=0; // 360 ile ayni yon; acikca 0 vermek aci normallestirme sicramasini onler.
   pitch=turnAngle+(finalAngle-turnAngle)*e;
-  mapZoom=turnZoom+(finalZoom-turnZoom)*e;
-  continuousZoom=turnZoom+(finalNativeZoom-turnZoom)*e;
+  zoom=turnZoom+(finalZoom-turnZoom)*e;
  }
+ const mapZoom=zoom,continuousZoom=zoom;
  const rasterZoom=Math.floor(continuousZoom);
  const rasterScale=1.12*Math.pow(2,continuousZoom-rasterZoom);
  return{center:[...parcelCenter],bearing,pitch,mapZoom,rasterZoom,rasterScale,stage};
