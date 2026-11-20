@@ -120,6 +120,21 @@
   .mod h3{font-size:18px;color:var(--navy);margin-bottom:6px}
   .mod p{color:var(--muted);font-size:15.5px}
 
+  .mod-link{display:inline-block;margin-top:10px;font-weight:700;font-size:15px;color:var(--navy-2);text-decoration:none}
+  .mod-link:hover{color:var(--accent-d)}
+
+  /* Videos */
+  .vids{display:grid;grid-template-columns:repeat(3,minmax(0,300px));gap:28px;justify-content:center}
+  .vid{margin:0;text-align:center}
+  .vid video{width:100%;aspect-ratio:9/16;display:block;border-radius:22px;background:var(--navy);box-shadow:0 20px 44px rgba(16,46,80,.22);border:6px solid var(--navy)}
+  .vid figcaption{margin-top:14px}
+  .vid figcaption b{display:block;color:var(--navy);font-size:17px}
+  .vid figcaption span{color:var(--muted);font-size:15px}
+  @media(max-width:820px){
+    .vids{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:76%;justify-content:start;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 20px 12px;margin:0 -20px;gap:16px}
+    .vid{scroll-snap-align:center}
+  }
+
   /* Steps */
   .bg-soft{background:var(--bg)}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;counter-reset:s}
@@ -263,8 +278,37 @@
       <div class="mod"><div class="ic">🔔</div><h3>İlan Asistanı</h3><p>Favori aramalarınızı kaydedin, yeni çıkan ilanları kaçırmayın.</p></div>
       <div class="mod"><div class="ic">🚁</div><h3>Drone Çekim</h3><p>Parsel üzerinde sanal uçuş ve video planı hazırlayın; müşteriye arsayı havadan gösterin.</p></div>
       <div class="mod"><div class="ic">📄</div><h3>EmlakAsistan</h3><p>Belgelerinizi ve sözleşmelerinizi tek yerde hazırlayın ve düzenleyin.</p></div>
-      <div class="mod"><div class="ic">🧮</div><h3>TapuMatik</h3><p>Tapu harcı ve satış masraflarını saniyeler içinde hesaplayın, müşteriye net rakam verin.</p></div>
+      <div class="mod"><div class="ic">🧮</div><h3>TapuMatik</h3><p>Tapu harcı ve satış masraflarını saniyeler içinde hesaplayın, müşteriye net rakam verin.</p><a class="mod-link" href="#videolar">▶ 40 saniyede izleyin</a></div>
       <div class="mod"><div class="ic">✍️</div><h3>PDF İmzala</h3><p>Belgeleri imzalayın ve müşterinizle paylaşın, çıktı almaya gerek kalmasın.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="videolar">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>TapuMatik'i 40 saniyede izleyin</h2>
+      <p>Gerçek hesaplar, gerçek rakamlar. Ters hesaptan yatırım analizine kadar.</p>
+    </div>
+    <div class="vids">
+      <figure class="vid">
+        <video controls playsinline preload="none" poster="assets/videos/tapumatik-ters-hesap.jpg" aria-label="TapuMatik ters hesap videosu">
+          <source src="assets/videos/tapumatik-ters-hesap.mp4" type="video/mp4">
+        </video>
+        <figcaption><b>Ters hesap ve pazarlık payı</b><span>"Bana net 3 milyon kalsın" dendiğinde</span></figcaption>
+      </figure>
+      <figure class="vid">
+        <video controls playsinline preload="none" poster="assets/videos/tapumatik-yatirim-analizi.jpg" aria-label="TapuMatik yatırım analizi videosu">
+          <source src="assets/videos/tapumatik-yatirim-analizi.mp4" type="video/mp4">
+        </video>
+        <figcaption><b>Yatırım analizi</b><span>Bu daire yatırımlık mı?</span></figcaption>
+      </figure>
+      <figure class="vid">
+        <video controls playsinline preload="none" poster="assets/videos/tapumatik-tapu-masraflari.jpg" aria-label="TapuMatik tapu masrafları videosu">
+          <source src="assets/videos/tapumatik-tapu-masraflari.mp4" type="video/mp4">
+        </video>
+        <figcaption><b>Tapu günü sürpriz olmasın</b><span>Satıcıya net, alıcıya toplam</span></figcaption>
+      </figure>
     </div>
   </div>
 </section>
