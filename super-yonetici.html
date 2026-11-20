@@ -35,8 +35,8 @@
  .scroll tbody td{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;width:100%;border-bottom:1px solid #edf1f5;padding:10px 12px;min-width:0;overflow-wrap:anywhere;word-break:break-word}
  .scroll tbody td:last-child{border-bottom:0}
  .scroll tbody td:before{content:attr(data-label);flex:0 0 37%;max-width:37%;color:#536b80;font-weight:750;font-size:12px;line-height:1.4}
- .scroll tbody td[data-label="İşlem"],.scroll tbody td[data-label="İlyada 3"]{display:block}
- .scroll tbody td[data-label="İşlem"]:before,.scroll tbody td[data-label="İlyada 3"]:before{display:block;max-width:100%;margin-bottom:7px}
+ .scroll tbody td[data-label="İşlem"],.scroll tbody td[data-label="Ofis"]{display:block}
+ .scroll tbody td[data-label="İşlem"]:before,.scroll tbody td[data-label="Ofis"]:before{display:block;max-width:100%;margin-bottom:7px}
  .scroll tbody td button{width:100%;min-width:0;max-width:100%;margin:5px 0!important;white-space:normal;overflow-wrap:anywhere;line-height:1.4;min-height:44px}
  .scroll tbody td .pill{max-width:60%;overflow-wrap:anywhere;text-align:right}
  #officeApprovalPanel .scroll tbody td[data-label="İşlem"] button{display:block}
@@ -60,12 +60,12 @@
 <div id="announcementAdminList"></div>
 </div></details>
 <div id="approvalAlert" class="approval-alert" role="status" aria-live="polite" hidden>
- <span id="approvalAlertText">İlyada 3 onay talebi bekliyor.</span>
+ <span id="approvalAlertText">Onay talebi bekliyor.</span>
  <button type="button" id="approvalJump">Taleplere Git</button>
 </div>
 <div class="notify-control">
  <button type="button" id="approvalNotifyEnable">🔔 Yeni Taleplerde Bildir</button>
- <span id="approvalNotifyInfo" class="muted">İlyada 3 başvuruları panel açıkken 60 saniyede bir kontrol edilir.</span>
+ <span id="approvalNotifyInfo" class="muted">Ofis Paketi ve RE/MAX şablon başvuruları panel açıkken 60 saniyede bir kontrol edilir.</span>
 </div>
 <section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
 <h2>Shopier Ödeme Bağlantısı</h2>
@@ -74,9 +74,9 @@
 <p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
 <p id="shopierOrderHealthResult" class="muted" role="status" aria-live="polite"></p>
 </section>
-<section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 özel Shopier ürünü">
-<h2>İlyada 3 · 500 TL Shopier Ürünü</h2>
-<p class="muted"><strong>500 TL (KDV dahil) / 12 ay</strong> İlyada 3 özel ürünümüz hazırsa <strong>tekrar ürün oluşturma veya görsel yükleme</strong>. Önce <strong>Ürün Oluşturma Durumunu Kontrol Et</strong> ile mevcut kaydı ve ödeme aktivasyonunu doğrula. 750 TL standart ürün korunur.</p>
+<section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="Ofis Paketi 500 TL Shopier ürünü">
+<h2>Ofis Paketi · 500 TL Shopier Ürünü</h2>
+<p class="muted"><strong>500 TL (KDV dahil) / 12 ay</strong> Ofis Paketi ürünümüz hazırsa <strong>tekrar ürün oluşturma veya görsel yükleme</strong>. Önce <strong>Ürün Oluşturma Durumunu Kontrol Et</strong> ile mevcut kaydı ve ödeme aktivasyonunu doğrula. 750 TL standart ürün korunur.</p>
 <label for="shopierOfficeArtwork" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün görseli (PNG)</label>
 <input type="file" id="shopierOfficeArtwork" accept="image/png,.png" style="display:block;width:100%;margin:0 0 12px">
 <div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button><button id="shopierOfficeProductDiscover" type="button">Shopier’deki 500 TL Ürününü Bul</button></div>
@@ -99,7 +99,7 @@
 </section>
 <section class="card" id="officePackagePanel" style="margin-top:16px" aria-label="RE/MAX hediye JSON paketi yönetimi">
 <h2>🎁 RE/MAX Şablon Paketi</h2>
-<p class="muted">Paketi bir kez sen yüklersin. İlyada 3 ofis onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
+<p class="muted">Paketi bir kez sen yüklersin. RE/MAX şablon onayı ve aktif EmlakCRM aboneliği olan danışmanlar EmlakAsistan içinden tek tuşla erişir.</p><p id="remaxPackageSummary" class="remax-package-summary" role="status" aria-live="polite">Paket durumu kontrol ediliyor…</p>
 <label for="remaxPackageFile" style="font-weight:700;display:block;margin:8px 0">RE/MAX JSON dosyan</label>
 <input id="remaxPackageFile" type="file" accept=".json,application/json" style="width:100%;margin:4px 0 12px" aria-label="RE/MAX şablon paketini seç">
 <div class="toolbar">
@@ -111,13 +111,13 @@
 </section>
 
 <div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>7 günlük denemede</span><strong id="trial">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
-<section class="card" id="userTablePanel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>📋 Kayıtlı Kullanıcılar · Abonelikler · İlyada 3</h2><div class="approval-tool"><button type="button" id="refresh">Tümünü Yenile</button><button type="button" id="discountRefresh">Ofis Onaylarını Yenile</button></div></div><p class="muted overviewSubtitle">Kayıt olan herkes tek çizelgede görünür. Ofis başvurularını aynı satırdan onaylayabilir veya reddedebilirsin. Ofis onayı ücretli abonelik değildir; onaylı çalışanlar aktif deneme veya abonelikleri boyunca RE/MAX şablonlarına erişebilir.</p>
-<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="trial">7 günlük denemede</option><option value="trial_expired">Denemesi biten</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option><option value="office_pending">İlyada 3 onayı bekleyen</option><option value="office_approved">İlyada 3 onaylı</option><option value="office_rejected">İlyada 3 reddedilen</option></select></div>
-<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th>İlyada 3 · Onay / İşlem</th></tr></thead><tbody id="rows"></tbody></table></div>
+<section class="card" id="userTablePanel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>📋 Kayıtlı Kullanıcılar · Abonelikler · Ofis Onayları</h2><div class="approval-tool"><button type="button" id="refresh">Tümünü Yenile</button><button type="button" id="discountRefresh">Ofis Onaylarını Yenile</button></div></div><p class="muted overviewSubtitle">Kayıt olan herkes tek çizelgede görünür. Ofis başvurularını aynı satırdan onaylayabilir veya reddedebilirsin. Ofis onayı ücretli abonelik değildir; onaylı çalışanlar aktif deneme veya abonelikleri boyunca RE/MAX şablonlarına erişebilir.</p>
+<div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="trial">7 günlük denemede</option><option value="trial_expired">Denemesi biten</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option><option value="office_pending">Ofis onayı bekleyen</option><option value="office_approved">Ofis onaylı</option><option value="office_rejected">Ofis reddedilen</option><option value="remax_pending">RE/MAX şablon onayı bekleyen</option><option value="remax_approved">RE/MAX şablon onaylı</option></select></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th>Ofis Paketi · RE/MAX Şablon</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
 
 
-<div class="notice">İlyada 3 onayı yalnızca 500 TL fiyat ve RE/MAX şablon paketine hak kazandırır. Ücretli abonelik ancak doğrulanmış başarılı ödeme sonrasında aktifleştirilir.</div>
+<div class="notice">Ofis onayı yalnızca 500 TL fiyata, RE/MAX şablon onayı yalnızca İlyada 3 şablon paketine hak kazandırır; ikisi ayrı verilir. Ücretli abonelik ancak doğrulanmış başarılı ödeme sonrasında aktifleştirilir.</div>
 </div></main>
 <script>
 "use strict";
@@ -126,7 +126,7 @@ const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const sessionKey="emlakcrm_auth_session_v1";
 const rememberedKey="emlakcrm_auth_remember_v1";
 const $=id=>document.getElementById(id);
-let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();let officeRequestsByUserId=new Map();
+let userRows=[];let discountToken=null;let officeStatusByEmail=new Map();let officeRequestsByUserId=new Map();let remaxByUserId=new Map(),remaxAvailable=false;
 const RE_MAX_BUCKET="emlakcrm-office-templates";
 const RE_MAX_PATH="ilyada3/remax-templates.json";
 const RE_MAX_OBJECT=endpoint+"/storage/v1/object/"+RE_MAX_BUCKET+"/"+RE_MAX_PATH;
@@ -199,7 +199,7 @@ shopierProductCreateBtn.addEventListener("click",async()=>{
  if(!file||file.type!=="image/png"||file.size>5*1024*1024||file.size<10000){
   shopierProductCreateState.textContent="Lütfen 5 MB'dan küçük, geçerli PNG görselini seçin.";return;
  }
- if(!confirm("İlyada 3 için yalnızca bir adet 500 TL dijital abonelik ürünü, Shopier vitrininde gizli olacak şekilde oluşturulsun mu? 750 TL ürün değişmeyecek."))return;
+ if(!confirm("Ofis Paketi için yalnızca bir adet 500 TL dijital abonelik ürünü, Shopier vitrininde gizli olacak şekilde oluşturulsun mu? 750 TL ürün değişmeyecek."))return;
  shopierProductCreateBtn.disabled=true;
  shopierProductCreateState.textContent="500 TL görseli güvenli alana yükleniyor…";
  try{
@@ -361,7 +361,7 @@ remaxUpload.addEventListener("click",async()=>{
     if(file.size>20*1024*1024)throw Error("JSON paketi 20 MB'dan büyük olamaz.");
     const body=await file.text(),data=JSON.parse(body);remaxValidate(data);
     const token=await verifiedToken();
-    if(!confirm(data.length+" RE/MAX şablonu İlyada 3 danışmanlarının erişimine açılsın mı? Önceki paket varsa güncellenecek."))return;
+    if(!confirm(data.length+" RE/MAX şablonu şablon onaylı danışmanların erişimine açılsın mı? Önceki paket varsa güncellenecek."))return;
     remaxStatus.textContent="Paket güvenli alana yükleniyor...";
     const response=await fetch(RE_MAX_OBJECT,{
       method:"POST",headers:{...remaxHeaders(token),"Content-Type":"application/json","x-upsert":"true"},
@@ -370,7 +370,7 @@ remaxUpload.addEventListener("click",async()=>{
     if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||"Yükleme başarısız (HTTP "+response.status+").")}
     $("remaxPackageFile").value="";
     showRemaxState(true,new Date().toISOString());
-    remaxStatus.textContent=data.length+" şablon yüklendi. Aktif abonelikli ve onaylı İlyada 3 danışmanları EmlakAsistan'da görebilir.";
+    remaxStatus.textContent=data.length+" şablon yüklendi. Aktif abonelikli ve RE/MAX şablon onaylı danışmanlar EmlakAsistan'da görebilir.";
   }catch(e){remaxStatus.textContent="JSON yüklenemedi: "+e.message}
   finally{remaxUpload.disabled=!$("remaxPackageFile").files?.length}
 });
@@ -411,16 +411,23 @@ async function loadDiscounts({quiet=false}={}){
   }
   officeRequestsByUserId=byUser;
   officeStatusByEmail=byEmail;
-  const pendingItems=sorted.filter(item=>item.status==="pending");
+  // RE/MAX şablon onayları ayrı tabloda; sunucuda henüz yoksa sessizce atlanır.
+  try{
+   const remax=await discountRpc("emlakcrm_admin_remax_template_requests",{},discountToken);
+   remaxByUserId=new Map((Array.isArray(remax)?remax:[]).map(r=>[String(r.user_id||"").toLowerCase(),r]));
+   remaxAvailable=Array.isArray(remax);
+  }catch(_){remaxAvailable=false;remaxByUserId=new Map()}
+  const remaxPending=[...remaxByUserId.values()].filter(r=>r.status==="pending");
+  const pendingItems=[...sorted.filter(item=>item.status==="pending"),...remaxPending.map(r=>({id:"remax:"+r.user_id}))];
   const pending=pendingItems.length;
   const ids=new Set(pendingItems.map(item=>String(item.id)));
   const newlyArrived=approvalKnownPending!==null?pendingItems.filter(item=>!approvalKnownPending.has(String(item.id))):[];
   approvalKnownPending=ids;
   $("approvalAlert").hidden=!pending;
-  $("approvalAlertText").textContent=pending?"🔔 "+pending+" İlyada 3 danışmanının başvurusu onayınızı bekliyor.":"";
+  $("approvalAlertText").textContent=pending?"🔔 "+pending+" başvuru onayınızı bekliyor (Ofis Paketi / RE/MAX şablon).":"";
   document.title=pending?"("+pending+" onay) Süper Yönetici | EmlakCRM":"Süper Yönetici | EmlakCRM";
   if(newlyArrived.length&&window.Notification?.permission==="granted"){
-   try{new Notification("EmlakCRM: Yeni İlyada 3 başvurusu",{body:newlyArrived.length+" yeni danışman için onay bekleniyor.",tag:"emlakcrm-ilyada3-pending"});}catch(_){}
+   try{new Notification("EmlakCRM: Yeni onay başvurusu",{body:newlyArrived.length+" yeni başvuru onay bekliyor.",tag:"emlakcrm-ilyada3-pending"});}catch(_){}
   }
   render();
  }catch(e){if(!quiet)$("error").textContent="Ofis kayıtları alınamadı: "+String(e.message||e)}
@@ -429,12 +436,29 @@ function showGate(message){$("dashboard").classList.add("hidden");$("gate").clas
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
 function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",trial:"7 günlük denemede",trial_expired:"Deneme bitti",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
 function addCell(tr,value,cls,label){const td=document.createElement("td");if(label)td.dataset.label=label;if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
+// RE/MAX İlyada 3 şablon onayı: Ofis Paketi onayından bağımsız.
+function remaxControl(u){
+ const wrap=document.createElement("div");wrap.style.marginTop="8px";wrap.style.paddingTop="8px";wrap.style.borderTop="1px dashed #c9d6e2";
+ const r=remaxByUserId.get(String(u.id||"").toLowerCase()),st=r?.status||"none";
+ const pill=document.createElement("div");pill.className="pill "+(st==="approved"?"ok":st==="pending"?"warn":"");
+ pill.textContent=st==="approved"?"✓ RE/MAX şablon onaylı":st==="pending"?"⏳ RE/MAX şablon onayı bekliyor":st==="rejected"?"RE/MAX şablon reddedildi":"RE/MAX şablon yok";
+ wrap.append(pill);
+ const set=async approve=>{
+  if(!confirm(u.email+" için RE/MAX İlyada 3 şablon "+(approve?"onayı vermek":"onayını kaldırmak / reddetmek")+" istediğinize emin misiniz?"))return;
+  wrap.querySelectorAll("button").forEach(b=>b.disabled=true);
+  try{await discountRpc("emlakcrm_admin_set_remax_templates",{p_user_id:u.id,p_approved:approve},await verifiedToken());await loadDiscounts();}
+  catch(e){alert("RE/MAX şablon onayı güncellenemedi: "+e.message);wrap.querySelectorAll("button").forEach(b=>b.disabled=false);}
+ };
+ const choices=st==="pending"?[["Şablonu Onayla",true],["Reddet",false]]:st==="approved"?[["Şablon Onayını Kaldır",false]]:[["Şablon Onayla",true]];
+ for(const [label,approve] of choices){const b=document.createElement("button");b.type="button";b.textContent=label;if(!approve)b.style.background="#a63838";b.onclick=()=>void set(approve);wrap.append(b);}
+ return wrap;
+}
 function render(){
  const term=$("search").value.toLocaleLowerCase("tr").trim(),filter=$("filter").value;
  const filtered=userRows.filter(u=>{
   const status=u.subscription_status||"none",req=officeRequestsByUserId.get(String(u.id||"").toLowerCase());
-  const office=req?.status||"none";
-  const statusMatch=!filter||(filter.startsWith("office_")?office===filter.slice(7):status===filter);
+  const office=req?.status||"none",remax=remaxByUserId.get(String(u.id||"").toLowerCase())?.status||"none";
+  const statusMatch=!filter||(filter.startsWith("office_")?office===filter.slice(7):filter.startsWith("remax_")?remax===filter.slice(6):status===filter);
   return statusMatch&&(!term||String(u.email||"").toLocaleLowerCase("tr").includes(term));
  });
  const fragment=document.createDocumentFragment();
@@ -449,7 +473,7 @@ function render(){
   const expires=status==="unlimited"?"Süresiz":status==="trial"||status==="trial_expired"?fmt(u.trial_expires_at):fmt(u.expires_at);
   addCell(tr,expires,null,"Deneme / Abonelik bitişi");
   addCell(tr,u.payment_provider||"—",null,"Ödeme");
-  const td=document.createElement("td");td.dataset.label="İlyada 3";td.className="office-action-cell";
+  const td=document.createElement("td");td.dataset.label="Ofis";td.className="office-action-cell";
   if(u.is_super_admin){td.textContent="Yönetici";}
   else{
    const approved=officeState==="approved";
@@ -459,7 +483,7 @@ function render(){
    td.append(state);
    if(req?.requested_at){const info=document.createElement("small");info.className="muted";info.style.display="block";info.textContent="Talep: "+fmt(req.requested_at);td.append(info);}
    const action=async(approve,pendingRequest)=>{
-    const title=approve?"İlyada 3 ofis kaydını onaylamak":"İlyada 3 ofis yetkisini kaldırmak / reddetmek";
+    const title=approve?"Ofis Paketi (500 TL) onayı vermek":"Ofis Paketi onayını kaldırmak / reddetmek";
     if(!confirm(u.email+" için "+title+" istediğinize emin misiniz?"))return;
     td.querySelectorAll("button").forEach(button=>button.disabled=true);
     try{
@@ -467,7 +491,7 @@ function render(){
      if(pendingRequest)await discountRpc("emlakcrm_admin_review_discount",{p_request_id:req.id,p_approve:approve},token);
      else await discountRpc("emlakcrm_admin_set_office_privilege",{p_user_id:u.id,p_approved:approve},token);
      await loadDiscounts();
-    }catch(e){alert("İlyada 3 onayı güncellenemedi: "+e.message);td.querySelectorAll("button").forEach(button=>button.disabled=false);}
+    }catch(e){alert("Ofis onayı güncellenemedi: "+e.message);td.querySelectorAll("button").forEach(button=>button.disabled=false);}
    };
    if(officeState==="pending"&&req?.id){
     for(const [label,approve] of [["Onayla",true],["Reddet",false]]){
@@ -477,11 +501,12 @@ function render(){
     }
    }else{
     const btn=document.createElement("button");btn.type="button";
-    btn.textContent=approved?"Yetkiyi Kaldır":"İlyada 3 Onayla";
+    btn.textContent=approved?"Ofis Onayını Kaldır":"Ofis Onayla";
     if(approved)btn.style.background="#a63838";
     btn.onclick=()=>void action(!approved,false);td.append(btn);
    }
   }
+  if(remaxAvailable&&!u.is_super_admin)td.append(remaxControl(u));
   tr.append(td);fragment.append(tr);
  }
  $("rows").replaceChildren(fragment);
@@ -615,7 +640,7 @@ $("approvalNotifyEnable").addEventListener("click",async()=>{
  if(Notification.permission==="denied"){info.textContent="Bildirim izni tarayıcı ayarlarından açılmalı.";return}
  try{
   const permission=await Notification.requestPermission();
-  info.textContent=permission==="granted"?"Bildirim açık. Panel açıkken yeni İlyada 3 başvuruları bildirilir.":"İzin verilmedi. Paneldeki kırmızı uyarı çalışmaya devam eder.";
+  info.textContent=permission==="granted"?"Bildirim açık. Panel açıkken yeni onay başvuruları bildirilir.":"İzin verilmedi. Paneldeki kırmızı uyarı çalışmaya devam eder.";
  }catch(_){info.textContent="Bildirim izni alınamadı; paneldeki uyarı çalışır."}
 });
 setInterval(()=>{if(!$("dashboard").classList.contains("hidden"))void loadDiscounts({quiet:true})},60000);
