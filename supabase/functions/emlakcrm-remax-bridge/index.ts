@@ -21,11 +21,13 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const allowedHost = ["remax.com.tr", "www.remax.com.tr"].includes(target.hostname.toLowerCase());
     const office = /^\/tr\/ofis\/detay\/[a-z0-9-]{2,80}\/?$/i.test(target.pathname);
     const listing = /^\/tr\/portfoy\/P\d{5,15}\/?$/i.test(target.pathname);
+    // Şehir / ilçe arama sayfaları: /tr/emlak/manisa, /tr/emlak/manisa/yunusemre
+    const search = /^\/tr\/emlak\/[a-z0-9-]{2,60}(\/[a-z0-9-]{2,60}){0,2}\/?$/i.test(target.pathname);
     const keys = [...target.searchParams.keys()];
     const page = target.searchParams.get("page");
-    const allowedQuery = (keys.length === 0 || (office && keys.length === 1 && keys[0] === "page" &&
+    const allowedQuery = (keys.length === 0 || ((office || search) && keys.length === 1 && keys[0] === "page" &&
       /^\d{1,2}$/.test(page || "") && Number(page) >= 1 && Number(page) <= 20));
-    if (target.protocol !== "https:" || !allowedHost || !(office || listing) || !allowedQuery ||
+    if (target.protocol !== "https:" || !allowedHost || !(office || listing || search) || !allowedQuery ||
         target.username || target.password || target.port || target.hash) {
       return json({ error: "invalid_source" }, 400);
     }
