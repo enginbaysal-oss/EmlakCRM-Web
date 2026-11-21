@@ -22,8 +22,6 @@ main{max-width:740px;margin:19px auto;padding:0 16px 30px}
 .panel{padding:23px;border:1px solid #e0ebf3;box-shadow:0 6px 22px #0e416217;margin:12px 0}
 .panel h2{font-size:19px;color:#17384e}
 .product{border-left:4px solid #ef8926}
-.office-pack{background:#f6fbfe;border:1px solid #ccdfeb}
-.office-pack h2{font-size:17px}
 .includes{margin-top:16px;padding-top:14px;border-top:1px solid #e6eef5}
 .includes-title{margin:0 0 8px;font-size:13px;font-weight:800;color:#0c617e;letter-spacing:.3px;text-transform:uppercase}
 .includes-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;font-size:15px;font-weight:600;color:#17384e}
@@ -83,7 +81,6 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
     <p class="includes-note">Ek modül ücreti yok · Destek: <a href="mailto:destek@emlkcrm.com.tr">destek@emlkcrm.com.tr</a> ve WhatsApp</p>
   </div>
 </section>
-<section class="panel office-pack"><h2 style="margin-bottom:6px">🏢 Ofis Paketi</h2><p class="muted" style="margin:0">En az 3 danışmanı olan ofislere <strong>danışman başı yıllık 500 TL</strong>. Ofisinizi ve danışmanlarınızı <a href="https://wa.me/905531354681?text=Merhaba%2C%20ofisimiz%20i%C3%A7in%20EmlakCRM%20Ofis%20Paketi%20hakk%C4%B1nda%20bilgi%20almak%20istiyorum." target="_blank" rel="noopener">WhatsApp'tan</a> ya da <a href="mailto:destek@emlkcrm.com.tr?subject=EmlakCRM%20Ofis%20Paketi">e-postayla</a> bildirin; onaydan sonra her danışman kendi hesabıyla bu sayfadan 500 TL'lik fiyatla ödeme yapar.</p></section>
 <nav class="roadmap" aria-label="Abonelik aşamaları" style="grid-template-columns:repeat(2,1fr)"><span><b>1</b> Hesap</span><span><b>2</b> Ödeme</span></nav>
 <section class="panel">
   <div class="section-heading"><span class="step-count">1</span><div><h2 style="margin:0">Hesabın</h2><span class="muted" style="font-size:13px">Bir kez kayıt olman yeterli</span></div></div>
@@ -99,7 +96,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
   </form>
   <p id="signedInEmail" class="muted" hidden></p>
   <div class="office-check">
-    <p class="office-label">En az 3 danışmanı olan bir ofiste mi çalışıyorsunuz? (Ofis Paketi)</p>
+    <p class="office-label">RE/MAX İlyada 3 ofisi danışmanı mısınız?</p>
     <p class="office-help">Cevabınız <strong>“Evet”</strong> ise lütfen ofis onayınızın tamamlanmasını bekleyiniz. Onaylandıktan sonra ödeme işlemine geçebilirsiniz.</p>
     <div class="office-actions" id="officeActions">
       <button type="button" id="officeYes" class="office-choice">Evet</button>
@@ -191,8 +188,8 @@ function render(){
  byId("officeActions").hidden=["pending","approved","rejected"].includes(officeStatus)||officeDeclined;
  byId("officeYes").disabled=officeBusy;
  byId("officeNo").disabled=officeBusy;
- byId("officeAnswer").textContent=pending?"Ofis onayınız bekleniyor. Henüz ödeme yapmayın."
- :officeStatus==="approved"?"Ofis onayınız tamamlandı. Özel fiyat uygulanacak."
+ byId("officeAnswer").textContent=pending?"İlyada 3 ofis onayınız bekleniyor. Henüz ödeme yapmayın."
+ :officeStatus==="approved"?"İlyada 3 onayınız tamamlandı. Özel fiyat uygulanacak."
  :officeStatus==="rejected"?"Standart abonelik geçerlidir."
  :officeDeclined?"Standart abonelikle devam edebilirsiniz.":"";
  const amount=officeStatus==="approved"?500:750;
