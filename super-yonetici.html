@@ -65,7 +65,7 @@
 </div>
 <div class="notify-control">
  <button type="button" id="approvalNotifyEnable">🔔 Yeni Taleplerde Bildir</button>
- <span id="approvalNotifyInfo" class="muted">Ofis Paketi ve RE/MAX şablon başvuruları panel açıkken 60 saniyede bir kontrol edilir.</span>
+ <span id="approvalNotifyInfo" class="muted">İlyada 3 indirimi ve RE/MAX şablon başvuruları panel açıkken 60 saniyede bir kontrol edilir.</span>
 </div>
 <section class="card" id="shopierIntegrationPanel" style="margin-top:16px" aria-label="Shopier ödeme bildirimi kurulumu">
 <h2>Shopier Ödeme Bağlantısı</h2>
@@ -74,9 +74,9 @@
 <p id="shopierConnectionInfo" class="muted" role="status" aria-live="polite">Shopier bağlantısı kontrol ediliyor…</p>
 <p id="shopierOrderHealthResult" class="muted" role="status" aria-live="polite"></p>
 </section>
-<section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="Ofis Paketi 500 TL Shopier ürünü">
-<h2>Ofis Paketi · 500 TL Shopier Ürünü</h2>
-<p class="muted"><strong>500 TL (KDV dahil) / 12 ay</strong> Ofis Paketi ürünümüz hazırsa <strong>tekrar ürün oluşturma veya görsel yükleme</strong>. Önce <strong>Ürün Oluşturma Durumunu Kontrol Et</strong> ile mevcut kaydı ve ödeme aktivasyonunu doğrula. 750 TL standart ürün korunur.</p>
+<section class="card" id="shopierOfficeProductPanel" style="margin:0 0 16px" aria-label="İlyada 3 indirimi 500 TL Shopier ürünü">
+<h2>İlyada 3 indirimi · 500 TL Shopier Ürünü</h2>
+<p class="muted"><strong>500 TL (KDV dahil) / 12 ay</strong> İlyada 3 indirimi ürünümüz hazırsa <strong>tekrar ürün oluşturma veya görsel yükleme</strong>. Önce <strong>Ürün Oluşturma Durumunu Kontrol Et</strong> ile mevcut kaydı ve ödeme aktivasyonunu doğrula. 750 TL standart ürün korunur.</p>
 <label for="shopierOfficeArtwork" style="display:block;font-weight:700;margin:12px 0 6px">500 TL ürün görseli (PNG)</label>
 <input type="file" id="shopierOfficeArtwork" accept="image/png,.png" style="display:block;width:100%;margin:0 0 12px">
 <div class="toolbar"><button id="shopierOfficeProductCreate" type="button" disabled>Görseli Yükle ve Ürünü Oluştur</button><button id="shopierOfficeCreateCheck" type="button">Ürün Oluşturma Durumunu Kontrol Et</button><button id="shopierOfficeProductDiscover" type="button">Shopier’deki 500 TL Ürününü Bul</button></div>
@@ -113,7 +113,7 @@
 <div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>7 günlük denemede</span><strong id="trial">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
 <section class="card" id="userTablePanel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>📋 Kayıtlı Kullanıcılar · Abonelikler · Ofis Onayları</h2><div class="approval-tool"><button type="button" id="refresh">Tümünü Yenile</button><button type="button" id="discountRefresh">Ofis Onaylarını Yenile</button></div></div><p class="muted overviewSubtitle">Kayıt olan herkes tek çizelgede görünür. Ofis başvurularını aynı satırdan onaylayabilir veya reddedebilirsin. Ofis onayı ücretli abonelik değildir; onaylı çalışanlar aktif deneme veya abonelikleri boyunca RE/MAX şablonlarına erişebilir.</p>
 <div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="trial">7 günlük denemede</option><option value="trial_expired">Denemesi biten</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option><option value="office_pending">Ofis onayı bekleyen</option><option value="office_approved">Ofis onaylı</option><option value="office_rejected">Ofis reddedilen</option><option value="remax_pending">RE/MAX şablon onayı bekleyen</option><option value="remax_approved">RE/MAX şablon onaylı</option></select></div>
-<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th>Ofis Paketi · RE/MAX Şablon</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th>İlyada 3 indirimi · RE/MAX Şablon</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
 
 
@@ -199,7 +199,7 @@ shopierProductCreateBtn.addEventListener("click",async()=>{
  if(!file||file.type!=="image/png"||file.size>5*1024*1024||file.size<10000){
   shopierProductCreateState.textContent="Lütfen 5 MB'dan küçük, geçerli PNG görselini seçin.";return;
  }
- if(!confirm("Ofis Paketi için yalnızca bir adet 500 TL dijital abonelik ürünü, Shopier vitrininde gizli olacak şekilde oluşturulsun mu? 750 TL ürün değişmeyecek."))return;
+ if(!confirm("İlyada 3 indirimi için yalnızca bir adet 500 TL dijital abonelik ürünü, Shopier vitrininde gizli olacak şekilde oluşturulsun mu? 750 TL ürün değişmeyecek."))return;
  shopierProductCreateBtn.disabled=true;
  shopierProductCreateState.textContent="500 TL görseli güvenli alana yükleniyor…";
  try{
@@ -424,7 +424,7 @@ async function loadDiscounts({quiet=false}={}){
   const newlyArrived=approvalKnownPending!==null?pendingItems.filter(item=>!approvalKnownPending.has(String(item.id))):[];
   approvalKnownPending=ids;
   $("approvalAlert").hidden=!pending;
-  $("approvalAlertText").textContent=pending?"🔔 "+pending+" başvuru onayınızı bekliyor (Ofis Paketi / RE/MAX şablon).":"";
+  $("approvalAlertText").textContent=pending?"🔔 "+pending+" başvuru onayınızı bekliyor (İlyada 3 indirimi / RE/MAX şablon).":"";
   document.title=pending?"("+pending+" onay) Süper Yönetici | EmlakCRM":"Süper Yönetici | EmlakCRM";
   if(newlyArrived.length&&window.Notification?.permission==="granted"){
    try{new Notification("EmlakCRM: Yeni onay başvurusu",{body:newlyArrived.length+" yeni başvuru onay bekliyor.",tag:"emlakcrm-ilyada3-pending"});}catch(_){}
@@ -436,7 +436,7 @@ function showGate(message){$("dashboard").classList.add("hidden");$("gate").clas
 function fmt(x){if(!x)return "—";const d=new Date(x);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(d)}
 function statusText(status){return ({unlimited:"Süresiz yönetici",active:"Aktif",trial:"7 günlük denemede",trial_expired:"Deneme bitti",none:"Abonelik yok",pending:"Bekliyor",expired:"Süresi doldu",revoked:"İptal edildi"})[status]||"Belirsiz"}
 function addCell(tr,value,cls,label){const td=document.createElement("td");if(label)td.dataset.label=label;if(cls){const span=document.createElement("span");span.className=cls;span.textContent=value;td.append(span)}else td.textContent=value;tr.append(td)}
-// RE/MAX İlyada 3 şablon onayı: Ofis Paketi onayından bağımsız.
+// RE/MAX İlyada 3 şablon onayı: İlyada 3 indirimi onayından bağımsız.
 function remaxControl(u){
  const wrap=document.createElement("div");wrap.style.marginTop="8px";wrap.style.paddingTop="8px";wrap.style.borderTop="1px dashed #c9d6e2";
  const r=remaxByUserId.get(String(u.id||"").toLowerCase()),st=r?.status||"none";
@@ -483,7 +483,7 @@ function render(){
    td.append(state);
    if(req?.requested_at){const info=document.createElement("small");info.className="muted";info.style.display="block";info.textContent="Talep: "+fmt(req.requested_at);td.append(info);}
    const action=async(approve,pendingRequest)=>{
-    const title=approve?"Ofis Paketi (500 TL) onayı vermek":"Ofis Paketi onayını kaldırmak / reddetmek";
+    const title=approve?"İlyada 3 indirimi (500 TL) onayı vermek":"İlyada 3 indirimi onayını kaldırmak / reddetmek";
     if(!confirm(u.email+" için "+title+" istediğinize emin misiniz?"))return;
     td.querySelectorAll("button").forEach(button=>button.disabled=true);
     try{
