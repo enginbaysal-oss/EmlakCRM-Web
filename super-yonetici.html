@@ -582,7 +582,20 @@ async function loadAdminAnnouncements(){
    label.append(strong,p,small);
    const btn=document.createElement("button");btn.type="button";btn.textContent=row.is_active?"Yayından Kaldır":"Yeniden Yayımla";
    btn.onclick=async()=>{btn.disabled=true;try{await announcementFetch(announcementEndpoint+"?id=eq."+encodeURIComponent(row.id),{method:"PATCH",body:JSON.stringify({is_active:!row.is_active})});await loadAdminAnnouncements()}catch(e){status.textContent=e.message}finally{btn.disabled=false}};
-   div.append(label,btn);root.appendChild(div);
+   const del=document.createElement("button");del.type="button";del.textContent="🗑 Sil";
+   del.style.cssText="background:#fff;color:#b42318;border:1px solid #f1b4ad";
+   del.onclick=async()=>{
+    if(!confirm("“"+row.title+"” duyurusu kalıcı olarak silinsin mi?\nBu işlem geri alınamaz. Sadece gizlemek için “Yayından Kaldır”ı kullanabilirsiniz."))return;
+    del.disabled=true;btn.disabled=true;
+    try{
+     const gone=await announcementFetch(announcementEndpoint+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:{Prefer:"return=representation"}});
+     if(!Array.isArray(gone)||!gone.length)throw Error("Silme izni yok veya duyuru bulunamadı. Veritabanında yönetici silme izni tanımlı olmalı.");
+     status.textContent="Duyuru silindi.";await loadAdminAnnouncements();
+    }catch(e){status.textContent="Silinemedi: "+e.message;del.disabled=false;btn.disabled=false}
+   };
+   const actions=document.createElement("div");actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+   actions.append(btn,del);
+   div.append(label,actions);root.appendChild(div);
   }
   status.textContent=rows.length+" duyuru listelendi.";
  }catch(e){status.textContent="Duyurular yüklenemedi: "+e.message}
