@@ -80,6 +80,7 @@ button.btn-secondary{background:#e9f2f8;color:#164862;box-shadow:none}
     </ul>
     <p class="includes-note">Ek modül ücreti yok · Destek: <a href="mailto:destek@emlkcrm.com.tr">destek@emlkcrm.com.tr</a> ve WhatsApp</p>
   </div>
+  <p id="officeGift" class="gift" hidden>🎁 İlyada 3 danışmanlarına özel: 7 RE/MAX EmlakAsistan JSON şablonu hediye!</p>
 </section>
 <nav class="roadmap" aria-label="Abonelik aşamaları" style="grid-template-columns:repeat(2,1fr)"><span><b>1</b> Hesap</span><span><b>2</b> Ödeme</span></nav>
 <section class="panel">
@@ -195,6 +196,7 @@ function render(){
  const amount=officeStatus==="approved"?500:750;
  byId("displayPrice").textContent=amount+" TL";
  byId("consentPrice").textContent=amount+" TL";
+ byId("officeGift").hidden=officeStatus!=="approved";
  const ready=paymentData?.payment_enabled===true&&paymentData?.activation_enabled===true&&
   paymentData?.price_kurus===amount*100&&!pending&&!paymentData?.already_active;
  byId("pay").disabled=!logged||!ready||!byId("approve").checked;
