@@ -629,7 +629,7 @@ main > #tabs, main > #actPanel, main > #sitesPanel, main > #reportPanel, main > 
 </section>
 <section class="panel" id="externalPortfolioPanel">
 <details id="externalPortfolioDetails"><summary style="cursor:pointer;font-weight:800;padding:10px 4px;font-size:17px">🔗 Çekilen Portföyler <span id="externalPortfolioSummaryCount"></span> — Aç / Kapat</summary><div style="padding-top:12px">
-<p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir.</p>
+<p class="hint">Bir ofisin, bir şehrin veya izin verilen herhangi bir portföy listesinin bağlantılarını virgülle ayırarak gir. Bir ofisi hariç tutmak için bağlantısının başına eksi (-) koy. Örnek: <code>https://remax.com.tr/tr/emlak/manisa, -https://remax.com.tr/tr/ofis/detay/ilyada-3</code> → Manisa'daki RE/MAX ilanları gelir, İlyada 3 ilanları gelmez.</p>
 <label for="externalPortfolioUrls">Portföy kaynak bağlantıları (virgülle ayır)</label><p class="hint">Bağlantılar otomatik kaydedilir. Siz değiştirmedikçe burada kalır; yeniden çekmek için tekrar yazmanız gerekmez.</p><p class="hint" id="externalSourceCloudStatus" role="status" aria-live="polite">☁️ Bulut bağlantısı kontrol ediliyor…</p>
 <textarea id="externalPortfolioUrls" rows="3" style="width:100%;box-sizing:border-box" placeholder="https://remax.com.tr/tr/ofis/detay/ilyada-3, https://remax.com.tr/tr/emlak/manisa"></textarea>
 <p class="hint" style="border-left:4px solid #d97706;padding:9px;background:#fff8e8"><strong>Önemli:</strong> Her internet bağlantısından portföy çekilemez. Portföylerin alınabilmesi, kaynak internet sitesinin erişim ve paylaşım izinlerine bağlıdır. Bazı siteler otomatik veri çekilmesine izin vermeyebilir.</p>
@@ -1652,14 +1652,28 @@ async function externalFetchOne(url){
 document.getElementById("externalPortfolioFetch").onclick=async()=>{
  const btn=document.getElementById("externalPortfolioFetch"),status=document.getElementById("externalPortfolioStatus");
  const raw=document.getElementById("externalPortfolioUrls").value;
- const candidates=[...new Set(raw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean))].slice(0,20);
+ // Başına eksi (-) konan bağlantılar hariç tutulur: "manisa, -ilyada-3" → Manisa'dan İlyada 3 ilanları çıkarılır.
+ const parts=[...new Set(raw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean))];
+ const minusRe=/^[-−–—]\s*/;
+ const candidates=parts.filter(s=>!minusRe.test(s)).slice(0,20),excludeCandidates=parts.filter(s=>minusRe.test(s)).map(s=>s.replace(minusRe,"")).slice(0,10);
  const urls=[],invalid=[];for(const s of candidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();urls.push(u.href)}catch{invalid.push(s)}}
+ const excludeUrls=[];for(const s of excludeCandidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();excludeUrls.push(u.href)}catch{invalid.push("-"+s)}}
  if(!urls.length){status.textContent="En az bir geçerli http/https bağlantısı gir.";return}
  btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
+ const excluded=new Set();
+ for(const url of excludeUrls){
+  status.textContent="Hariç tutulacak ilanlar okunuyor...";
+  try{for(const p of await externalFetchOne(url))excluded.add(p.url)}
+  catch(e){status.textContent="Hariç tutulacak bağlantı okunamadı, çekim yapılmadı: "+url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message);btn.disabled=false;return}
+ }
+ status.textContent="Bağlantılar kontrol ediliyor...";
  const found=[],errors=[];
  for(const url of urls){try{found.push(...await externalFetchOne(url))}catch(e){errors.push(url+" — "+(e instanceof TypeError?"Kaynak site tarayıcı erişimine izin vermiyor olabilir":e.message))}}
- const unique=[...new Map(found.map(p=>[p.url,p])).values()];
- const existing=externalRead(),index=new Map(existing.map((x,i)=>[x.url,i]));
+ const fetchedUnique=[...new Map(found.map(p=>[p.url,p])).values()];
+ const unique=fetchedUnique.filter(p=>!excluded.has(p.url));
+ const excludedCount=fetchedUnique.length-unique.length;
+ // Daha önce bu kaynaklardan çekilmiş ama artık hariç tutulan ilanlar da listeden çıkarılır.
+ const existing=externalRead().filter(x=>!(excluded.has(x.url)&&urls.includes(x.source))),index=new Map(existing.map((x,i)=>[x.url,i]));
  for(const p of unique){
   if(index.has(p.url)){const i=index.get(p.url);existing[i]={...existing[i],...p,phone:externalPhone(p.phone)||existing[i].phone||""}}
   else{index.set(p.url,existing.length);existing.push(p)}
@@ -1679,7 +1693,7 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  try{
   localStorage.setItem(externalPortfolioKey,JSON.stringify(active.slice(-1000)));
   externalDraw();
-  status.textContent=unique.length+" güncel ilan okundu, "+prunedCount+" eski kayıt listeden kaldırıldı."+
+  status.textContent=unique.length+" güncel ilan okundu, "+prunedCount+" eski kayıt listeden kaldırıldı."+(excluded.size?" "+excludedCount+" ilan hariç tutuldu.":"")+
    (!pruneSafe&&stale.length?" Eksik/veri kaybı riski olan çekimde "+stale.length+" eski kayıt korundu.":"")+
    (errors.length?" "+errors.length+" bağlantı okunamadı. Ayrıntı: "+errors.slice(0,2).join(" | "):"")+
    (invalid.length?" "+invalid.length+" geçersiz bağlantı atlandı.":"");
@@ -1693,7 +1707,7 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
    }
    localStorage.setItem(externalPortfolioKey,JSON.stringify(active.slice(-1000)));
    externalDraw();
-   status.textContent=unique.length+" ilan okundu, "+prunedCount+" eski kayıt kaldırıldı; cep telefonu: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+
+   status.textContent=unique.length+" ilan okundu, "+prunedCount+" eski kayıt kaldırıldı"+(excluded.size?", "+excludedCount+" ilan hariç tutuldu":"")+"; cep telefonu: "+phoneCheck.found+"/"+phoneCheck.checked+" bulundu."+
     (!pruneSafe&&stale.length?" "+stale.length+" kayıt güvenlik nedeniyle korundu.":"")+
     (errors.length?" Hata: "+errors.slice(0,2).join(" | "):"");
   }
