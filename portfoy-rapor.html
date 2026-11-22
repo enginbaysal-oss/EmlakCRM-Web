@@ -1409,7 +1409,7 @@ function externalDraw(){
  root.style.cssText="display:flex;flex-direction:column;gap:10px";
  root.innerHTML=shown.length?shown.map(p=>{
   const safe=u=>{try{const x=new URL(u);return ["http:","https:"].includes(x.protocol)?x.href:""}catch{return ""}};
-  const link=safe(p.url),image=safe(p.image);const phone=externalPhone(p.phone);const wa=phone?"https://wa.me/"+phone.replace(/^0/,"90"):null;
+  const link=safe(p.url),image=safe(p.image),code=(String(p.url||"").match(/\/portfoy\/(P\d+)/i)||[])[1]||"";const phone=externalPhone(p.phone);const wa=phone?"https://wa.me/"+phone.replace(/^0/,"90"):null;
   const tags=[p.kind,p.propertyType].filter(Boolean).map(t=>'<span style="background:#e5edf2;border-radius:5px;padding:4px 7px;font-size:12px">'+externalEsc(t)+'</span>').join("");
   return '<article class="externalPortfolioFrame" style="border:1px solid #dfe7ed;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:flex-start;gap:12px;padding:10px;flex-wrap:wrap">'+
    (image?'<div class="externalPhotoArea"><img src="'+externalEsc(image)+'" alt="Portföy fotoğrafı" loading="lazy" style="width:160px;max-width:38vw;aspect-ratio:4/3;object-fit:cover;border-radius:8px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div hidden style="padding:12px;background:#fff3e6;color:#78420d">Fotoğraf adresi bulundu ancak resim yüklenemedi. <a href="'+externalEsc(image)+'" target="_blank" rel="noopener noreferrer">Fotoğraf bağlantısını aç</a></div></div>':'<div style="padding:12px;background:#f1f5f9;color:#475569">Kaynak veride fotoğraf adresi bulunamadı.</div>')+
@@ -1420,6 +1420,7 @@ function externalDraw(){
    (p.location?'<div class="hint">📍 '+externalEsc(p.location)+'</div>':'')+
    (p.consultant||phone?'<div class="hint" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">👤 Danışman: '+externalEsc(p.consultant||"Belirtilmemiş")+(phone?'<a href="tel:+'+externalEsc(phone.replace(/^0/,"90"))+'" title="Danışmanı ara" style="padding:5px 9px;border-radius:6px;background:#e8f2ff;color:#1454a1;text-decoration:none">📞 Ara</a><a href="'+externalEsc(wa)+'" target="_blank" rel="noopener noreferrer" title="WhatsApp" style="padding:5px 9px;border-radius:6px;background:#e5f8e9;color:#128c42;text-decoration:none">💬 WhatsApp</a>':'')+'</div>':'')+
    (link?'<a href="'+externalEsc(link)+'" target="_blank" rel="noopener noreferrer" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;background:#171717;color:#fff;text-align:center;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:650;font-size:13px;white-space:nowrap">İlanı Aç ↗</a>':'')+
+   (code?'<button type="button" data-copy-code="'+externalEsc(code.toUpperCase())+'" title="İlan numarasını kopyala; MyRemax aramasına yapıştırabilirsin" style="align-self:flex-start;background:#eef3f7;color:#17324a;border:1px solid #cfdbe5;padding:8px 12px;font-size:13px;border-radius:8px">📋 '+externalEsc(code.toUpperCase())+' · Numarayı Kopyala</button>':'')+
    '<button type="button" data-import-external="'+externalEsc(p.url)+'" style="align-self:flex-start;background:#176b96;padding:8px 12px;font-size:13px;border-radius:8px">＋ Portföylerime Aktar</button>'+
    '</div></article>';
  }).join(""):'<p class="hint">Filtrelere uygun çekilen portföy bulunamadı.</p>';
@@ -1437,6 +1438,16 @@ function backfillImportedConsultants(){
  if(changed){save();drawCards()}
 }
 backfillImportedConsultants();
+// İlan numarasını panoya kopyala (MyRemax aramasına yapıştırmak için).
+document.getElementById("externalPortfolioResults").addEventListener("click",async event=>{
+ const btn=event.target.closest("[data-copy-code]");if(!btn)return;
+ const code=btn.dataset.copyCode,label=btn.textContent;let ok=false;
+ try{await navigator.clipboard.writeText(code);ok=true}catch{}
+ if(!ok){const ta=document.createElement("textarea");ta.value=code;ta.setAttribute("readonly","");ta.style.cssText="position:fixed;left:-9999px;top:0";document.body.append(ta);ta.select();try{ok=document.execCommand("copy")}catch{}ta.remove()}
+ btn.textContent=ok?"✓ "+code+" kopyalandı":"Kopyalanamadı: "+code;
+ btn.style.background=ok?"#e5f7ef":"#fff0db";
+ setTimeout(()=>{btn.textContent=label;btn.style.background="#eef3f7"},2200);
+});
 document.getElementById("externalPortfolioResults").addEventListener("click",event=>{
  const btn=event.target.closest("[data-import-external]");if(!btn)return;
  const source=externalRead().find(p=>p.url===btn.dataset.importExternal);if(!source)return;
