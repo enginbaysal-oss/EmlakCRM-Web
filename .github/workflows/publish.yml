@@ -17,7 +17,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Prepare public website
         env:
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
@@ -59,9 +59,19 @@ jobs:
               shutil.copy2(cname, dest / "CNAME")
           (dest / ".nojekyll").touch()
           PY
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+      # GitHub bazen yeni yüklenen paketi birkaç saniye geç görüyor; ilk deneme düşerse bekleyip tekrar dener.
+      - id: deployment_first
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+      - name: Wait before retrying deploy
+        if: steps.deployment_first.outcome == 'failure'
+        run: sleep 30
+      - id: deployment_retry
+        if: steps.deployment_first.outcome == 'failure'
+        uses: actions/deploy-pages@v5
       - id: deployment
-        uses: actions/deploy-pages@v4
+        run: echo "page_url=${{ steps.deployment_first.outputs.page_url || steps.deployment_retry.outputs.page_url }}" >> "$GITHUB_OUTPUT"
