@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 /** Read-only, superadmin-only Shopier integration readiness; never returns tokens or order PII. */
 const cors={"access-control-allow-origin":"https://enginbaysal-oss.github.io","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"GET,OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"no-store","vary":"Origin"};
@@ -31,7 +32,7 @@ async function probe(path:string){
    empty:Array.isArray(data)?data.length===0:null};
  }catch(e){return {ok:false,http_status:0,error:e instanceof Error&&e.name==="TimeoutError"?"timeout":"connection_error"}}
 }
-Deno.serve(async req=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="GET")return reply(405,{error:"method_not_allowed"});
  try{
@@ -52,4 +53,5 @@ Deno.serve(async req=>{
    test_mode:"read_only_no_payment_no_subscription_activation"
   });
  }catch(e){console.error("Shopier health:",e instanceof Error?e.message:"unknown");return reply(503,{error:"health_check_unavailable"})}
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));

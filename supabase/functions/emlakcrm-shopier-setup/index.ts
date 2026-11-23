@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const cors={"access-control-allow-origin":"https://enginbaysal-oss.github.io","access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","cache-control":"no-store","content-type":"application/json; charset=utf-8","vary":"Origin"};
 const reply=(status:number,data:unknown)=>new Response(JSON.stringify(data),{status,headers:cors});
@@ -33,7 +34,7 @@ function extractList(data:unknown):unknown[]{
  if(data&&typeof data==="object"){const d=data as Record<string,unknown>;for(const k of ["data","webhooks","items","result"])if(Array.isArray(d[k]))return d[k] as unknown[]}
  throw Error("shopier_list_format_unknown");
 }
-Deno.serve(async req=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(!["GET","POST"].includes(req.method))return reply(405,{error:"method_not_allowed"});
  try{
@@ -65,4 +66,5 @@ Deno.serve(async req=>{
   console.error("Shopier setup failed:",code);
   return reply(503,{error:"shopier_setup_failed",reason:code.startsWith("shopier_api_")?code:code==="shopier_pat_missing"?code:"server_or_provider_error"});
  }
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));

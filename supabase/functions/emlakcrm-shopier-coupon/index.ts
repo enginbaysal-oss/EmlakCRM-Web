@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 /** Single-use Shopier codes, created ONLY after super-admin office approval.
  *  No subscription activation: that requires independently verified paid order + account match.
@@ -141,7 +142,7 @@ async function issue(id:string){
  if(!saved||saved.status!=="issued")throw Error("coupon_not_persisted");
  return reply(200,safeRecord(saved));
 }
-Deno.serve(async req=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:hdr});
  if(!["GET","POST"].includes(req.method))return reply(405,{error:"method_not_allowed"});
  try{
@@ -165,4 +166,5 @@ Deno.serve(async req=>{
   console.error("Shopier coupon:",msg);
   return reply(503,{error:"coupon_issue_failed",reason:/^shopier_(?:list_codes|create_code)_http_\d+$/.test(msg)?msg:"temporarily_unavailable"});
  }
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));

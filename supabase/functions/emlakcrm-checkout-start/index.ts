@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {CF_START,callIyzico,verifyIyzicoResponse} from "../_shared/iyzico.ts";
 import {cors,reply,db,loggedInUser,jsonBody,paymentReleaseEnabled} from "../_shared/emlakcrm-payments.ts";
@@ -20,7 +21,7 @@ function clientIp(req:Request):string{
  if(first.length>45||!first||!/^[a-f0-9:.]+$/i.test(first))throw Error("buyer_ip_unavailable");
  return first;
 }
-Deno.serve(async(req:Request)=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return reply(405,{error:"method_not_allowed"});
  // Explicit two-person release gate. Having production credentials is not sufficient.
@@ -103,7 +104,8 @@ Deno.serve(async(req:Request)=>{
   if(e instanceof Error&&e.message==="invalid_json")return reply(400,{error:"invalid_request"});
   return reply(503,{error:"checkout_unavailable"});
  }
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));
 function verifyCheckoutUrl(input:string){
  try{
   const url=new URL(input);

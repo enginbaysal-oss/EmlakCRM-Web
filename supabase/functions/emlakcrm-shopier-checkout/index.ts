@@ -1,3 +1,4 @@
+import {withAllowedOrigin} from "../_shared/emlakcrm-domain-origin.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 /** Shopier checkout readiness. No client can toggle payment or activate access. */
 const cors={"access-control-allow-origin":"https://enginbaysal-oss.github.io","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"GET,OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"no-store","vary":"Origin"};
@@ -9,7 +10,7 @@ async function backend(path:string){
  if(!r.ok)throw Error("backend_http_"+r.status);
  return r.json();
 }
-Deno.serve(async(req:Request)=>{
+const domainMigrationHandler=async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="GET")return reply(405,{error:"method_not_allowed"});
  try{
@@ -47,4 +48,5 @@ Deno.serve(async(req:Request)=>{
   });
  }catch(e){console.error("Shopier checkout readiness",e instanceof Error?e.message:"unknown");
  return reply(503,{error:"payment_readiness_unavailable",payment_enabled:false})}
-});
+};
+Deno.serve(async (req:Request) => withAllowedOrigin(req, await domainMigrationHandler(req)));
