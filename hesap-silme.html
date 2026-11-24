@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hesap ve Veri Silme – EmlakCRM</title>
+<meta name="description" content="EmlakCRM hesabınızı ve verilerinizi silme talebi gönderin.">
+<meta name="theme-color" content="#102e50">
+<link rel="canonical" href="https://emlkcrm.com.tr/hesap-silme.html">
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1b2430;line-height:1.65;margin:0;background:#f6f8fb}
+  header{background:#102e50;color:#fff;padding:18px 20px}
+  header a{color:#fff;text-decoration:none;font-weight:800;font-size:20px}
+  header span{color:#f2a33a}
+  main{max-width:760px;margin:32px auto;background:#fff;padding:34px 30px;border-radius:14px}
+  h1{color:#102e50;font-size:27px;line-height:1.25;margin-top:0}
+  h2{color:#102e50;font-size:19px;margin-top:28px}
+  ul{padding-left:22px}
+  .box{border:1px solid #e3e8ef;border-radius:12px;padding:18px;margin:22px 0;background:#fbfcfe}
+  .danger{background:#b42318;color:#fff;border:0;border-radius:10px;padding:13px 18px;font-weight:800;font-size:16px;cursor:pointer}
+  .danger:disabled{opacity:.5;cursor:not-allowed}
+  .link{display:inline-block;background:#102e50;color:#fff;border-radius:10px;padding:11px 16px;text-decoration:none;font-weight:700}
+  label{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-weight:600}
+  label input{margin-top:5px;width:18px;height:18px;flex:none}
+  .status{margin-top:14px;font-weight:700}
+  .good{color:#126842}.bad{color:#b42318}.muted{color:#5b6675}
+  footer{text-align:center;color:#5b6675;font-size:14px;padding:10px 0 40px}
+  footer a{color:#1b4673}
+  @media(max-width:600px){main{padding:24px 18px;margin:16px}}
+</style>
+</head>
+<body>
+<header><a href="index.html">Emlak<span>CRM</span></a></header>
+<main>
+<h1>Hesap ve Veri Silme</h1>
+<p>EmlakCRM hesabınızı ve hesabınıza bağlı verilerinizi istediğiniz zaman silebilirsiniz. Bu sayfa hem EmlakCRM uygulamasında hem web sitesinde geçerlidir.</p>
+
+<h2>Silinen veriler</h2>
+<ul>
+ <li>Hesabınız (e-posta adresi, ad soyad ve giriş bilgileri)</li>
+ <li>Bulut yedekleri: müşteriler, ajanda, portföyler ve çekilen portföyler</li>
+ <li>Ofis üyelikleri, paylaşılan ofis portföyleri ve onay başvuruları</li>
+ <li>PDF imzalama ve belge arşivinde yüklediğiniz dosyalar</li>
+ <li>Masaüstü aracı ve duyuru okuma kayıtları</li>
+</ul>
+
+<h2>Saklanan veriler</h2>
+<p>Satın aldığınız aboneliklere ait satış, ödeme ve fatura kayıtları, vergi ve tüketici mevzuatı gereği kanuni saklama süresi boyunca saklanır; bu kayıtlar başka bir amaçla kullanılmaz. Ayrıntılar için <a href="kvkk.html">KVKK Aydınlatma Metni</a>'ne bakabilirsiniz.</p>
+
+<h2>Süre</h2>
+<p>Talebiniz en geç <strong>30 gün</strong> içinde tamamlanır ve sonuç kayıtlı e-posta adresinize bildirilir. Bu cihazdaki kayıtlar cihazınızda kalır; tarayıcı verilerini veya uygulamayı silerek bunları da kaldırabilirsiniz.</p>
+
+<div class="box" id="requestBox">
+ <h2 style="margin-top:0">Silme talebi gönder</h2>
+ <p id="who" class="muted">Hesabınız kontrol ediliyor…</p>
+ <div id="form" hidden>
+  <label><input type="checkbox" id="confirm"> Hesabımın ve yukarıda sayılan verilerimin kalıcı olarak silinmesini istiyorum. Bu işlemin geri alınamayacağını biliyorum.</label>
+  <button type="button" class="danger" id="send" disabled>Hesabımı Sil</button>
+ </div>
+ <div id="login" hidden>
+  <p>Talep göndermek için önce EmlakCRM'de hesabınıza giriş yapın, ardından bu sayfaya dönün.</p>
+  <a class="link" href="index.html">EmlakCRM'ye giriş yap</a>
+ </div>
+ <p class="status" id="status" role="status" aria-live="polite"></p>
+</div>
+
+<h2>Giriş yapamıyorsanız</h2>
+<p>Hesabınıza kayıtlı e-posta adresinden <a href="mailto:destek@emlkcrm.com.tr?subject=Hesap%20silme%20talebi">destek@emlkcrm.com.tr</a> adresine "Hesap silme talebi" konulu bir e-posta gönderin. Kimliğinizi doğruladıktan sonra hesabınız aynı şekilde silinir.</p>
+</main>
+<footer><a href="kvkk.html">KVKK</a> · <a href="gizlilik-politikasi.html">Gizlilik Politikası</a> · <a href="iletisim.html">İletişim</a></footer>
+<script>
+(function(){
+ var API="https://tffvwxskvjuxoekwgdef.supabase.co",KEY="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
+ var $=function(id){return document.getElementById(id)};
+ var parse=function(s){try{return JSON.parse(s)}catch(e){return null}};
+ var saved=parse(sessionStorage.getItem("emlakcrm_auth_session_v1")||localStorage.getItem("emlakcrm_auth_remember_v1"));
+ var headers=saved&&saved.access_token?{apikey:KEY,Authorization:"Bearer "+saved.access_token,"Content-Type":"application/json"}:null;
+ function status(msg,cls){var e=$("status");e.className="status "+(cls||"");e.textContent=msg}
+ function showLogin(){$("who").textContent="Bu cihazda EmlakCRM oturumu bulunamadı.";$("login").hidden=false}
+ if(!headers){showLogin();return}
+ fetch(API+"/auth/v1/user",{headers:headers,cache:"no-store",credentials:"omit"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(user){
+  $("who").textContent="Giriş yapılan hesap: "+(user.email||"—");$("form").hidden=false;
+  return fetch(API+"/rest/v1/emlakcrm_account_deletion_requests?select=status,requested_at&user_id=eq."+encodeURIComponent(user.id),{headers:headers,cache:"no-store",credentials:"omit"}).then(function(r){return r.ok?r.json():[]}).then(function(rows){
+   if(rows&&rows[0]&&rows[0].status==="pending")status("Bu hesap için "+new Date(rows[0].requested_at).toLocaleString("tr-TR")+" tarihinde silme talebi alındı. Talebiniz işleniyor.","good");
+  });
+ }).catch(showLogin);
+ $("confirm").onchange=function(){$("send").disabled=!this.checked};
+ $("send").onclick=function(){
+  if(!$("confirm").checked)return;
+  if(!confirm("Hesabınız ve verileriniz kalıcı olarak silinecek. Emin misiniz?"))return;
+  $("send").disabled=true;status("Talebiniz gönderiliyor…","muted");
+  fetch(API+"/rest/v1/rpc/emlakcrm_request_account_deletion",{method:"POST",headers:headers,credentials:"omit",body:JSON.stringify({p_note:"hesap-silme sayfası"})})
+   .then(function(r){if(!r.ok)throw Error(String(r.status));return r.json()})
+   .then(function(){status("✓ Silme talebiniz alındı. Hesabınız ve verileriniz en geç 30 gün içinde silinecek; sonuç e-posta adresinize bildirilecek.","good")})
+   .catch(function(e){$("send").disabled=false;status("Talep gönderilemedi ("+(e.message||e)+"). Lütfen tekrar deneyin veya destek@emlkcrm.com.tr adresine yazın.","bad")});
+ };
+})();
+</script>
+</body>
+</html>
