@@ -44,8 +44,22 @@ export function validateBackupRow(row,version){
   throw Error("Yedekte geçersiz çekilen ilan var.");
  return row.payload;
 }
-function mergeById(local,incoming,kind){
- const result=local.slice(),ids=new Map(),added=[],duplicates=[];
+const emptyValue=x=>x===undefined||x===null||(typeof x==="string"&&x.trim()==="")||(Array.isArray(x)&&x.length===0);
+// Aynı kayıt iki cihazda da varsa: buluttaki daha yeniyse onu al; tarih bilgisi yoksa yalnızca bu cihazda boş kalan alanları buluttan tamamla.
+function refreshExisting(existing,v){
+ const cloudT=Date.parse(v.updatedAt||""),localT=Date.parse(existing.updatedAt||"");
+ if(Number.isFinite(cloudT)&&(!Number.isFinite(localT)||cloudT>localT))
+  return JSON.stringify(existing)===JSON.stringify(v)?null:{...v};
+ if(Number.isFinite(cloudT)||Number.isFinite(localT))return null;
+ let next=null;
+ for(const [k,val] of Object.entries(v)){
+  if(k==="id"||emptyValue(val)||!emptyValue(existing[k]))continue;
+  next=next||{...existing};next[k]=val;
+ }
+ return next;
+}
+function mergeById(local,incoming,kind,updateExisting=false){
+ const result=local.slice(),ids=new Map(),added=[],duplicates=[];let updated=0;
  for(const v of result)if(obj(v)&&validID(v.id))ids.set(String(v.id),v);
  for(const v of incoming){
   const id=String(v.id);
@@ -54,6 +68,8 @@ function mergeById(local,incoming,kind){
    if(kind==="clients"&&normal(existing.name)!==normal(v.name)&&
       (!normal(existing.phone)||!normal(v.phone)||normal(existing.phone)!==normal(v.phone)))
     throw Error("Aynı kimliğe sahip farklı müşteriler bulundu; yükleme durduruldu.");
+   const fresh=updateExisting&&obj(existing)?refreshExisting(existing,v):null;
+   if(fresh){result[result.indexOf(existing)]=fresh;ids.set(id,fresh);updated++;continue}
    duplicates.push(v);continue;
   }
   if(kind==="clients"&&result.some(x=>obj(x)&&normal(x.phone)&&normal(v.phone)&&
@@ -65,7 +81,7 @@ function mergeById(local,incoming,kind){
   }
   ids.set(id,v);result.push(v);added.push(v);
  }
- return {data:result,added:added.length,duplicates:duplicates.length};
+ return {data:result,added:added.length,duplicates:duplicates.length,updated};
 }
 // Ajanda: never overwrite or delete; add only tasks missing on this device.
 function taskKey(t){
@@ -92,7 +108,8 @@ function mergeExternal(local,incoming){
  if(result.length>1000)throw Error("Çekilen portföylerde 1000 kayıt sınırı aşılıyor.");
  return {data:result,added,duplicates};
 }
-export function mergeAll(local,backups){
+export function mergeAll(local,backups,options={}){
+ const updateExisting=options.updateExisting===true;
  if(!obj(local)||!obj(backups))throw Error("Eksik geri yükleme bilgisi.");
  const crm=local.clients===null?{clients:[],tasks:[],offices:[],members:[]}:local.clients;
  const portfolio=local.portfolios===null?{portfolios:[],advisor:{},drafts:{},siteCatalog:[]}:local.portfolios;
@@ -100,8 +117,8 @@ export function mergeAll(local,backups){
  if(!obj(crm)||!Array.isArray(crm.clients)||!Array.isArray(crm.tasks)||
     !obj(portfolio)||!Array.isArray(portfolio.portfolios)||!Array.isArray(external))
   throw Error("Mevcut cihaz kayıtları okunamadı. Üzerine yazma yapılmayacak.");
- const c=Array.isArray(backups.clients)?mergeById(crm.clients,backups.clients,"clients"):{data:crm.clients,added:0,duplicates:0};
- const p=Array.isArray(backups.portfolios)?mergeById(portfolio.portfolios,backups.portfolios,"portfolios"):{data:portfolio.portfolios,added:0,duplicates:0};
+ const c=Array.isArray(backups.clients)?mergeById(crm.clients,backups.clients,"clients",updateExisting):{data:crm.clients,added:0,duplicates:0,updated:0};
+ const p=Array.isArray(backups.portfolios)?mergeById(portfolio.portfolios,backups.portfolios,"portfolios",updateExisting):{data:portfolio.portfolios,added:0,duplicates:0,updated:0};
  const e=Array.isArray(backups.external_portfolios)?mergeExternal(external,backups.external_portfolios):{data:external,added:0,duplicates:0};
  const t=Array.isArray(backups.tasks)?mergeTasks(crm.tasks,backups.tasks):{data:crm.tasks,added:0,duplicates:0};
  return {
@@ -111,6 +128,7 @@ export function mergeAll(local,backups){
    external_portfolios:e.data
   },
   stats:{clients:c,portfolios:p,external_portfolios:e,tasks:t},
-  added:c.added+p.added+e.added+t.added
+  added:c.added+p.added+e.added+t.added,
+  refreshed:(c.updated||0)+(p.updated||0)
  };
 }
