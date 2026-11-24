@@ -1,4 +1,4 @@
-import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js?v=20261119ajanda1";
+import {KINDS,buildRestorePoints,validateBackupRow,mergeAll} from "./bulut-yedek-core.js?v=20261124guncel1";
 // Device storage records. Ajanda (tasks) is stored inside the clients CRM record.
 const STORE_KINDS=["clients","portfolios","external_portfolios"];
 const API="https://tffvwxskvjuxoekwgdef.supabase.co";
@@ -136,19 +136,20 @@ async function restoreAll(){
     throw Error("Seçilen yedek hesabınızda bulunamadı: "+kind);
    backups[kind]=validateBackupRow(rows[0],version);
   }
-  const local=readCurrent(auth.uid),combined=mergeAll(local.data,backups);
-  if(!combined.added){
+  const local=readCurrent(auth.uid),combined=mergeAll(local.data,backups,{updateExisting:true});
+  if(!combined.added&&!combined.refreshed){
    status("Seçilen tarihteki tüm kayıtlar bu cihazda zaten var. Hiçbir değişiklik yapılmadı.","good");
    return;
   }
   // Initiating a local safety file download is deliberately kept in the same click event.
   saveSafetyDownload(auth.uid,local.raw);
-  const summary=combined.stats.clients.added+" müşteri, "+
+  const summary="Eklenecek: "+combined.stats.clients.added+" müşteri, "+
    combined.stats.portfolios.added+" portföy, "+
    combined.stats.external_portfolios.added+" çekilen portföy, "+
-   combined.stats.tasks.added+" ajanda kaydı";
+   combined.stats.tasks.added+" ajanda kaydı"+
+   (combined.refreshed?"\n"+(combined.stats.clients.updated||0)+" müşteri ve "+(combined.stats.portfolios.updated||0)+" portföy buluttaki güncel bilgilerle tamamlanacak (ör. yetki süresi).":"");
   if(!confirm("Önce cihazın güvenlik yedeği İndirilenler'e gönderildi. Dosyayı kontrol edin.\n\n"+
-   summary+" hesabınıza eklenecek. Mevcut kayıtlar silinmeyecek veya üzerine yazılmayacak. Devam edilsin mi?")){
+   summary+"\n\nHiçbir kayıt silinmeyecek. Devam edilsin mi?")){
    status("Geri yükleme iptal edildi. Mevcut kayıtlar değiştirilmedi.","notice");
    return;
   }
@@ -178,7 +179,7 @@ async function restoreAll(){
    }
    throw Error("Kayıt yazma tamamlanamadı. Önceki cihaz yedeğiniz İndirilenler'de. "+String(err.message||err));
   }
-  status("✓ Tamamlandı: "+summary+" eklendi; mevcut kayıtlar korundu.","good");
+  status("✓ Tamamlandı. "+summary.replace(/\n/g," · ")+" · Hiçbir kayıt silinmedi.","good");
   $("result").className="good";
   $("result").textContent="Ana EmlakCRM'ye dönüp müşteri ve portföy sayılarını kontrol edin.";
  }catch(e){issue("Geri yükleme tamamlanamadı: "+String(e.message||e));}
