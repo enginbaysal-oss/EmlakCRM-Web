@@ -7,8 +7,8 @@ android {
   applicationId = if (migrationBuild) "tr.emlakcrm.mobile.migration" else "tr.emlakcrm.mobile"
   minSdk = 24
   targetSdk = 36
-  versionCode = 5
-  versionName = "1.3.1"
+  versionCode = 6
+  versionName = "1.3.2"
   manifestPlaceholders["appLabel"] = if (migrationBuild) "EmlakCRM Yeni" else "EmlakCRM"
  }
 }
