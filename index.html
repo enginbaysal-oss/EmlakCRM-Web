@@ -616,7 +616,7 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
  <strong style="display:block;font-size:19px;color:#17354d">🎁 7 Gün Ücretsiz Deneme!</strong>
  <p style="margin:7px 0 11px;font-size:14px;color:#405568">Tüm modülleri 7 gün ücretsiz kullanın. Kart bilgisi gerekmez.</p>
  <button id="crmCreateTrialAccountTop" type="button" style="display:block;width:100%;max-width:420px;padding:14px 16px;border:0;border-radius:12px;background:#ed7320;color:white;font-size:17px;font-weight:850;cursor:pointer;box-shadow:0 3px 8px #a64e2740">HESAP OLUŞTUR · ÜCRETSİZ DENE</button>
- <p style="margin:8px 0 0;font-size:12px;color:#586a79">Süre bitince verileriniz silinmez; satın alarak devam edebilirsiniz.</p>
+ <p data-satis style="margin:8px 0 0;font-size:12px;color:#586a79">Süre bitince verileriniz silinmez; satın alarak devam edebilirsiniz.</p>
 </section>
 <div class="accountInfo">
 <div><span>Oturum durumu</span><strong id="accountSessionStatus">Kontrol ediliyor</strong></div>
@@ -628,14 +628,14 @@ body[data-screen="home"] #homeView .homeQuickActions button:active{
 <p data-trial-detail style="margin:7px 0"></p>
 <a href="./abonelik-satin-al.html">Deneme sonrası abonelik satın al →</a>
 </section>
-<section class="card" aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
+<section class="card" data-satis aria-label="Abonelik planı" style="margin:14px 0;padding:18px;border:1px solid #dbe3ed">
 <h3 style="margin:0 0 8px">Tek Paket · EmlakCRM Yıllık Abonelik</h3>
 <p style="font-size:24px;font-weight:800;margin:6px 0">750 TL <span style="font-size:14px;font-weight:500">(standart · KDV dahil / 12 ay)</span></p><p style="font-size:13px;color:#22637d;margin:3px 0 8px"><strong>İlyada 3 danışmanları:</strong> Ofis onayından sonra 500 TL (KDV dahil / 12 ay).</p>
 <p style="margin:5px 0">Başlangıç: <strong id="crmLicenseStart">—</strong> · Bitiş: <strong id="crmLicenseEnd">—</strong></p>
 <p id="crmLicenseMessage" class="muted">Abonelik bilgisi girişten sonra görüntülenir.</p>
 <p id="crmAdminPanelLink" hidden style="margin:12px 0"><a href="./super-yonetici.html?v=20261114unified1" style="display:inline-block;background:#f76b12;color:white;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px">🛡️ Süper Yönetici Paneline Git</a> <a href="./eski-kayit-kurtarma.html" style="display:inline-block;background:#eaf3f7;color:#134a66;text-decoration:none;border-radius:10px;font-weight:750;padding:12px 16px;margin-top:8px">🔍 Eski Yerel Kayıtları Kontrol Et</a></p>
 <p style="margin:12px 0"><a href="abonelik-satin-al.html" style="display:inline-block;background:#ef8926;color:#1b3346;padding:12px 16px;border-radius:11px;text-decoration:none;font-weight:800">Abonelik İşlemlerine Geç →</a></p>
-<p class="muted" style="font-size:13px">12 ay kullanım, tek ödeme, otomatik yenileme yok. Abonelik güvenli ödeme sonrasında etkinleşir.</p>
+<p data-satis class="muted" style="font-size:13px">12 ay kullanım, tek ödeme, otomatik yenileme yok. Abonelik güvenli ödeme sonrasında etkinleşir.</p>
 </section>
 <p class="accountNotice">Giriş ve kayıt güvenli EmlakCRM hesabınla yapılır. Kayıtların bu tarayıcıda tutulur ve değiştikçe otomatik olarak buluta yedeklenir. Başka bir cihazda devam etmek için orada giriş yapıp <b>Buluttan Geri Yükle</b>'yi kullan. Abonelik durumunu abonelik sayfasında görebilirsin.</p>
 <div class="accountCloud" id="crmInlineAuth">
@@ -2228,14 +2228,14 @@ void (async()=>{
 
 </script><script defer src="./assets/desktop-widget-sync.js?v=20261114homewidget3"></script><section id="emlakcrm-legal" style="max-width:1040px;margin:24px auto;padding:20px;background:#fff;border:1px solid #dce5ee;border-radius:14px;color:#173047;font:14px system-ui;line-height:1.65">
 <h2>EmlakCRM · Abonelik ve Yasal Bilgiler</h2>
-<p><strong>Standart fiyat: 750 TL (KDV dâhil) / 12 ay.</strong> Onaylı RE/MAX İlyada 3 danışmanları için 500 TL (KDV dâhil) / 12 ay uygulanır. Dijital yazılım kullanım hakkıdır; fiziksel teslimat ve otomatik yenileme yoktur. <strong>Ödeme ve üyelik durumu abonelik ekranında kontrol edilir.</strong></p>
+<p data-satis><strong>Standart fiyat: 750 TL (KDV dâhil) / 12 ay.</strong> Onaylı RE/MAX İlyada 3 danışmanları için 500 TL (KDV dâhil) / 12 ay uygulanır. Dijital yazılım kullanım hakkıdır; fiziksel teslimat ve otomatik yenileme yoktur. <strong>Ödeme ve üyelik durumu abonelik ekranında kontrol edilir.</strong></p>
 <nav aria-label="Yasal belgeler" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0">
 <a href="mesafeli-satis-sozlesmesi.html">Mesafeli Satış Sözleşmesi</a>
 <a href="teslimat-iade.html">Teslimat ve İade</a>
 <a href="gizlilik-politikasi.html">Gizlilik Politikası</a>
 <a href="iletisim.html">İletişim ve Satıcı Bilgileri</a>
 </nav>
-<div aria-label="Shopier ödeme bilgisi" style="margin:16px 0;padding:14px;border:1px solid #dce5ee;border-radius:10px;text-align:center"><strong>Güvenli ödeme altyapısı: Shopier</strong><p style="font-size:12px;margin:10px 0 0">Shopier ödeme altyapısı aktiftir. Ödeme uygunluğu, giriş yapılan hesabın abonelik ve ofis onay durumuna göre güvenli biçimde kontrol edilir. Satın alma işlemleri EmlakCRM abonelik sayfasından başlatılır.</p></div>
+<div data-satis aria-label="Shopier ödeme bilgisi" style="margin:16px 0;padding:14px;border:1px solid #dce5ee;border-radius:10px;text-align:center"><strong>Güvenli ödeme altyapısı: Shopier</strong><p style="font-size:12px;margin:10px 0 0">Shopier ödeme altyapısı aktiftir. Ödeme uygunluğu, giriş yapılan hesabın abonelik ve ofis onay durumuna göre güvenli biçimde kontrol edilir. Satın alma işlemleri EmlakCRM abonelik sayfasından başlatılır.</p></div>
 </section><script>(function(){function togglePaymentFooter(){var section=document.getElementById("emlakcrm-legal");if(!section)return;var route=decodeURIComponent(location.hash.slice(1)).split("?")[0];var allowed=["","account","abonelik","subscription","payment","checkout","on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"];section.hidden=!allowed.includes(route);section.style.display=section.hidden?"none":"";}window.addEventListener("hashchange",togglePaymentFooter);togglePaymentFooter();})();</script><script>(function(){function openLegal(){var id=decodeURIComponent(location.hash.slice(1));if(!["on-bilgilendirme","mesafeli-satis","teslimat-iade","iletisim","gizlilik"].includes(id))return;var e=document.getElementById(id);if(e&&e.tagName==="DETAILS")e.open=true;}window.addEventListener("hashchange",openLegal);openLegal();})();</script><script>
 /* EmlakCRM ana sayfa: hesap doğrulamalı bulut duyuruları, kişiye özel okundu durumu. */
 (function(){
