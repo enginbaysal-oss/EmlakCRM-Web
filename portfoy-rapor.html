@@ -1639,16 +1639,19 @@ async function remaxFillMissingMobiles(records,status){
  }
  return {checked,found,reasons};
 }
+const externalCompleteSources=new Set();
 async function externalFetchOne(url){
  const host=new URL(url).hostname.toLowerCase();
  if(host==="remax.com.tr"||host==="www.remax.com.tr"){
-  const all=[],seen=new Set();
+  const all=[],seen=new Set();let complete=false;
   for(let page=1;page<=20;page++){
    const target=new URL(url);target.searchParams.set("page",String(page));
    const list=await remaxFetchWithFallback(target,html=>remaxParsePage(html,url));let added=0;
    for(const p of list){if(!seen.has(p.url)){seen.add(p.url);all.push(p);added++}}
-   if(list.length<10||added===0)break;
+   if(list.length<10||added===0){complete=true;break}
   }
+  // Sayfalama 20 sayfa sınırına takılmadan bittiyse çekim tamdır.
+  if(complete)externalCompleteSources.add(url);
   return all;
  }
  const response=await fetch(url,{mode:"cors",credentials:"omit",redirect:"follow",signal:AbortSignal.timeout(12000)});
@@ -1670,7 +1673,7 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  const urls=[],invalid=[];for(const s of candidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();urls.push(u.href)}catch{invalid.push(s)}}
  const excludeUrls=[];for(const s of excludeCandidates){try{const u=new URL(s);if(!["https:","http:"].includes(u.protocol))throw Error();excludeUrls.push(u.href)}catch{invalid.push("-"+s)}}
  if(!urls.length){status.textContent="En az bir geçerli http/https bağlantısı gir.";return}
- btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";
+ btn.disabled=true;status.textContent="Bağlantılar kontrol ediliyor...";externalCompleteSources.clear();
  const excluded=new Set();
  for(const url of excludeUrls){
   status.textContent="Hariç tutulacak ilanlar okunuyor...";
@@ -1698,7 +1701,10 @@ document.getElementById("externalPortfolioFetch").onclick=async()=>{
  const verifiedRemaxOffice=!!sourceUrl&&["remax.com.tr","www.remax.com.tr"].includes(sourceUrl.hostname)&&
   /^\/tr\/ofis\/detay\/[a-z0-9-]+\/?$/i.test(sourceUrl.pathname);
  const pruneSafe=verifiedRemaxOffice&&errors.length===0&&invalid.length===0&&
-  unique.length>=10&&unique.length>=Math.ceil(oldSourceCount*0.9);
+  unique.length>=10&&externalCompleteSources.has(urls[0])&&
+  // Eski %90 ölçütü, satılan/kalkan ilanlar biriktikçe temizliği kalıcı olarak engelliyordu.
+  // Artık tam sayfalanmış çekimde yalnızca ani büyük düşüşlere karşı %40 alt sınır var.
+  unique.length>=Math.ceil(oldSourceCount*0.4);
  const prunedCount=pruneSafe?stale.length:0;
  const active=pruneSafe?existing.filter(p=>!urls.includes(p.source)||seen.has(p.url)):existing;
  try{
