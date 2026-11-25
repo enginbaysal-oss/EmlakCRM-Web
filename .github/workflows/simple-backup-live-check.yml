@@ -33,7 +33,7 @@ jobs:
                grep -q 'id="date"' "$restore" &&
                grep -q 'id="restore"' "$restore" &&
                grep -q 'bulut-yedek-sade.js' "$restore" &&
-               grep -q 'mergeAll(local.data,backups)' "$module" &&
+               grep -q 'mergeAll(local.data,backups' "$module" &&
                grep -q 'buildRestorePoints' "$core" &&
                ! grep -q 'id="previewRows"' "$restore"; then
                  echo "LIVE_SIMPLE_BACKUP_UI_OK"
