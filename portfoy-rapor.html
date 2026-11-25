@@ -990,14 +990,35 @@ async function saveProgressReportPdf(){
     new Promise(resolve=>setTimeout(resolve,1800))
    ]);
   }
+  // iPhone/iPad: büyük kapak fotoğrafı ve büyük tuval bellek sınırını aşıp işlemi sonsuza kadar bekletiyordu.
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(cover&&!cover.hidden&&cover.naturalWidth>0){
+   try{
+    const max=isIOS?700:1100,k=Math.min(1,max/Math.max(cover.naturalWidth,cover.naturalHeight));
+    if(k<1||String(cover.src).length>600000){
+     const c=document.createElement("canvas");c.width=Math.max(1,Math.round(cover.naturalWidth*k));c.height=Math.max(1,Math.round(cover.naturalHeight*k));
+     c.getContext("2d").drawImage(cover,0,0,c.width,c.height);
+     const small=c.toDataURL("image/jpeg",0.82);c.width=c.height=0;
+     await new Promise(resolve=>{cover.onload=cover.onerror=resolve;cover.src=small;setTimeout(resolve,1500)});
+    }
+   }catch(_){/* farklı kaynaklı fotoğraf küçültülemezse olduğu gibi kullanılır */}
+  }
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  const blob=await window.html2pdf().set({
+  const renderHeight=Math.max(1,copy.scrollHeight);
+  const maxArea=isIOS?9000000:24000000;
+  const renderScale=Math.max(0.8,Math.min(1.6,Math.sqrt(maxArea/(730*renderHeight))));
+  const keepForPdf=el=>{if(el.tagName==="HEAD"||el.tagName==="STYLE"||el.tagName==="LINK"||(el.closest&&el.closest("head,.html2pdf__overlay")))return true;const overlay=document.querySelector(".html2pdf__overlay");return container.contains(el)||el.contains(container)||(!!overlay&&el.contains(overlay))};
+  const pdfJob=window.html2pdf().set({
    margin:[8,8,8,8],filename,
-   image:{type:"jpeg",quality:0.94},
-   html2canvas:{scale:1.6,useCORS:true,allowTaint:false,backgroundColor:"#fff",scrollX:0,scrollY:0},
+   image:{type:"jpeg",quality:isIOS?0.88:0.94},
+   html2canvas:{scale:renderScale,useCORS:true,allowTaint:false,backgroundColor:"#fff",scrollX:0,scrollY:0,imageTimeout:8000,logging:false,ignoreElements:el=>!keepForPdf(el)},
    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
    pagebreak:{mode:["css","legacy"],avoid:[".paperHead",".reportCard",".movementRow",".reportFooter"]}
   }).from(copy).outputPdf("blob");
+  const blob=await Promise.race([
+   pdfJob,
+   new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(Error("PDF zamanında hazırlanamadı"),{name:"PdfTimeout"})),isIOS?45000:90000))
+  ]);
   if(saveHandle){
    const writable=await saveHandle.createWritable();
    await writable.write(blob);await writable.close();
@@ -1028,7 +1049,12 @@ async function saveProgressReportPdf(){
   }else{
    alert("Tarayıcınız klasör seçerek kaydetmeyi desteklemiyor. Chrome veya Edge ile açın.");
   }
- }catch(err){if(err?.name!=="AbortError")alert("PDF kaydedilemedi: "+String(err?.message||err))}
+ }catch(err){
+  if(err?.name!=="AbortError"){
+   container?.remove();container=null;
+   if(confirm("PDF bu cihazda hazırlanamadı ("+String(err?.message||err)+").\n\nYazdırma ekranı açılsın mı? Oradan Paylaş → 'Dosyalara Kaydet' ile PDF olarak kaydedebilirsiniz."))setTimeout(()=>void printReportExactlyAsPreview(),50);
+  }
+ }
  finally{container?.remove();button.disabled=false;button.textContent=previous}
 }
 $("print").onclick=()=>void saveProgressReportPdf();
