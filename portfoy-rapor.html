@@ -954,6 +954,7 @@ function loadReportPdfEngine(){
 }
 async function saveProgressReportPdf(){
  const button=$("print");
+ const isMobileDevice=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
  if(button.disabled)return;
  if($("paper").hidden||!shown){const report=form();if(!report)return;paper(report)}
  const title=String(current()?.title||"Portfoy").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").slice(0,55);
@@ -991,17 +992,31 @@ async function saveProgressReportPdf(){
    ]);
   }
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  const blob=await window.html2pdf().set({
+  // iPhone/iPad: Safari limits canvas size and memory. Keep the canvas small enough
+  // and never clone the whole application page (portfolio photos etc.) into html2canvas.
+  const reportHeight=Math.max(1,copy.scrollHeight||copy.getBoundingClientRect().height||1);
+  const maxPixels=isMobileDevice?10e6:30e6;
+  const renderScale=Math.max(0.8,Math.min(isMobileDevice?1.3:1.6,Math.sqrt(maxPixels/(730*reportHeight))));
+  const pdfJob=window.html2pdf().set({
    margin:[8,8,8,8],filename,
-   image:{type:"jpeg",quality:0.94},
-   html2canvas:{scale:1.6,useCORS:true,allowTaint:false,backgroundColor:"#fff",scrollX:0,scrollY:0},
+   image:{type:"jpeg",quality:0.92},
+   html2canvas:{scale:renderScale,useCORS:true,allowTaint:false,backgroundColor:"#fff",scrollX:0,scrollY:0,logging:false,imageTimeout:6000,
+    // Only the report copy prepared by html2pdf is rendered; every other part of the page is skipped while cloning.
+    ignoreElements:el=>el.parentElement===document.body&&!(el.classList&&el.classList.contains("html2pdf__overlay"))&&!/^(STYLE|LINK)$/.test(el.tagName)},
    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
    pagebreak:{mode:["css","legacy"],avoid:[".paperHead",".reportCard",".movementRow",".reportFooter"]}
   }).from(copy).outputPdf("blob");
+  // Never leave the button stuck on "PDF hazırlanıyor…": give up after 40 seconds and offer the fallback.
+  let pdfTimer=null;
+  const blob=await Promise.race([
+   Promise.resolve(pdfJob).finally(()=>clearTimeout(pdfTimer)),
+   new Promise((_,reject)=>{pdfTimer=setTimeout(()=>{const e=Error("PDF oluşturma çok uzun sürdü");e.name="PdfTimeout";reject(e)},40000)})
+  ]);
+  if(!blob||!blob.size)throw Error("PDF boş oluştu");
   if(saveHandle){
    const writable=await saveHandle.createWritable();
    await writable.write(blob);await writable.close();
-  }else if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+  }else if(isMobileDevice){
    // Opening the native share sheet after a lengthy PDF conversion loses user activation on iOS.
    // Keep the generated file and let a fresh explicit tap open the system share sheet.
    const old=document.getElementById("reportPdfSaveDialog");old?.remove();
@@ -1028,8 +1043,29 @@ async function saveProgressReportPdf(){
   }else{
    alert("Tarayıcınız klasör seçerek kaydetmeyi desteklemiyor. Chrome veya Edge ile açın.");
   }
- }catch(err){if(err?.name!=="AbortError")alert("PDF kaydedilemedi: "+String(err?.message||err))}
- finally{container?.remove();button.disabled=false;button.textContent=previous}
+ }catch(err){
+  if(err?.name!=="AbortError"){
+   if(isMobileDevice)showPdfFallbackDialog(String(err?.message||err));
+   else alert("PDF kaydedilemedi: "+String(err?.message||err));
+  }
+ }
+ finally{container?.remove();document.querySelectorAll(".html2pdf__overlay").forEach(el=>el.remove());button.disabled=false;button.textContent=previous}
+}
+// Fallback when direct PDF creation fails on a phone: the system print sheet can save the same report as PDF.
+function showPdfFallbackDialog(reason){
+ document.getElementById("reportPdfSaveDialog")?.remove();
+ const dialog=document.createElement("div");dialog.id="reportPdfSaveDialog";
+ dialog.style.cssText="position:fixed;inset:0;z-index:99999;background:#071d30cc;display:grid;place-items:center;padding:18px";
+ const card=document.createElement("div");card.style.cssText="width:min(420px,100%);background:#fff;color:#17324a;padding:20px;border-radius:14px;box-shadow:0 14px 48px #0005";
+ const heading=document.createElement("h3");heading.textContent="PDF doğrudan oluşturulamadı";heading.style.margin="0 0 10px";
+ const info=document.createElement("p");info.style.fontSize="14px";
+ info.textContent="Raporunuz kayıtlı, bir şey kaybolmadı. Aşağıdaki düğmeye dokunun; açılan ekranda Paylaş simgesine basıp \"Dosyalar'a Kaydet\" ile PDF olarak kaydedebilirsiniz.";
+ const small=document.createElement("p");small.style.cssText="font-size:12px;color:#5b6b7a";small.textContent="Ayrıntı: "+reason;
+ const printButton=document.createElement("button");printButton.type="button";printButton.textContent="📄 PDF olarak kaydet (yazdırma ekranı)";printButton.style.cssText="width:100%;background:#157c88;color:white;padding:13px;border-radius:10px;margin:8px 0";
+ const closeButton=document.createElement("button");closeButton.type="button";closeButton.textContent="Kapat";closeButton.style.cssText="width:100%;padding:10px;border-radius:10px";
+ printButton.onclick=()=>{dialog.remove();void printReportExactlyAsPreview()};
+ closeButton.onclick=()=>dialog.remove();
+ card.append(heading,info,printButton,closeButton,small);dialog.appendChild(card);document.body.appendChild(dialog);
 }
 $("print").onclick=()=>void saveProgressReportPdf();
 $("share").onclick=async()=>{if(!shown)return alert("Önce raporu oluşturun.");const p=current(),message=p.title+"\nİlerleme raporu: "+tr(shown.from)+" – "+tr(shown.to)+"\n"+shown.eval;try{if(navigator.share)await navigator.share({title:"İlerleme Raporu",text:message});else window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank")}catch(e){if(e.name!=="AbortError")alert("Paylaşım tamamlanamadı.")}};
