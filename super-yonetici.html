@@ -115,7 +115,7 @@
 <div class="stats"><div class="stat"><span>Toplam kullanıcı</span><strong id="total">—</strong></div><div class="stat"><span>Süper yönetici</span><strong id="admins">—</strong></div><div class="stat"><span>Aktif ücretli abonelik</span><strong id="active">—</strong></div><div class="stat"><span>7 günlük denemede</span><strong id="trial">—</strong></div><div class="stat"><span>Aboneliği olmayan</span><strong id="none">—</strong></div></div>
 <section class="card" id="userTablePanel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>📋 Kayıtlı Kullanıcılar · Abonelikler · İlyada 3</h2><div class="approval-tool"><button type="button" id="refresh">Tümünü Yenile</button><button type="button" id="discountRefresh">İlyada 3 Onaylarını Yenile</button></div></div><p class="muted overviewSubtitle">Kayıt olan herkes tek çizelgede görünür. İlyada 3 başvurularını aynı satırdan onaylayabilir veya reddedebilirsin. İlyada 3 onayı ücretli abonelik değildir; onaylı danışmanlar 500 TL fiyatla abone olabilir ve aktif abonelikleri boyunca RE/MAX şablonlarına erişebilir.</p>
 <div class="toolbar"><input id="search" type="search" placeholder="Kullanıcı e-postasında ara" aria-label="Kullanıcı ara"><select id="filter" aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="unlimited">Süresiz yönetici</option><option value="active">Aktif abonelik</option><option value="trial">7 günlük denemede</option><option value="trial_expired">Denemesi biten</option><option value="none">Abonelik yok</option><option value="pending">Bekleyen</option><option value="expired">Süresi dolan</option><option value="revoked">İptal edilen</option><option value="office_pending">İlyada 3 onayı bekleyen</option><option value="office_approved">İlyada 3 onaylı</option><option value="office_rejected">İlyada 3 reddedilen</option></select></div>
-<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th class="office-head">İlyada 3 onayı</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Kullanıcı</th><th>Kayıt tarihi</th><th>Son giriş</th><th>Abonelik durumu</th><th>Deneme / Abonelik bitişi</th><th>Ödeme</th><th class="office-head">İlyada 3 onayı</th><th class="office-head">Sil</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p id="empty" class="muted hidden">Filtreye uygun kayıt yok.</p><p id="updated" class="muted" style="font-size:12px"></p><p id="error" role="alert"></p></section>
 
 
@@ -391,6 +391,25 @@ $("remaxPackageDelete").addEventListener("click",async()=>{
     remaxStatus.textContent="Paket kaldırıldı. Yeni indirme yapılamaz.";
   }catch(e){remaxStatus.textContent="Paket kaldırılamadı: "+e.message}
 });
+async function deleteUser(u,button){
+ const email=String(u.email||"").trim();
+ if(!u.id||!email){alert("Bu kullanıcının e-posta adresi bulunamadığı için panelden silinemez.");return}
+ const active=["active","unlimited"].includes(u.subscription_status);
+ if(!confirm(email+" hesabı KALICI olarak silinecek.\n\nSilinecekler: giriş hesabı, abonelik / deneme hakkı, bulut yedeği, portföy ve müşteri kayıtları, şablon ve İlyada 3 kayıtları."+(active?"\n\nDİKKAT: Bu kullanıcının aktif aboneliği var.":"")+"\n\nYasal zorunluluk nedeniyle ödeme ve sözleşme onay kayıtları saklanır.\nBu işlem geri alınamaz. Devam edilsin mi?"))return;
+ const typed=prompt("Onaylamak için silinecek hesabın e-posta adresini yazın:\n"+email);
+ if(typed===null)return;
+ if(typed.trim().toLowerCase()!==email.toLowerCase()){alert("Yazılan e-posta adresi eşleşmedi. Hesap silinmedi.");return}
+ button.disabled=true;button.textContent="Siliniyor…";
+ try{
+  const token=await verifiedToken();
+  const response=await fetch(endpoint+"/rest/v1/rpc/emlakcrm_admin_delete_user",{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({p_user_id:u.id,p_confirm_email:typed.trim()})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(result.message||("HTTP "+response.status));
+  userRows=userRows.filter(x=>x.id!==u.id);render();
+  alert(email+" hesabı silindi.");
+  void load();
+ }catch(e){alert("Hesap silinemedi: "+e.message);button.disabled=false;button.textContent="🗑 Sil"}
+}
 async function discountRpc(name,body,token){
  const response=await fetch(endpoint+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:apiKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
  if(!response.ok)throw Error("Ofis doğrulama işlemi tamamlanamadı ("+response.status+").");
@@ -482,7 +501,16 @@ function render(){
     box.append(cb,txt);td.append(box);
    }
   }
-  tr.append(td);fragment.append(tr);
+  tr.append(td);
+  const delTd=document.createElement("td");delTd.dataset.label="Sil";delTd.className="office-action-cell";
+  if(u.is_super_admin)delTd.textContent="—";
+  else{
+   const del=document.createElement("button");del.type="button";del.className="mini";del.textContent="🗑 Sil";del.style.background="#a63838";
+   del.title=u.email+" hesabını ve tüm verilerini kalıcı olarak sil";
+   del.onclick=()=>void deleteUser(u,del);
+   delTd.append(del);
+  }
+  tr.append(delTd);fragment.append(tr);
  }
  $("rows").replaceChildren(fragment);
  $("empty").classList.toggle("hidden",filtered.length>0);
