@@ -974,7 +974,7 @@ async function saveProgressReportPdf(){
   }
  }
  button.disabled=true;const previous=button.textContent;button.textContent="PDF hazırlanıyor…";
- let container=null;
+ let container=null,savedScroll=null;
  try{
   await loadReportPdfEngine();
   container=document.createElement("div");
@@ -1003,6 +1003,9 @@ async function saveProgressReportPdf(){
     }
    }catch(_){/* farklı kaynaklı fotoğraf küçültülemezse olduğu gibi kullanılır */}
   }
+  // iPhone Safari gizli kopya pencereyi kaydıramadığı için sayfa aşağıdayken rapor PDF'te kayıyor, üstte boş sayfa kalıyordu.
+  savedScroll=[window.scrollX||0,window.scrollY||0];
+  if(savedScroll[0]||savedScroll[1])window.scrollTo(0,0);
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   const renderHeight=Math.max(1,copy.scrollHeight);
   const maxArea=isIOS?9000000:24000000;
@@ -1055,7 +1058,7 @@ async function saveProgressReportPdf(){
    if(confirm("PDF bu cihazda hazırlanamadı ("+String(err?.message||err)+").\n\nYazdırma ekranı açılsın mı? Oradan Paylaş → 'Dosyalara Kaydet' ile PDF olarak kaydedebilirsiniz."))setTimeout(()=>void printReportExactlyAsPreview(),50);
   }
  }
- finally{container?.remove();button.disabled=false;button.textContent=previous}
+ finally{container?.remove();button.disabled=false;button.textContent=previous;if(savedScroll&&(savedScroll[0]||savedScroll[1]))window.scrollTo(savedScroll[0],savedScroll[1])}
 }
 $("print").onclick=()=>void saveProgressReportPdf();
 $("share").onclick=async()=>{if(!shown)return alert("Önce raporu oluşturun.");const p=current(),message=p.title+"\nİlerleme raporu: "+tr(shown.from)+" – "+tr(shown.to)+"\n"+shown.eval;try{if(navigator.share)await navigator.share({title:"İlerleme Raporu",text:message});else window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank")}catch(e){if(e.name!=="AbortError")alert("Paylaşım tamamlanamadı.")}};
