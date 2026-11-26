@@ -13,4 +13,10 @@ Disallow: /sandbox-odeme-test.html
 Disallow: /sandbox-odeme-sonuc.html
 Disallow: /odeme-sonucu.html
 
+# Uygulamanın arka plan (veritabanı) adresleri sayfa değildir
+Disallow: /auth/
+Disallow: /rest/
+Disallow: /storage/
+Disallow: /functions/
+
 Sitemap: https://emlkcrm.com.tr/sitemap.xml
