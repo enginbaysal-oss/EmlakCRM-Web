@@ -1,0 +1,51 @@
+name: Super Admin UI checks
+on:
+  pull_request:
+    paths:
+      - 'super-yonetici.html'
+      - '.github/workflows/super-admin-ui-checks.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check HTML IDs, links and JavaScript syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re, subprocess, tempfile
+          class Inspector(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = []
+                  self.anchors = []
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if 'id' in a: self.ids.append(a['id'])
+                  if a.get('href', '').startswith('#'): self.anchors.append(a['href'][1:])
+          html = Path('super-yonetici.html').read_text(encoding='utf-8')
+          parser = Inspector()
+          parser.feed(html)
+          duplicates = sorted({x for x in parser.ids if parser.ids.count(x) > 1})
+          missing = sorted({x for x in parser.anchors if x not in parser.ids})
+          assert not duplicates, f'Duplicate HTML IDs: {duplicates}'
+          assert not missing, f'Broken section anchors: {missing}'
+          for element in ('gate', 'dashboard', 'rows', 'announcementPublish', 'userTablePanel'):
+              assert element in parser.ids, f'Missing essential element: {element}'
+          assert 'admin-side' in html and 'admin-quick' in html, 'New navigation missing'
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.S|re.I)
+          assert scripts, 'No inline scripts found'
+          for i, code in enumerate(scripts):
+              if not code.strip(): continue
+              with tempfile.NamedTemporaryFile(mode='w', suffix='.js', encoding='utf-8') as f:
+                  f.write(code)
+                  f.flush()
+                  subprocess.run(['node', '--check', f.name], check=True)
+          print(f'OK: {len(parser.ids)} IDs, {len(parser.anchors)} anchors, {len(scripts)} inline scripts')
+          PY

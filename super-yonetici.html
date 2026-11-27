@@ -43,11 +43,86 @@
  .scroll tbody td .pill{max-width:60%;overflow-wrap:anywhere;text-align:right}
  #officeApprovalPanel .scroll tbody td[data-label="İşlem"] button{display:block}
 }
+
+/* 2026 Yönetici paneli: yalnızca sunum katmanı, mevcut işlemler korunur. */
+:root{--navy:#112b49;--orange:#f47724;--canvas:#f4f7fb}
+body{background:var(--canvas);color:#213b53}
+header{background:#102b49;padding:17px 22px;box-shadow:0 5px 22px #102b4920}
+header>div{max-width:1500px!important;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:21px;margin:0}header .muted{margin:0;font-size:13px}
+header .back{order:3;margin-left:auto;background:#ffffff1a;border:1px solid #ffffff50;font-size:13px}
+main{max-width:1500px;padding:24px 22px 50px}
+#dashboard{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+#dashboard>.admin-side{grid-column:1;grid-row:1 / span 20;position:sticky;top:18px;background:#102b49;color:#fff;border-radius:17px;padding:18px 12px;box-shadow:0 12px 30px #102b4922}
+.admin-side strong{display:block;padding:7px 12px 16px;font-size:17px}
+.admin-side a{display:flex;align-items:center;gap:9px;color:#dce8f3;text-decoration:none;padding:12px 13px;border-radius:10px;font-weight:650;font-size:13px;margin:3px 0}
+.admin-side a:hover,.admin-side a:focus-visible{background:#f47724;color:white;outline:0}
+#dashboard>.admin-main{grid-column:2;min-width:0;display:flex;flex-direction:column;gap:15px}
+.admin-hero{background:#fff;border:1px solid #e0e9f2;border-radius:16px;padding:20px 23px}
+.admin-hero h2{font-size:23px;margin:0 0 5px}.admin-hero p{margin:0}
+#dashboard .stats{order:0;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#dashboard .stat{border:0;border-radius:14px;color:white;background:linear-gradient(135deg,#1769aa,#2e9ad0);box-shadow:0 7px 18px #183f6c16}
+#dashboard .stat:nth-child(2){background:linear-gradient(135deg,#6851b5,#8d73d1)}
+#dashboard .stat:nth-child(3){background:linear-gradient(135deg,#128e78,#26b99a)}
+#dashboard .stat:nth-child(4){background:linear-gradient(135deg,#e68a27,#f5af4e)}
+#dashboard .stat:nth-child(5){background:linear-gradient(135deg,#53677e,#7d91a5)}
+#dashboard .stat span{color:#fff;opacity:.9}#dashboard .stat strong{color:#fff}
+#dashboard .card{border-radius:15px;box-shadow:0 4px 20px #163b5a0c}
+#dashboard button{background:#f47724;box-shadow:0 3px 8px #f4772425}
+#dashboard button:hover:not(:disabled){filter:brightness(.94)}
+#dashboard .approval-alert button{background:#b62424}
+#dashboard .notify-control button{background:#174f70}
+#dashboard .notice{margin:0}
+#dashboard .admin-main>section,#dashboard .admin-main>details{scroll-margin-top:18px;margin:0!important}
+.admin-quick{order:0;background:#fff;border:1px solid #e0e9f2;border-radius:15px;padding:17px 20px}
+.admin-quick strong{display:block;margin-bottom:12px}
+.admin-quick-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.admin-quick-links a{display:block;text-decoration:none;background:#fff7f1;color:#8e4310;border:1px solid #ffdfc6;border-radius:11px;padding:12px 10px;text-align:center;font-weight:750;font-size:13px}
+.admin-quick-links a:hover,.admin-quick-links a:focus-visible{background:#f47724;color:#fff}
+@media(max-width:1050px){.admin-quick-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.admin-quick-links{grid-template-columns:1fr 1fr}.admin-quick-links a{font-size:12px;padding:10px 7px}}
+#dashboard #announcementAdmin{order:2}#dashboard #userTablePanel{order:1}
+#dashboard #approvalAlert{order:3}#dashboard .notify-control{order:4}
+#dashboard #shopierIntegrationPanel{order:5}#dashboard #shopierOfficeProductPanel{order:6}
+#dashboard #legalDeliveryPanel{order:7}#dashboard #officePackagePanel{order:8}
+#dashboard .admin-main>.notice{order:9}
+#dashboard .admin-main>section:target,#dashboard .admin-main>details:target{outline:2px solid #f47724;outline-offset:3px}
+@media(max-width:1050px){#dashboard .stats{grid-template-columns:repeat(3,minmax(0,1fr))}#dashboard{grid-template-columns:180px minmax(0,1fr)}}
+@media(max-width:720px){
+ header>div{gap:9px}header .back{order:0;margin-left:0}header h1{width:100%;font-size:19px}
+ main{padding:12px 10px 32px}
+ #dashboard{display:block}#dashboard>.admin-side{position:static;margin-bottom:12px;padding:11px}
+ .admin-side strong{padding:6px 8px}
+ .admin-side nav{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px}
+ .admin-side a{white-space:nowrap;padding:10px}
+ #dashboard>.admin-main{display:flex;gap:12px}
+ #dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-hero{padding:16px}.admin-hero h2{font-size:20px}
+ #announcementAdmin .foldContent>div[style*="display:grid"]{grid-template-columns:1fr!important}
+ #announcementAdmin label{grid-column:1/-1!important}
+}
 </style></head><body>
 <header><div style="max-width:1120px;margin:auto"><a class="back" href="./index.html#account">← Ayarlara Dön</a><h1>🛡️ Süper Yönetici Paneli</h1><p class="muted">EmlakCRM kullanıcı ve abonelik durumları</p></div></header>
 <main>
 <section class="card" id="gate" aria-live="polite"><h2>Yetki kontrolü</h2><p id="gateMessage">Oturumunuz ve yönetici yetkiniz doğrulanıyor...</p><a href="./index.html#account">Giriş yapmak veya hesabı değiştirmek için Ayarlara dönün.</a></section>
-<div id="dashboard" class="hidden"><details class="card" id="announcementAdmin" style="margin:12px 0">
+<div id="dashboard" class="hidden">
+<aside class="admin-side" aria-label="Yönetici menüsü"><strong>🏠 EmlakCRM Yönetim</strong><nav>
+<a href="#adminOverview">🏠 Genel Bakış</a>
+<a href="#userTablePanel">👥 Kullanıcılar ve Abonelikler</a>
+<a href="#announcementAdmin" id="announcementMenuLink">📣 Duyurular</a>
+<a href="#approvalAlert">✅ Ofis Onayları</a>
+<a href="#shopierIntegrationPanel">💳 Shopier Ödemeleri</a>
+<a href="#shopierOfficeProductPanel">🏷️ İlyada 3 Ürünü</a>
+<a href="#legalDeliveryPanel">✉️ Sözleşme Teslimi</a>
+<a href="#officePackagePanel">🎁 RE/MAX Şablonları</a>
+</nav></aside>
+<div class="admin-main">
+<div class="admin-hero" id="adminOverview"><h2>Yönetim Paneline Hoş Geldiniz</h2><p class="muted">Kullanıcıları, abonelikleri, duyuruları ve onayları tek ekrandan yönetin. Kartlardaki sayılar canlı kayıtlardan yüklenir.</p></div><div class="admin-quick" aria-label="Hızlı işlemler"><strong>⚡ Hızlı İşlemler</strong><div class="admin-quick-links">
+<a href="#userTablePanel">👥 Kullanıcıları Gör</a>
+<a href="#announcementAdmin" id="quickAnnouncement">📣 Duyuru Oluştur</a>
+<a href="#shopierIntegrationPanel">💳 Ödemeyi Kontrol Et</a>
+<a href="#officePackagePanel">🎁 Şablon Paketini Yönet</a>
+</div></div><details class="card" id="announcementAdmin" style="margin:12px 0">
 <summary class="foldHeading">📣 Duyurular <span class="muted">· Görmek ve düzenlemek için aç</span></summary>
 <div class="foldContent">
 <p class="muted">Yayımlanan duyurular kullanıcıların ana sayfasında görünür. Kişiye özel hedefleme için kullanıcı UUID değerlerini virgülle ayırın.</p>
@@ -120,9 +195,10 @@
 
 
 <div class="notice">İlyada 3 onayı yalnızca 500 TL fiyat ve RE/MAX şablon paketine hak kazandırır. Ücretli abonelik ancak doğrulanmış başarılı ödeme sonrasında aktifleştirilir.</div>
-</div></main>
+</div></div></main>
 <script>
 "use strict";
+for(const id of ["announcementMenuLink","quickAnnouncement"]){document.getElementById(id)?.addEventListener("click",()=>{document.getElementById("announcementAdmin").open=true;});}
 const endpoint="https://tffvwxskvjuxoekwgdef.supabase.co";
 const apiKey="sb_publishable_ADLnhwviFBqWtBkq94Adag_ULlAuzUe";
 const sessionKey="emlakcrm_auth_session_v1";
